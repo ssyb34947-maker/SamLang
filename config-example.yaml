@@ -1,0 +1,38 @@
+# LLM 配置
+llm:
+  api_key: "your_deepseek_api_key"
+  base_url: https://api.deepseek.com
+  model_name: deepseek-reasoner
+  temperature: 0.7
+  max_tokens: 2000
+
+# Agent 配置
+agent:
+  memory_type: buffer
+  max_history: 10
+  react_max_iterations: 6
+
+# 工具配置
+tool:
+  websearch:
+    enabled: True
+    api_url: "https://api.tavily.com"
+    api_key: "your_tavily_api_key"
+
+  youdao_dictionary:
+    enabled: True
+    base_url: "https://openapi.youdao.com/v2/dict"
+    api_key: "your_youdao_api_key"
+
+
+
+# 技能上传工具配置
+skill:
+  enabled: True
+  url: "src/agent/skills/"
+
+  skill_files:
+    - name: order-refund-processing
+      enabled: False
+    - name: word_learning
+      enabled: True
