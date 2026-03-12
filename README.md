@@ -9,7 +9,7 @@
 - 📚 **技能系统** - 核心教学依赖，可扩展的技能学习框架
 - 🎯 **专注语言学习** - 优化的外语学习体验
 
-## 📁 项目结构
+## 📁 项目核心结构
 
 ```
 SamLang/
@@ -31,7 +31,7 @@ SamLang/
 
 ## 🚀 快速开始
 
-### 一键启动（推荐）
+### 一键启动
 
 **Windows:**
 ```bash
@@ -40,7 +40,7 @@ start.bat
 
 这会启动 SamLang 后端服务。
 
-### 手动启动
+### 手动启动（推荐使用uv管理环境）
 
 **1. 安装依赖**
 ```bash
@@ -53,8 +53,27 @@ uv sync
 # 模块化运行
 uv run -m main
 ```
-
 服务将在 http://localhost:8000 运行
+
+**3. 访问前端**
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+访问：http://localhost:5173
+
+<img src="img/home.png" alt="SamLang" width="600"/>
+
+### 终端使用
+如果你不想使用前后端，可以在终端中使用，命令如下：
+
+```bash
+uv run -m src.main
+```
+
+在终端中，你会看到完整的react过程，读到SamLang教授的思考！！！
 
 ## 🎯 使用指南
 
@@ -113,10 +132,5 @@ Windows 用户请确保：
 1. 终端使用 UTF-8 编码
 2. 已设置 `PYTHONIOENCODING=utf-8`
 
-## 📄 许可证
-
-MIT License
-
----
 
 **开始使用 SamLang 提升你的语言学习体验！** 🎯✨
