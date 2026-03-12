@@ -1,0 +1,19 @@
+[project]
+name = "aichatbot"
+version = "0.1.0"
+description = "AI-powered language learning chatbot"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "python-dotenv>=1.0.0",
+    "openai>=1.0.0",
+    "pyyaml>=6.0.0",
+    "pydantic>=2.0.0",
+    "fastmcp>=0.1.0",
+    "asyncio>=4.0.0",
+    "fastapi>=0.135.1",
+    "loguru>=0.7.3",
+    "logger>=1.4",
+    "charset-normalizer>=3.4.5",
+    "requests>=2.32.5",
+]

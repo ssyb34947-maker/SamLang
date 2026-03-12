@@ -1,0 +1,139 @@
+/* App-specific styles */
+/* Most pixel styles are in index.css */
+
+/* Additional animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Custom scrollbar for Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #00ffff #0a0a0f;
+}
+
+/* Focus visible styles for accessibility */
+.pixel-btn:focus-visible,
+.pixel-input:focus-visible {
+  outline: 4px dashed #ff00ff;
+  outline-offset: 4px;
+}
+
+/* Selection color */
+::selection {
+  background-color: #ff00ff;
+  color: #ffffff;
+}
+
+/* Smooth transitions */
+.pixel-bubble-user,
+.pixel-bubble-ai {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Markdown Styles */
+.react-markdown {
+  font-family: 'Press Start 2P', cursive, monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.react-markdown h1, 
+.react-markdown h2, 
+.react-markdown h3, 
+.react-markdown h4, 
+.react-markdown h5, 
+.react-markdown h6 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+  color: inherit;
+}
+
+.react-markdown p {
+  margin-bottom: 1rem;
+}
+
+.react-markdown ul, 
+.react-markdown ol {
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.react-markdown li {
+  margin-bottom: 0.5rem;
+}
+
+.react-markdown code {
+  font-family: 'Press Start 2P', cursive, monospace;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-size: 10px;
+}
+
+.react-markdown pre {
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border: 2px solid #ffffff;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  font-size: 10px;
+}
+
+.react-markdown a {
+  color: #ff00ff;
+  text-decoration: underline;
+}
+
+.react-markdown blockquote {
+  border-left: 4px solid #00ffff;
+  padding-left: 12px;
+  margin-left: 0;
+  margin-bottom: 1rem;
+  font-style: italic;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .pixel-header {
+    padding: 15px;
+  }
+  
+  .pixel-header h1 {
+    font-size: 14px !important;
+  }
+  
+  .pixel-btn {
+    padding: 12px 16px;
+  }
+  
+  .pixel-btn span {
+    display: none;
+  }
+  
+  .react-markdown {
+    font-size: 10px;
+  }
+}

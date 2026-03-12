@@ -1,0 +1,219 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Pixel Art Base Styles */
+* {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+body {
+  font-family: 'Press Start 2P', cursive, monospace;
+  background-color: #0a0a0f;
+  color: #ffffff;
+  overflow-x: hidden;
+}
+
+/* Pixel Border Utility */
+.pixel-border {
+  border: 4px solid #00ffff;
+  box-shadow: 
+    4px 4px 0px 0px #ff00ff,
+    inset 0 0 0 0px #00ffff;
+}
+
+.pixel-border-secondary {
+  border: 4px solid #ff00ff;
+  box-shadow: 
+    4px 4px 0px 0px #00ffff,
+    inset 0 0 0 0px #ff00ff;
+}
+
+.pixel-border-accent {
+  border: 4px solid #00ff00;
+  box-shadow: 
+    4px 4px 0px 0px #ff9900,
+    inset 0 0 0 0px #00ff00;
+}
+
+/* Pixel Button */
+.pixel-btn {
+  font-family: 'Press Start 2P', cursive, monospace;
+  background-color: #00ffff;
+  color: #0a0a0f;
+  border: 4px solid #ffffff;
+  box-shadow: 
+    4px 4px 0px 0px #ff00ff;
+  padding: 12px 24px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.1s ease-in-out;
+  text-transform: uppercase;
+}
+
+.pixel-btn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 
+    6px 6px 0px 0px #ff00ff;
+}
+
+.pixel-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 
+    2px 2px 0px 0px #ff00ff;
+}
+
+.pixel-btn:disabled {
+  background-color: #666;
+  color: #999;
+  cursor: not-allowed;
+  box-shadow: 
+    4px 4px 0px 0px #444;
+}
+
+/* Pixel Input */
+.pixel-input {
+  font-family: 'Press Start 2P', cursive, monospace;
+  background-color: #0a0a0f;
+  color: #00ffff;
+  border: 4px solid #00ffff;
+  box-shadow: 
+    inset 4px 4px 0px 0px #000000;
+  padding: 12px 16px;
+  font-size: 12px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.pixel-input:focus {
+  box-shadow: 
+    inset 4px 4px 0px 0px #000000,
+    0 0 10px #00ffff;
+}
+
+.pixel-input::placeholder {
+  color: #666;
+}
+
+/* Pixel Message Bubble - User */
+.pixel-bubble-user {
+  font-family: 'Press Start 2P', cursive, monospace;
+  background-color: #ff00ff;
+  color: #ffffff;
+  border: 4px solid #ffffff;
+  box-shadow: 
+    4px 4px 0px 0px #00ffff;
+  padding: 12px 16px;
+  font-size: 11px;
+  line-height: 1.6;
+  word-wrap: break-word;
+  max-width: 75%;
+}
+
+/* Pixel Message Bubble - AI */
+.pixel-bubble-ai {
+  font-family: 'Press Start 2P', cursive, monospace;
+  background-color: #00ffff;
+  color: #0a0a0f;
+  border: 4px solid #ffffff;
+  box-shadow: 
+    4px 4px 0px 0px #ff00ff;
+  padding: 12px 16px;
+  font-size: 11px;
+  line-height: 1.6;
+  word-wrap: break-word;
+  max-width: 75%;
+}
+
+/* Pixel Header */
+.pixel-header {
+  font-family: 'Press Start 2P', cursive, monospace;
+  background-color: #0a0a0f;
+  border-bottom: 4px solid #00ffff;
+  box-shadow: 
+    0 4px 0px 0px #ff00ff,
+    0 0 20px rgba(0, 255, 255, 0.3);
+  padding: 20px;
+  text-align: center;
+}
+
+/* Pixel Loading Animation */
+.pixel-loading {
+  font-family: 'Press Start 2P', cursive, monospace;
+  color: #00ffff;
+  font-size: 12px;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Pixel Scrollbar */
+::-webkit-scrollbar {
+  width: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0f;
+  border-left: 4px solid #333;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #00ffff;
+  border: 4px solid #0a0a0f;
+  box-shadow: 
+    inset 2px 2px 0px 0px #ffffff;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ff00ff;
+}
+
+/* Pixel Container */
+.pixel-container {
+  background-color: #0a0a0f;
+  background-image: 
+    linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Neon Text */
+.neon-text-primary {
+  text-shadow: 
+    2px 2px 0px #ff00ff,
+    0 0 10px #00ffff,
+    0 0 20px #00ffff;
+}
+
+.neon-text-secondary {
+  text-shadow: 
+    2px 2px 0px #00ffff,
+    0 0 10px #ff00ff,
+    0 0 20px #ff00ff;
+}
+
+/* Pixel Divider */
+.pixel-divider {
+  height: 4px;
+  background-color: #00ffff;
+  box-shadow: 
+    0 4px 0px 0px #ff00ff;
+  margin: 16px 0;
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+  .pixel-bubble-user,
+  .pixel-bubble-ai {
+    max-width: 85%;
+  }
+  
+  .pixel-header h1 {
+    font-size: 16px !important;
+  }
+}
