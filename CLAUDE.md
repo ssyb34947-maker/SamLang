@@ -1,37 +1,10 @@
-# SamLang
+# SamLang 使用指南
 
-一个专注于英语学习的AI+教育智能体，依赖于skill驱动，可灵活拓展驱动skill。
+## 📋 项目简介
 
-## 🌟 产品特性
+SamLang 是一个专注于英语学习的AI+教育智能体，依赖于skill驱动，可灵活拓展驱动skill。
 
-- 🤖 **ReACT Agent** - AI自主决策教学方案
-- 🔧 **MCP 工具集成** - 内置词典、搜索等多种外部工具
-- 📚 **技能系统** - 核心教学依赖，可扩展的技能学习框架
-- 🎯 **专注语言学习** - 优化的外语学习体验
-
-## 📁 项目核心结构
-
-```
-SamLang/
-├── src/                # 核心模块
-│   ├── agent/         # 对话 Agent
-│   │   ├── agent.py   # ConversationAgent
-│   │   ├── core/      # ReACT 核心算法
-│   │   ├── mcp/       # MCP 工具集成
-│   │   └── skills/    # 技能文件
-│   ├── api/           # API 路由
-│   ├── config/        # 配置管理
-│   └── schemas/       # 数据模型
-│
-├── config.yaml         # 全局配置
-├── .env.example        # 环境变量示例
-├── main.py             # 应用入口
-└── start.bat           # 一键启动脚本
-```
-
-## 🚀 快速开始
-
-如果你不想自己安装，也可以让你的 CLaude code 或者 openclaw 阅读CLAUDE.md，帮你安装好环境，运行。
+## 🚀 快速启动
 
 ### 一键启动
 
@@ -66,8 +39,6 @@ npm run dev
 ```
 访问：http://localhost:5173
 
-<img src="img/home.png" alt="SamLang" width="600"/>
-
 ### 终端使用
 如果你不想使用前后端，可以在终端中使用，命令如下：
 
@@ -75,9 +46,9 @@ npm run dev
 uv run -m src.main
 ```
 
-在终端中，你会看到完整的react过程，读到SamLang教授的思考！！！
+在终端中，你会看到完整的react过程，读到SamLang教授的思考！
 
-## 🎯 使用指南
+## 🎯 使用方法
 
 ### API 访问
 
@@ -85,7 +56,7 @@ uv run -m src.main
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 
-## 🔧 核心配置
+### 核心配置
 
 编辑 `config.yaml` 和 `.env`：
 
@@ -134,5 +105,6 @@ Windows 用户请确保：
 1. 终端使用 UTF-8 编码
 2. 已设置 `PYTHONIOENCODING=utf-8`
 
+---
 
 **开始使用 SamLang 提升你的语言学习体验！** 🎯✨
