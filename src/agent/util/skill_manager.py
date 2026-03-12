@@ -6,6 +6,7 @@ Skill 管理器
 from pathlib import Path
 from typing import List, Dict, Optional
 from src.agent.util.skill_process import parse_skill_md
+from src.config import get_config
 
 
 class SkillManager:
@@ -81,6 +82,25 @@ class SkillManager:
             except Exception as e:
                 print(f"警告：解析 {skill_file.name} 失败：{e}")
                 continue
+
+        # 获取配置中启用的技能
+        try:
+            config = get_config()
+            enabled_skill_names = set()
+            if config.skill.skill_files:
+                for skill_config in config.skill.skill_files:
+                    if skill_config.enabled:
+                        enabled_skill_names.add(skill_config.name)
+            
+            # 过滤出启用的技能
+            if enabled_skill_names:
+                enabled_skills = []
+                for skill in skills:
+                    if skill["name"] in enabled_skill_names:
+                        enabled_skills.append(skill)
+                skills = enabled_skills
+        except Exception as e:
+            print(f"警告：读取配置失败，使用所有技能：{e}")
 
         # 缓存结果
         self._skills_cache = skills

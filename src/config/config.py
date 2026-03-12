@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from .llm import LLMConfig
 from .agent import AgentConfig
 from .tool import ToolConfig, WebSearchConfig, YoudaoDictionaryConfig
-from .skill import SkillUploadConfig
+from .skill import SkillUploadConfig, SkillConfig
 
 
 
@@ -52,7 +52,16 @@ class Config:
         
         tool_config = ToolConfig(websearch=websearch_config, youdao_dictionary=youdao_dictionary_config)
 
-        skill_config = SkillUploadConfig(**data["skill"])
+        # 处理skill_files配置
+        skill_data = data["skill"].copy()
+        if "skill_files" in skill_data:
+            # 转换skill_files为SkillConfig列表
+            skill_files = []
+            for skill in skill_data["skill_files"]:
+                skill_files.append(SkillConfig(**skill))
+            skill_data["skill_files"] = skill_files
+        
+        skill_config = SkillUploadConfig(**skill_data)
 
 
 
