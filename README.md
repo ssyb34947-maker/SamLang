@@ -117,8 +117,26 @@ DEEPSEEK_API_KEY=your_api_key_here
 
 - **后端**: FastAPI, Python 3.11+ (使用 uv 管理)
 - **前端**: React
-- **核心算法**: ReACT Agent, MCP（Model Context Protocol）
-- **AI/LLM**: OpenAI 兼容接口，支持 DeepSeek、GPT-4 等模型
+- **核心算法**: ReACT Agent, MCP（Model Context Protocol）, Skills
+- **AI/LLM**: OpenAI 兼容接口，支持 DeepSeek、GPT-4 等模型（包括思考模型）
+
+## 开发指南
+
+### 新增技能
+
+1. 在 `src/agent/skills/` 目录下创建新的技能文件（例如 `new_skill.py`），编写符合skill协议规范
+2. 在 `config.yaml` 中启用新技能
+
+### 自定义 LLM 模型
+
+1. 编辑 `config.yaml` 中的 `llm` 配置
+2. 确保 API key 已正确设置
+3. 重启服务生效
+
+### 新增工具
+
+1. 在 `src/agent/mcp/` 目录下创建新的工具文件（例如 `new_tool.py`），编写符合MCP协议规范
+2. 在 `config.yaml` 中启用新工具
 
 ## 🐛 故障排除
 
