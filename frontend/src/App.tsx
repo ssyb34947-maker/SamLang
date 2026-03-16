@@ -198,12 +198,12 @@ function App() {
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="pixel-border-accent p-8 rounded-lg">
-                <Bot className="w-16 h-16 text-pixel-accent mx-auto mb-6" />
+                <img src="/logo.png" className="w-16 h-16 text-pixel-accent mx-auto mb-6" alt="AI Logo" />
                 <h2 className="text-lg md:text-xl text-pixel-accent mb-4 neon-text-primary">
                   欢迎来到山姆外语！
                 </h2>
                 <p className="text-xs md:text-sm text-gray-400 mb-6 max-w-md">
-                  这是一个外语学习 WEB
+                  这是一个外语学习智能体
                   <br />
                   输入消息开始和我聊天吧～
                 </p>
@@ -214,7 +214,7 @@ function App() {
                 {/* API Status Indicator */}
                 <div className="mt-4 text-xs">
                   <span className={useRealAPI ? 'text-pixel-accent' : 'text-pixel-warning'}>
-                    {useRealAPI ? '✓ 已连接真实 API' : '⚠ 模拟模式'}
+                    {useRealAPI ? '✓ 已准备就绪' : '⚠ 模拟模式'}
                   </span>
                 </div>
               </div>
@@ -227,13 +227,13 @@ function App() {
               key={message.id}
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`flex items-end gap-2 max-w-[85%] md:max-w-[75%] ${message.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+              <div className={`flex items-end gap-2 ${message.role === 'user' ? 'max-w-[95%] md:max-w-[85%] flex-row-reverse' : 'max-w-[95%] md:max-w-[90%] flex-row'}`}>
                 {/* Avatar */}
                 <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center pixel-border ${message.role === 'user' ? 'bg-pixel-secondary' : 'bg-pixel-primary'}`}>
                   {message.role === 'user' ? (
                     <User className="w-4 h-4 text-white" />
                   ) : (
-                    <Bot className="w-4 h-4 text-pixel-bg" />
+                      <img src="/logo.png" className="w-4 h-4" alt="AI Logo" />
                   )}
                 </div>
 
@@ -264,12 +264,19 @@ function App() {
           {/* Thinking Indicator */}
           {isThinking && (
             <div className="flex justify-start">
-              <div className="flex items-end gap-2">
+              <div className="flex items-end gap-2 max-w-[95%] md:max-w-[90%]">
                 <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center pixel-border bg-pixel-primary">
-                  <Bot className="w-4 h-4 text-pixel-bg animate-pulse" />
+                  <img src="/logo.png" className="w-4 h-4" alt="AI Logo" />
                 </div>
-                <div className="pixel-bubble-ai rounded-sm">
-                  <span className="pixel-loading">SAM 正在思考中...</span>
+                <div className="pixel-bubble-ai rounded-sm p-2">
+                  <div className="pixel-loading">
+                    <div className="pixel-loading-dot"></div>
+                    <div className="pixel-loading-dot"></div>
+                    <div className="pixel-loading-dot"></div>
+                    <div className="pixel-loading-dot"></div>
+                    <div className="pixel-loading-dot"></div>
+                    <div className="pixel-loading-dot"></div>
+                  </div>
                 </div>
               </div>
             </div>

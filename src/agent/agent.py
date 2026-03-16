@@ -9,12 +9,15 @@
 
 from typing import Optional
 
+from loguru import logger
+
 from .memory import MemoryManager
 from .planner import Planner
 from .tools import ToolManager
 from .llm.llmclient import LLMClient
 from src.agent.prompt.get_prompt import get_system_template, context_with_current_time, context_with_user
 from src.agent.util.skill_manager import get_skill_manager
+from src.agent.query import rewrite_query
 from .core.react import ReACTAgentWithFunctionCalling
 from src.config import Config, LLMConfig, AgentConfig
 
@@ -70,24 +73,37 @@ class ConversationAgent:
 
         # 添加 skills 信息到 system prompt
         system_prompt = get_system_template()
+        # 注入用户信息（默认为山姆教授的大弟子）和时间信息
+        system_prompt = context_with_user("山姆教授的大弟子", system_prompt)
+        system_prompt = context_with_current_time(system_prompt)
         skill_manager = get_skill_manager()
         skills_info = skill_manager.format_skills_for_prompt(format_type="markdown")
         system_prompt = f"{system_prompt}\n\n{skills_info}"
 
         self.memory_manager.set_system_message(system_prompt)
 
-    def chat(self, user_input: str, user_name: str = "学生") -> str:
+    def chat(self, user_input: str, user_name: str = "山姆教授的大弟子") -> str:
         """
         与用户对话
 
         输入：user_input - 用户输入文本
         输出：AI 回复文本
         """
-        # 添加用户消息到历史
+        # 更新系统提示词中的用户信息
         system_prompt = get_system_template()
         system_prompt = context_with_user(user_name, system_prompt)
         system_prompt = context_with_current_time(system_prompt)
-        self.memory_manager.add_message("user", user_input)
+        # 添加 skills 信息
+        skill_manager = get_skill_manager()
+        skills_info = skill_manager.format_skills_for_prompt(format_type="markdown")
+        system_prompt = f"{system_prompt}\n\n{skills_info}"
+        # 更新系统消息
+        self.memory_manager.set_system_message(system_prompt)
+        
+        # 重写用户输入
+        rewritten_input = rewrite_query(user_input)
+        # 添加用户消息到历史
+        self.memory_manager.add_message("user", rewritten_input)
 
         # 获取所有消息
         messages = self.memory_manager.get_messages()
@@ -96,15 +112,19 @@ class ConversationAgent:
             # 使用 ReACT 模式
             # 分离系统消息和历史消息
             system_message = [msg for msg in messages if msg.get("role") == "system"]
-            history_messages = [msg for msg in messages if msg.get("role") != "system" and msg.get("role") != "user" or messages.index(msg) < len(messages) - 1]
-
-            # 获取当前用户输入
-            current_user_input = user_input
+            # 包含助手消息和用户消息作为历史，排除系统消息
+            history_messages = [msg for msg in messages if msg.get("role") != "system"]
 
             # 构建上下文消息
             context_messages = system_message + history_messages
 
             # 运行 ReACT
+            logger.debug(f"context_messages: {context_messages}")
+        
+            # 从上下文中获取最后一条用户消息作为查询
+            user_queries = [msg for msg in context_messages if msg.get("role") == "user"]
+            current_user_input = user_queries[-1]["content"] if user_queries else ""
+            
             assistant_message = self.react_agent.run(
                 user_query=current_user_input,
                 context_messages=context_messages

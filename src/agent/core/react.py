@@ -6,6 +6,7 @@ ReACT (Reasoning and Acting) 框架实现
 from typing import List, Dict, Any, Optional, Tuple
 import json
 import re
+from venv import logger
 from src.agent.tools import ToolManager
 from src.agent.llm.llmclient import LLMClient
 
@@ -302,6 +303,7 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
             # 调用 LLM with function calling
             if self.stream and self.verbose:
                 # 流式输出（对于 function calling 需要特殊处理）
+                logger.debug(f"tools: {tools}")
                 stream_result = self._stream_with_function_calling(messages, tools)
 
                 # 从字典构造消息对象
@@ -333,6 +335,7 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
                     assistant_message_dict["reasoning_content"] = reasoning_content
             else:
                 # 非流式输出
+                logger.debug(f"tools: {tools}")
                 response = self.llm_client.get_client().chat.completions.create(
                     model=self.llm_client.config.model_name,
                     messages=messages,

@@ -19,21 +19,21 @@ body {
 /* Pixel Border Utility */
 .pixel-border {
   border: 4px solid #00ffff;
-  box-shadow: 
+  box-shadow:
     4px 4px 0px 0px #ff00ff,
     inset 0 0 0 0px #00ffff;
 }
 
 .pixel-border-secondary {
   border: 4px solid #ff00ff;
-  box-shadow: 
+  box-shadow:
     4px 4px 0px 0px #00ffff,
     inset 0 0 0 0px #ff00ff;
 }
 
 .pixel-border-accent {
   border: 4px solid #00ff00;
-  box-shadow: 
+  box-shadow:
     4px 4px 0px 0px #ff9900,
     inset 0 0 0 0px #00ff00;
 }
@@ -44,7 +44,7 @@ body {
   background-color: #00ffff;
   color: #0a0a0f;
   border: 4px solid #ffffff;
-  box-shadow: 
+  box-shadow:
     4px 4px 0px 0px #ff00ff;
   padding: 12px 24px;
   font-size: 12px;
@@ -55,13 +55,13 @@ body {
 
 .pixel-btn:hover:not(:disabled) {
   transform: translate(-2px, -2px);
-  box-shadow: 
+  box-shadow:
     6px 6px 0px 0px #ff00ff;
 }
 
 .pixel-btn:active:not(:disabled) {
   transform: translate(2px, 2px);
-  box-shadow: 
+  box-shadow:
     2px 2px 0px 0px #ff00ff;
 }
 
@@ -69,7 +69,7 @@ body {
   background-color: #666;
   color: #999;
   cursor: not-allowed;
-  box-shadow: 
+  box-shadow:
     4px 4px 0px 0px #444;
 }
 
@@ -79,7 +79,7 @@ body {
   background-color: #0a0a0f;
   color: #00ffff;
   border: 4px solid #00ffff;
-  box-shadow: 
+  box-shadow:
     inset 4px 4px 0px 0px #000000;
   padding: 12px 16px;
   font-size: 12px;
@@ -88,7 +88,7 @@ body {
 }
 
 .pixel-input:focus {
-  box-shadow: 
+  box-shadow:
     inset 4px 4px 0px 0px #000000,
     0 0 10px #00ffff;
 }
@@ -103,7 +103,7 @@ body {
   background-color: #ff00ff;
   color: #ffffff;
   border: 4px solid #ffffff;
-  box-shadow: 
+  box-shadow:
     4px 4px 0px 0px #00ffff;
   padding: 12px 16px;
   font-size: 11px;
@@ -118,13 +118,13 @@ body {
   background-color: #00ffff;
   color: #0a0a0f;
   border: 4px solid #ffffff;
-  box-shadow: 
+  box-shadow:
     4px 4px 0px 0px #ff00ff;
   padding: 12px 16px;
   font-size: 11px;
   line-height: 1.6;
   word-wrap: break-word;
-  max-width: 75%;
+  max-width: 100%;
 }
 
 /* Pixel Header */
@@ -132,7 +132,7 @@ body {
   font-family: 'Press Start 2P', cursive, monospace;
   background-color: #0a0a0f;
   border-bottom: 4px solid #00ffff;
-  box-shadow: 
+  box-shadow:
     0 4px 0px 0px #ff00ff,
     0 0 20px rgba(0, 255, 255, 0.3);
   padding: 20px;
@@ -140,7 +140,7 @@ body {
 }
 
 /* Pixel Loading Animation */
-.pixel-loading {
+.pixel-loading-text {
   font-family: 'Press Start 2P', cursive, monospace;
   color: #00ffff;
   font-size: 12px;
@@ -148,8 +148,15 @@ body {
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
 }
 
 /* Pixel Scrollbar */
@@ -165,7 +172,7 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #00ffff;
   border: 4px solid #0a0a0f;
-  box-shadow: 
+  box-shadow:
     inset 2px 2px 0px 0px #ffffff;
 }
 
@@ -176,7 +183,7 @@ body {
 /* Pixel Container */
 .pixel-container {
   background-color: #0a0a0f;
-  background-image: 
+  background-image:
     linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
   background-size: 20px 20px;
@@ -184,14 +191,14 @@ body {
 
 /* Neon Text */
 .neon-text-primary {
-  text-shadow: 
+  text-shadow:
     2px 2px 0px #ff00ff,
     0 0 10px #00ffff,
     0 0 20px #00ffff;
 }
 
 .neon-text-secondary {
-  text-shadow: 
+  text-shadow:
     2px 2px 0px #00ffff,
     0 0 10px #ff00ff,
     0 0 20px #ff00ff;
@@ -201,19 +208,31 @@ body {
 .pixel-divider {
   height: 4px;
   background-color: #00ffff;
-  box-shadow: 
+  box-shadow:
     0 4px 0px 0px #ff00ff;
   margin: 16px 0;
 }
 
 /* Responsive Utilities */
 @media (max-width: 768px) {
+
   .pixel-bubble-user,
   .pixel-bubble-ai {
-    max-width: 85%;
+    max-width: 90%;
   }
-  
+
   .pixel-header h1 {
     font-size: 16px !important;
+  }
+}
+
+/* Larger screens */
+@media (min-width: 1024px) {
+  .pixel-bubble-ai {
+    max-width: 95%;
+  }
+
+  .pixel-bubble-user {
+    max-width: 80%;
   }
 }

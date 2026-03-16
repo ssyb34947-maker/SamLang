@@ -66,7 +66,19 @@ npm run dev
 ```
 访问：http://localhost:5173
 
+**主页**
 <img src="img/home.png" alt="SamLang" width="600"/>
+
+**React循环执行**
+<img src="img/react.png" alt="SamLang" width="600"/>
+
+**web端使用**
+<img src="img/web.png" alt="SamLang" width="600"/>
+
+**移动端使用**
+<img src="img/mobile.png" alt="SamLang" width="600"/>
+
+
 
 ### 终端使用
 如果你不想使用前后端，可以在终端中使用，命令如下：
