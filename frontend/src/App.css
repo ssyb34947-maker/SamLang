@@ -3,9 +3,12 @@
 
 /* Additional animations */
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -17,9 +20,13 @@
 
 /* Typing animation */
 @keyframes typing-dots {
-  0%, 60%, 100% {
+
+  0%,
+  60%,
+  100% {
     transform: translateY(0);
   }
+
   30% {
     transform: translateY(-10px);
   }
@@ -93,6 +100,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -102,16 +110,16 @@
 /* Markdown Styles */
 .react-markdown {
   font-family: 'Press Start 2P', cursive, monospace;
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.6;
   word-wrap: break-word;
 }
 
-.react-markdown h1, 
-.react-markdown h2, 
-.react-markdown h3, 
-.react-markdown h4, 
-.react-markdown h5, 
+.react-markdown h1,
+.react-markdown h2,
+.react-markdown h3,
+.react-markdown h4,
+.react-markdown h5,
 .react-markdown h6 {
   margin-top: 1rem;
   margin-bottom: 0.5rem;
@@ -123,7 +131,7 @@
   margin-bottom: 1rem;
 }
 
-.react-markdown ul, 
+.react-markdown ul,
 .react-markdown ol {
   margin-bottom: 1rem;
   padding-left: 1.5rem;
@@ -138,7 +146,7 @@
   background-color: rgba(0, 0, 0, 0.3);
   padding: 2px 4px;
   border-radius: 2px;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .react-markdown pre {
@@ -147,7 +155,7 @@
   border: 2px solid #ffffff;
   margin-bottom: 1rem;
   overflow-x: auto;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .react-markdown a {
@@ -168,20 +176,29 @@
   .pixel-header {
     padding: 15px;
   }
-  
+
   .pixel-header h1 {
     font-size: 14px !important;
   }
-  
+
   .pixel-btn {
     padding: 12px 16px;
   }
-  
+
   .pixel-btn span {
     display: none;
   }
-  
+
   .react-markdown {
-    font-size: 10px;
+    font-size: 12px;
+  }
+
+  .pixel-input {
+    font-size: 12px;
+  }
+
+  .pixel-bubble-user,
+  .pixel-bubble-ai {
+    font-size: 12px;
   }
 }

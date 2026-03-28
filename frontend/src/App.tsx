@@ -1,16 +1,30 @@
 import { useState, useEffect, useRef } from 'react'
-import { Send, Bot, User, Sparkles } from 'lucide-react'
+import { Send, Bot, User, Sparkles, LogOut, User as UserIcon } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import { useAuth } from './hooks/useAuth.tsx'
+import { apiService } from './services/api'
 import './App.css'
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 // Message type definition
+interface ToolCall {
+  tool_name: string
+  arguments: any
+  result: string
+}
+
+interface ThinkingStep {
+  thought: string
+  tool_call?: ToolCall
+}
+
 interface Message {
   id: string
   role: 'user' | 'assistant'
   content: string
+  thinkingSteps?: ThinkingStep[]
   timestamp: number
 }
 
@@ -27,6 +41,8 @@ const SIMULATED_RESPONSES = [
 ]
 
 function App() {
+  const { user, logout } = useAuth()
+
   // State management
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
@@ -57,31 +73,55 @@ function App() {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   }
 
-  // Call real backend API
-  const callRealAPI = async (userMessage: string): Promise<string> => {
+  // 使用apiService发送消息
+  const callRealAPI = async (userMessage: string): Promise<{ success: boolean, message: string, thinking_steps?: any[] }> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      return data.message
+      const response = await apiService.sendMessage(userMessage)
+      return response
     } catch (error) {
       console.error('API call failed:', error)
       // Fallback to simulation if API fails
       setUseRealAPI(false)
       throw error
+    }
+  }
+
+  // 使用apiService发送流式消息（支持实时思考过程）
+  const callRealAPIWithStreaming = async (userMessage: string, onThinkingStep: (step: ThinkingStep) => void, onFinalResponse: (content: string) => void): Promise<string> => {
+    try {
+      return await apiService.sendMessageStream(userMessage, (eventType, data) => {
+        if (eventType === 'thinking_step') {
+          onThinkingStep({
+            thought: data.thought,
+            tool_call: data.tool_call
+          })
+        } else if (eventType === 'tool_call') {
+          onThinkingStep({
+            thought: '正在调用工具',
+            tool_call: {
+              tool_name: data.tool_name,
+              arguments: data.arguments,
+              result: '执行中...'
+            }
+          })
+        } else if (eventType === 'tool_result') {
+          onThinkingStep({
+            thought: '工具执行完成',
+            tool_call: {
+              tool_name: data.tool_name,
+              arguments: data.arguments,
+              result: data.result
+            }
+          })
+        } else if (eventType === 'final_response') {
+          onFinalResponse(data.content)
+        }
+      })
+    } catch (error) {
+      console.error('Streaming API call failed:', error)
+      // Fallback to non-streaming API
+      const response = await callRealAPI(userMessage)
+      return response.message
     }
   }
 
@@ -119,41 +159,77 @@ function App() {
       textareaRef.current.style.height = 'auto'
     }
 
-    try {
-      // Try real API first, fallback to simulation if it fails
-      let aiResponseContent: string
+    // Create AI message with empty content for streaming
+    const aiMessageId = generateId()
+    const aiMessage: Message = {
+      id: aiMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+    }
 
+    try {
+      // Try real API with streaming first
       if (useRealAPI) {
         try {
-          aiResponseContent = await callRealAPI(trimmedValue)
+          // Create a mutable array to hold thinking steps
+          const thinkingSteps: ThinkingStep[] = []
+          
+          // Update the AI message as thinking steps and final response come in
+          let aiMessageAdded = false
+          const updateAiMessage = () => {
+            if (!aiMessageAdded) {
+              // Stop thinking indicator and add AI message
+              setIsThinking(false)
+              setMessages(prev => [...prev, { ...aiMessage, thinkingSteps: [] }])
+              aiMessageAdded = true
+            }
+            // Update the AI message with current thinking steps
+            setMessages(prev => prev.map(msg =>
+              msg.id === aiMessageId
+                ? { ...msg, thinkingSteps: [...thinkingSteps] }
+                : msg
+            ))
+          }
+          
+          // Handle thinking steps
+          const handleThinkingStep = (step: ThinkingStep) => {
+            thinkingSteps.push(step)
+            updateAiMessage()
+          }
+          
+          // Handle final response
+          const handleFinalResponse = (content: string) => {
+            setMessages(prev => prev.map(msg =>
+              msg.id === aiMessageId
+                ? { ...msg, content }
+                : msg
+            ))
+          }
+
+          // Call streaming API with real-time thinking process
+          await callRealAPIWithStreaming(trimmedValue, handleThinkingStep, handleFinalResponse)
         } catch (error) {
-          console.log('Falling back to simulation mode')
-          aiResponseContent = await simulateAIResponse(trimmedValue)
+          console.log('Falling back to non-streaming API')
+          // Fallback to non-streaming API
+          setIsThinking(false)
+          callRealAPI(trimmedValue).then(response => {
+            const content = response.message || ''
+            const thinkingSteps = response.thinking_steps || []
+            setMessages(prev => [...prev, { ...aiMessage, content, thinkingSteps }])
+          })
         }
       } else {
-        aiResponseContent = await simulateAIResponse(trimmedValue)
+        // Use simulation
+        const aiResponseContent = await simulateAIResponse(trimmedValue)
+        setIsThinking(false)
+        setMessages(prev => [...prev, { ...aiMessage, content: aiResponseContent }])
       }
-
-      const aiMessage: Message = {
-        id: generateId(),
-        role: 'assistant',
-        content: aiResponseContent,
-        timestamp: Date.now(),
-      }
-
-      // Add AI message to chat
-      setMessages(prev => [...prev, aiMessage])
     } catch (error) {
       console.error('Error generating AI response:', error)
-
-      // Show error message
-      const errorMessage: Message = {
-        id: generateId(),
-        role: 'assistant',
-        content: 'SAM 出错了... 请稍后再试！',
-        timestamp: Date.now(),
-      }
-      setMessages(prev => [...prev, errorMessage])
+      setIsThinking(false)
+      // Add error message
+      setMessages(prev => [...prev, { ...aiMessage, content: 'SAM 出错了... 请稍后再试！' }])
     } finally {
       setIsThinking(false)
     }
@@ -179,12 +255,34 @@ function App() {
     <div className="pixel-container h-screen flex flex-col">
       {/* Header */}
       <header className="pixel-header flex-shrink-0">
-        <div className="flex items-center justify-center gap-3">
-          <Sparkles className="w-6 h-6 text-pixel-primary animate-pulse" />
-          <h1 className="text-xl md:text-2xl neon-text-primary text-pixel-primary">
-            SAM LANG AGENT
-          </h1>
-          <Sparkles className="w-6 h-6 text-pixel-primary animate-pulse" />
+        <div className="flex items-center justify-between px-4">
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-6 h-6 text-pixel-primary animate-pulse" />
+            <h1 className="text-xl md:text-2xl neon-text-primary text-pixel-primary">
+              SAM LANG AGENT
+            </h1>
+            <Sparkles className="w-6 h-6 text-pixel-primary animate-pulse" />
+          </div>
+
+          {/* User Info */}
+          {user && (
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-sm text-pixel-secondary">欢迎，{user.username}</p>
+                <p className="text-xs text-gray-400">{user.email}</p>
+              </div>
+              <div className="pixel-border bg-pixel-secondary w-8 h-8 flex items-center justify-center">
+                <UserIcon className="w-4 h-4 text-white" />
+              </div>
+              <button
+                onClick={() => logout()}
+                className="text-pixel-secondary hover:text-pixel-error transition-colors"
+                title="登出"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
         <p className="text-xs text-pixel-secondary mt-3 opacity-80">
           ENGLISH LEARNING
@@ -233,18 +331,53 @@ function App() {
                   {message.role === 'user' ? (
                     <User className="w-4 h-4 text-white" />
                   ) : (
-                      <img src="/logo.png" className="w-4 h-4" alt="AI Logo" />
+                    <img src="/logo.png" className="w-4 h-4" alt="AI Logo" />
                   )}
                 </div>
 
                 {/* Message Bubble */}
                 <div className="flex flex-col">
-                  <div
-                    className={`${message.role === 'user'
-                      ? 'pixel-bubble-user'
-                      : 'pixel-bubble-ai'
-                      } rounded-sm`}
-                  >
+                  <div className={`${message.role === 'user'
+                    ? 'pixel-bubble-user'
+                    : 'pixel-bubble-ai'
+                    } rounded-sm`}>
+                    {/* 思考过程（可折叠） */}
+                    {message.role === 'assistant' && message.thinkingSteps && message.thinkingSteps.length > 0 && (
+                      <div className="mb-3">
+                        <button
+                          className="flex items-center gap-1 text-xs text-pixel-secondary hover:text-pixel-primary mb-2 font-bold"
+                          onClick={() => {
+                            const element = document.getElementById(`thinking-${message.id}`);
+                            if (element) {
+                              element.classList.toggle('hidden');
+                            }
+                          }}
+                        >
+                          <span>💡 思考过程</span>
+                          <span className="text-xs">▼</span>
+                        </button>
+                        <div id={`thinking-${message.id}`} className="bg-gray-900/80 border-2 border-gray-700 rounded p-4 text-xs hidden">
+                          {message.thinkingSteps.map((step, index) => (
+                            <div key={index} className="mb-4">
+                              <div className="font-bold text-pixel-primary mb-2">思考 {index + 1}:</div>
+                              <div className="text-gray-300 mb-2">{step.thought}</div>
+                              {step.tool_call && (
+                                <div className="mt-2 p-3 bg-gray-800/60 rounded border border-gray-600">
+                                  <div className="font-bold text-pixel-accent mb-2">工具调用:</div>
+                                  <div className="mt-1">
+                                    <div className="text-pixel-secondary mb-1">工具名称: <span className="text-white">{step.tool_call.tool_name}</span></div>
+                                    <div className="mt-1 mb-1">参数: <span className="text-white">{JSON.stringify(step.tool_call.arguments)}</span></div>
+                                    <div className="mt-1">结果: <span className="text-white">{step.tool_call.result}</span></div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 最终回答 */}
                     {message.role === 'assistant' ? (
                       <ReactMarkdown>{message.content}</ReactMarkdown>
                     ) : (
