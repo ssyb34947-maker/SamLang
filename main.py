@@ -4,16 +4,23 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import sys
 import io
+import os
 
 from src.schemas import HealthResponse
 from src.service import create_chat_agent
 from src.config.config import get_config
 from loguru import logger
 
-from src.api import reset_router, chat_router, test_router, auth_router
+from src.api import reset_router, chat_router, test_router, auth_router, rag_router
+from src.api.rag.pipeline import IngestionPipeline, RetrievalPipeline
+
+# 头像上传目录
+AVATAR_UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "data", "avatars")
+os.makedirs(AVATAR_UPLOAD_DIR, exist_ok=True)
 
 
 # Set UTF-8 encoding for Windows console
@@ -28,15 +35,15 @@ async def lifespan(app: FastAPI):
     Application lifespan manager
     Initialize chat agent on startup
     """
-    
+
     # Startup: Initialize the chat agent
     logger.info("Starting up Sam Lang Backend...")
-    
+
     # 初始化数据库
     from src.db.user import init_db
     init_db()
     logger.info("Database initialized")
-    
+
     app.state.agent = create_chat_agent()
     app.state.config = get_config()
     logger.info(f"ConversationAgent 已创建" if app.state.agent else "ConversationAgent 创建失败")
@@ -44,11 +51,51 @@ async def lifespan(app: FastAPI):
     logger.info(f"API 地址: {app.state.config.llm.base_url}")
     logger.info(f"ReACT 模式: {'启用' if app.state.agent.use_react else '禁用'}")
     logger.info(f"最大迭代次数: {app.state.config.agent.react_max_iterations}\n")
-        
+
+    # 初始化 RAG Pipeline
+    try:
+        from src.rag.rag import RAG
+        from src.ocr import get_ocr_client
+
+        config = get_config()
+        ocr_client = get_ocr_client()
+
+        rag = RAG.from_config(
+            rag_config=config.rag,
+            embedding_config=config.embedding,
+            rerank_config=config.rerank,
+            ocr_client=ocr_client
+        )
+
+        app.state.ingestion_pipeline = IngestionPipeline(rag)
+        app.state.retrieval_pipeline = RetrievalPipeline(rag)
+
+        logger.info("=" * 50)
+        logger.info("RAG Pipeline 初始化成功")
+        logger.info("=" * 50)
+        logger.info(f"Milvus Collection: {config.rag.collection_name}")
+        logger.info(f"  - Vector dim: {config.rag.vector_dim}")
+        logger.info(f"  - Milvus Server: {config.rag.milvus.host}:{config.rag.milvus.port}")
+        logger.info(f"  - Top K: {config.rag.top_k}")
+        logger.info(f"  - Rerank: {'启用' if config.rag.use_rerank else '禁用'}")
+        logger.info("=" * 50)
+        logger.info("")
+    except Exception as e:
+        logger.error(f"RAG Pipeline 初始化失败: {e}")
+        logger.warning("RAG 功能将不可用\n")
+
     yield
-    
+
     # Shutdown: cleanup if needed
     logger.info("Shutting down Pixel Chatbot Backend...")
+
+    # 关闭 RAG 资源
+    if hasattr(app.state, "ingestion_pipeline"):
+        try:
+            app.state.ingestion_pipeline.rag.close()
+            logger.info("RAG 资源已释放")
+        except Exception as e:
+            logger.error(f"关闭 RAG 资源失败: {e}")
 
 
 # Create FastAPI application
@@ -96,6 +143,10 @@ app.include_router(reset_router)
 app.include_router(chat_router)
 app.include_router(test_router)
 app.include_router(auth_router)
+app.include_router(rag_router)
+
+# 挂载头像静态文件服务
+app.mount("/api/avatars", StaticFiles(directory=AVATAR_UPLOAD_DIR), name="avatars")
 
 
 

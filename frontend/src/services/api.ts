@@ -44,7 +44,28 @@ class ApiService {
 
   clearToken() {
     this.token = null;
-    localStorage.removeItem('token');
+    // 清除 localStorage 中的所有数据
+    localStorage.clear();
+    // 清除 sessionStorage 中的所有数据
+    sessionStorage.clear();
+    // 清除所有 cookies
+    this.clearAllCookies();
+  }
+
+  /**
+   * 清除所有 cookies
+   */
+  private clearAllCookies() {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i];
+      const eqPos = cookie.indexOf('=');
+      const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+      // 将 cookie 过期时间设置为过去的时间来删除它
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      // 同时尝试删除根域名下的 cookie
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+    }
   }
 
   async request<T>(endpoint: string, options: RequestInit & { skipLoading?: boolean } = {}): Promise<T> {
@@ -118,6 +139,36 @@ class ApiService {
 
   async getCurrentUser() {
     return this.request('/api/auth/me');
+  }
+
+  async updateCurrentUser(userData: { username?: string; email?: string; avatar?: string; bio?: string }) {
+    return this.request('/api/auth/me', {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+  }
+
+  async uploadAvatar(file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/auth/avatar`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `上传失败: ${response.status}`);
+    }
+
+    return response.json();
   }
 
   // 聊天相关API
@@ -416,6 +467,127 @@ class ApiService {
         this.requestCallbacks.onRequestEnd();
       }
     }
+  }
+  // ==================== RAG 知识库 API ====================
+
+  /**
+   * 获取知识列表
+   * @param includeSystem 是否包含系统知识
+   * @param docType 文档类型过滤
+   */
+  async getKnowledgeList(includeSystem: boolean = true, docType?: string) {
+    const params = new URLSearchParams();
+    params.append('include_system', String(includeSystem));
+    if (docType) params.append('doc_type', docType);
+
+    return this.request(`/api/rag/knowledge?${params.toString()}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * 上传文件到知识库
+   * @param files 文件列表
+   * @param docType 文档类型
+   * @param metadata 元数据
+   * @param skipLoading 是否跳过 loading 显示
+   */
+  async ingestDocuments(
+    files: File[],
+    docType: string = 'other',
+    metadata?: Record<string, any>,
+    skipLoading: boolean = false
+  ): Promise<any> {
+    // 创建 FormData
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+    formData.append('doc_type', docType);
+    if (metadata) {
+      formData.append('metadata', JSON.stringify(metadata));
+    }
+
+    // 注意：上传文件时不设置 Content-Type，让浏览器自动设置
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    try {
+      if (!skipLoading && this.requestCallbacks.onRequestStart) {
+        this.requestCallbacks.onRequestStart();
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/rag/ingest`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    } finally {
+      if (!skipLoading && this.requestCallbacks.onRequestEnd) {
+        this.requestCallbacks.onRequestEnd();
+      }
+    }
+  }
+
+  /**
+   * 删除知识
+   * @param docId 文档ID
+   */
+  async deleteKnowledge(docId: string) {
+    return this.request(`/api/rag/knowledge/${docId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * 搜索知识
+   * @param query 查询文本
+   * @param topK 返回数量
+   * @param filters 过滤条件
+   */
+  async searchKnowledge(
+    query: string,
+    topK: number = 10,
+    filters?: Record<string, any>
+  ) {
+    return this.request('/api/rag/search', {
+      method: 'POST',
+      body: JSON.stringify({
+        query,
+        top_k: topK,
+        filters,
+      }),
+    });
+  }
+
+  /**
+   * 生成上下文
+   * @param query 查询文本
+   * @param topK 返回数量
+   * @param maxContextLength 最大上下文长度
+   */
+  async generateContext(
+    query: string,
+    topK: number = 5,
+    maxContextLength: number = 3000
+  ) {
+    return this.request('/api/rag/context', {
+      method: 'POST',
+      body: JSON.stringify({
+        query,
+        top_k: topK,
+        max_context_length: maxContextLength,
+      }),
+    });
   }
 }
 

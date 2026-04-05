@@ -25,6 +25,12 @@ export interface SourcesPanelProps {
   onUpload: (files: FileList) => void;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  // 新增：文件上传相关
+  pendingFiles?: File[];
+  isLoading?: boolean;
+  onPendingFilesChange?: (files: File[]) => void;
+  onIngestSuccess?: () => void;
+  onRefresh?: () => void;
 }
 
 export interface MainContentPanelProps {

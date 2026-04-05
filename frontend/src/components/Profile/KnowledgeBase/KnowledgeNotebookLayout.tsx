@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { SourcesPanel } from './SourcesPanel';
 import { MainContentPanel } from './MainContentPanel';
 import { OptionalRightPanel } from './OptionalRightPanel';
+import { apiService } from '../../../services/api';
 import { KnowledgeItem } from './types';
 
 /**
@@ -26,55 +27,71 @@ export const KnowledgeNotebookLayout: React.FC = () => {
   // 面板宽度状态
   const [leftWidth, setLeftWidth] = useState(DEFAULT_LEFT_WIDTH);
   const [rightWidth, setRightWidth] = useState(DEFAULT_RIGHT_WIDTH);
-  
+
   // 面板折叠状态
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
   const [isRightCollapsed, setIsRightCollapsed] = useState(false);
-  
+
   // 拖拽调整状态
   const [isResizingLeft, setIsResizingLeft] = useState(false);
   const [isResizingRight, setIsResizingRight] = useState(false);
-  
+
   // 知识数据状态
-  const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([
-    {
-      id: '1',
-      name: 'React 学习笔记.md',
-      type: 'markdown',
-      size: '12.5 KB',
-      uploadTime: '2024-01-15 10:30',
-      content: '# React 学习笔记\n\n## Hooks 基础\n\nuseState 是 React 中最常用的 Hook...',
-      tags: ['前端', 'React'],
-      summary: 'React Hooks 学习笔记，包含 useState、useEffect 等基础用法'
-    },
-    {
-      id: '2',
-      name: '英语语法总结.pdf',
-      type: 'pdf',
-      size: '2.3 MB',
-      uploadTime: '2024-01-14 15:20',
-      content: null,
-      tags: ['英语', '语法'],
-      summary: '英语语法知识点总结文档'
-    },
-    {
-      id: '3',
-      name: '单词列表.txt',
-      type: 'text',
-      size: '5.1 KB',
-      uploadTime: '2024-01-13 09:15',
-      content: 'apple - 苹果\nbanana - 香蕉\norange - 橙子',
-      tags: ['词汇'],
-      summary: '常用英语单词列表'
-    }
-  ]);
-  
+  const [knowledgeItems, setKnowledgeItems] = useState<KnowledgeItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // 待上传文件列表
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
   // 选中知识项
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'document' | 'other'>('all');
 
   const selectedItem = knowledgeItems.find(item => item.id === selectedId) || null;
+
+  // 从后端获取知识列表
+  const fetchKnowledgeList = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiService.getKnowledgeList(true);
+      if (response.success) {
+        // 合并系统知识和用户知识
+        const allKnowledge = [
+          ...response.system_knowledge.map((k: any) => ({
+            id: k.doc_id,
+            name: k.name || k.source,
+            type: getFileType(k.source),
+            size: `${k.chunk_count} 块`,
+            uploadTime: k.update_time || '未知',
+            content: null,
+            tags: k.is_system ? ['系统'] : [],
+            summary: k.is_system ? '系统提供的知识' : '用户上传的知识'
+          })),
+          ...response.user_knowledge.map((k: any) => ({
+            id: k.doc_id,
+            name: k.name || k.source,
+            type: getFileType(k.source),
+            size: `${k.chunk_count} 块`,
+            uploadTime: k.update_time || '未知',
+            content: null,
+            tags: ['我的'],
+            summary: '用户上传的知识'
+          }))
+        ];
+        setKnowledgeItems(allKnowledge);
+      }
+    } catch (error) {
+      console.error('Failed to fetch knowledge list:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // 初始加载一次
+  useEffect(() => {
+    fetchKnowledgeList();
+  }, [fetchKnowledgeList]);
 
   // 处理左侧面板拖拽
   const handleLeftResizeStart = useCallback(() => {
@@ -120,22 +137,17 @@ export const KnowledgeNotebookLayout: React.FC = () => {
     };
   }, [isResizingLeft, isResizingRight]);
 
-  // 上传处理
+  // 上传处理 - 只添加到待上传列表，不入库
   const handleUpload = useCallback((files: FileList) => {
-    Array.from(files).forEach(file => {
-      const newItem: KnowledgeItem = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-        name: file.name,
-        type: getFileType(file.name),
-        size: formatFileSize(file.size),
-        uploadTime: new Date().toLocaleString('zh-CN'),
-        content: null,
-        tags: [],
-        summary: ''
-      };
-      setKnowledgeItems(prev => [newItem, ...prev]);
-    });
+    // 文件已经在 SourcesPanel 中被添加到 pendingFiles
+    // 这里可以添加预览逻辑
+    console.log('Files selected:', files);
   }, []);
+
+  // 入库成功后的回调
+  const handleIngestSuccess = useCallback(() => {
+    fetchKnowledgeList(); // 立即刷新列表
+  }, [fetchKnowledgeList]);
 
   // 删除处理
   const handleDelete = useCallback((id: string) => {
@@ -153,7 +165,7 @@ export const KnowledgeNotebookLayout: React.FC = () => {
   // 过滤知识项
   const filteredItems = knowledgeItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = filterType === 'all' || 
+    const matchesFilter = filterType === 'all' ||
       (filterType === 'document' && ['pdf', 'doc', 'docx', 'txt', 'md'].includes(item.type)) ||
       (filterType === 'other' && !['pdf', 'doc', 'docx', 'txt', 'md'].includes(item.type));
     return matchesSearch && matchesFilter;
@@ -163,9 +175,8 @@ export const KnowledgeNotebookLayout: React.FC = () => {
     <div className="h-[calc(100vh-140px)] flex overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* 左侧面板 */}
       <div
-        className={`flex-shrink-0 flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ${
-          isLeftCollapsed ? 'w-0 overflow-hidden' : ''
-        }`}
+        className={`flex-shrink-0 flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ${isLeftCollapsed ? 'w-0 overflow-hidden' : ''
+          }`}
         style={{ width: isLeftCollapsed ? 0 : leftWidth }}
       >
         <SourcesPanel
@@ -173,11 +184,16 @@ export const KnowledgeNotebookLayout: React.FC = () => {
           selectedId={selectedId}
           searchQuery={searchQuery}
           filterType={filterType}
+          pendingFiles={pendingFiles}
+          isLoading={isLoading}
           onSearchChange={setSearchQuery}
           onFilterChange={setFilterType}
           onUpload={handleUpload}
           onSelect={handleSelect}
           onDelete={handleDelete}
+          onPendingFilesChange={setPendingFiles}
+          onIngestSuccess={handleIngestSuccess}
+          onRefresh={fetchKnowledgeList}
         />
       </div>
 
@@ -212,9 +228,8 @@ export const KnowledgeNotebookLayout: React.FC = () => {
 
       {/* 右侧面板 */}
       <div
-        className={`flex-shrink-0 flex flex-col bg-gray-50 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 transition-all duration-300 ${
-          isRightCollapsed ? 'w-0 overflow-hidden' : ''
-        }`}
+        className={`flex-shrink-0 flex flex-col bg-gray-50 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 transition-all duration-300 ${isRightCollapsed ? 'w-0 overflow-hidden' : ''
+          }`}
         style={{ width: isRightCollapsed ? 0 : rightWidth }}
       >
         <OptionalRightPanel

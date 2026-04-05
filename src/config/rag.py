@@ -30,6 +30,8 @@ class RAGConfig:
     vector_dim: int = 1024
     chunk_size: int = 1024
     chunk_overlap: float = 0.1
+    top_k: int = 10
+    use_rerank: bool = True
     milvus: MilvusConfig = None
 
     def __post_init__(self):
@@ -41,3 +43,5 @@ class RAGConfig:
             raise ValueError("chunk_size 必须大于 0")
         if not 0 <= self.chunk_overlap < 1:
             raise ValueError("chunk_overlap 必须在 [0, 1) 范围内")
+        if self.top_k <= 0:
+            raise ValueError("top_k 必须大于 0")

@@ -34,12 +34,15 @@ createRoot(document.getElementById('root')!).render(
         <Router>
           <AuthProvider>
             <Routes>
+              {/* 根路径重定向到 /chat */}
+              <Route path="/" element={<Navigate to="/chat" replace />} />
+
               {/* 受保护的路由 */}
               <Route
-                path="/"
+                path="/chat"
                 element={
                   <ProtectedRoute>
-                    <App />
+                    <ChatHome />
                   </ProtectedRoute>
                 }
               />
@@ -48,14 +51,6 @@ createRoot(document.getElementById('root')!).render(
                 element={
                   <ProtectedRoute>
                     <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/chat"
-                element={
-                  <ProtectedRoute>
-                    <ChatHome />
                   </ProtectedRoute>
                 }
               />

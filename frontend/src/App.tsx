@@ -344,7 +344,7 @@ function App() {
                             className="text-xl md:text-2xl"
                             style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 700, color: 'var(--sketch-text)' }}
                         >
-                            SAM LANG AGENT
+                            SAM PROFESSOR AGENT
                         </h1>
                     </div>
 
@@ -363,7 +363,7 @@ function App() {
                                 onClick={() => navigate('/profile')}
                                 className="sketch-btn"
                                 style={{ padding: '8px' }}
-                                title="SamLang Studio"
+                                title="SamCollege Studio"
                             >
                                 <UserIcon className="w-4 h-4" />
                             </button>
@@ -398,7 +398,7 @@ function App() {
                     className="text-xs mt-2 text-center"
                     style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
                 >
-                    ENGLISH LEARNING
+                    AI LEARNING
                 </p>
             </header>
 
@@ -445,15 +445,15 @@ function App() {
                                     className="text-lg md:text-xl mb-4"
                                     style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 700, color: 'var(--sketch-text)' }}
                                 >
-                                    欢迎来到山姆外语！
+                                    欢迎来到山姆学院！
                                 </h2>
                                 <p 
                                     className="text-sm mb-6 max-w-md"
                                     style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
                                 >
-                                    这是一个外语学习智能体
+                                    这是一个学习智能体系统
                                     <br />
-                                    输入消息开始和我聊天吧～
+                                    输入你想学习的内容吧～
                                 </p>
                                 <div className="sketch-divider w-32 mx-auto" />
                                 <p 

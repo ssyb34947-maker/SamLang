@@ -44,32 +44,32 @@ const CodeBlock: React.FC<{ language: string; code: string }> = ({ language, cod
 
     // 高亮字符串
     highlighted = highlighted.replace(
-      /(".*?"|'.*?'|`[\s\S]*?`)/g,
-      '<span class="text-green-400">$1</span>'
+      /(".*?'|`[\s\S]*?`)/g,
+      '<span style="color: #228b22">$1</span>'
     );
 
     // 高亮数字
     highlighted = highlighted.replace(
       /\b(\d+\.?\d*)\b/g,
-      '<span class="text-orange-400">$1</span>'
+      '<span style="color: #ff8c00">$1</span>'
     );
 
     // 高亮关键字
     keywords.forEach(keyword => {
       const regex = new RegExp(`\\b(${keyword})\\b`, 'g');
-      highlighted = highlighted.replace(regex, '<span class="text-purple-400">$1</span>');
+      highlighted = highlighted.replace(regex, '<span style="color: #8b008b">$1</span>');
     });
 
     // 高亮类型
     types.forEach(type => {
       const regex = new RegExp(`\\b(${type})\\b`, 'g');
-      highlighted = highlighted.replace(regex, '<span class="text-cyan-400">$1</span>');
+      highlighted = highlighted.replace(regex, '<span style="color: #0066cc">$1</span>');
     });
 
     // 高亮注释
     highlighted = highlighted.replace(
       /(\/\/.*$|\/\*[\s\S]*?\*\/|#.*$)/gm,
-      '<span class="text-gray-500">$1</span>'
+      '<span style="color: #666">$1</span>'
     );
 
     return highlighted;
@@ -78,20 +78,20 @@ const CodeBlock: React.FC<{ language: string; code: string }> = ({ language, cod
   const highlightedCode = highlightCode(code, language);
 
   return (
-    <div className="relative mb-4 rounded-lg overflow-hidden bg-gray-800 border border-gray-600">
-      <div className="flex items-center justify-between bg-gray-700 px-4 py-2">
-        <span className="text-gray-300 text-xs font-medium uppercase">
+    <div className="relative mb-4 rounded-lg overflow-hidden bg-gray-100 border border-gray-300">
+      <div className="flex items-center justify-between bg-gray-200 px-4 py-2">
+        <span className="text-gray-700 text-xs font-medium uppercase">
           {language || 'text'}
         </span>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1 text-gray-400 hover:text-white text-xs transition-colors px-2 py-1 rounded hover:bg-gray-600"
+          className="flex items-center gap-1 text-gray-600 hover:text-black text-xs transition-colors px-2 py-1 rounded hover:bg-gray-300"
           title="复制代码"
         >
           {copied ? (
             <>
-              <Check size={14} className="text-green-400" />
-              <span className="text-green-400">已复制</span>
+              <Check size={14} style={{ color: '#228b22' }} />
+              <span style={{ color: '#228b22' }}>已复制</span>
             </>
           ) : (
             <>
@@ -104,7 +104,8 @@ const CodeBlock: React.FC<{ language: string; code: string }> = ({ language, cod
       <div className="overflow-x-auto">
         <pre className="p-4 text-sm leading-relaxed">
           <code
-            className="font-mono text-gray-200"
+            className="font-mono"
+            style={{ color: '#000' }}
             dangerouslySetInnerHTML={{ __html: highlightedCode }}
           />
         </pre>
@@ -125,31 +126,31 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
         components={{
           // 段落
           p: ({ children }) => (
-            <p className="mb-3 leading-relaxed text-gray-100">{children}</p>
+            <p className="mb-3 leading-relaxed" style={{ color: '#000' }}>{children}</p>
           ),
 
           // 标题
           h1: ({ children }) => (
-            <h1 className="text-2xl font-bold mb-4 text-cyan-400 border-b border-gray-600 pb-2">
+            <h1 className="text-2xl font-bold mb-4 border-b border-gray-400 pb-2" style={{ color: '#000' }}>
               {children}
             </h1>
           ),
           h2: ({ children }) => (
-            <h2 className="text-xl font-bold mb-3 text-cyan-300 border-b border-gray-700 pb-1">
+            <h2 className="text-xl font-bold mb-3 border-b border-gray-300 pb-1" style={{ color: '#000' }}>
               {children}
             </h2>
           ),
           h3: ({ children }) => (
-            <h3 className="text-lg font-semibold mb-2 text-cyan-200">{children}</h3>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: '#000' }}>{children}</h3>
           ),
           h4: ({ children }) => (
-            <h4 className="text-base font-semibold mb-2 text-cyan-100">{children}</h4>
+            <h4 className="text-base font-semibold mb-2" style={{ color: '#000' }}>{children}</h4>
           ),
           h5: ({ children }) => (
-            <h5 className="text-sm font-semibold mb-1 text-gray-300">{children}</h5>
+            <h5 className="text-sm font-semibold mb-1" style={{ color: '#000' }}>{children}</h5>
           ),
           h6: ({ children }) => (
-            <h6 className="text-xs font-semibold mb-1 text-gray-400">{children}</h6>
+            <h6 className="text-xs font-semibold mb-1" style={{ color: '#000' }}>{children}</h6>
           ),
 
           // 代码块和行内代码
@@ -160,7 +161,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
             if (!className) {
               // 行内代码
               return (
-                <code className="bg-gray-800 px-1.5 py-0.5 rounded text-cyan-400 font-mono text-sm">
+                <code className="px-1.5 py-0.5 rounded font-mono text-sm" style={{ backgroundColor: '#f0f0f0', color: '#000' }}>
                   {children}
                 </code>
               );
@@ -177,30 +178,30 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
 
           // 表格
           table: ({ children }) => (
-            <div className="overflow-x-auto mb-4 rounded-lg border border-gray-600">
-              <table className="min-w-full border-collapse bg-gray-800">
+            <div className="overflow-x-auto mb-4 rounded-lg border border-gray-300">
+              <table className="min-w-full border-collapse bg-white">
                 {children}
               </table>
             </div>
           ),
           thead: ({ children }) => (
-            <thead className="bg-gray-700">{children}</thead>
+            <thead className="bg-gray-100">{children}</thead>
           ),
           tbody: ({ children }) => (
-            <tbody className="divide-y divide-gray-600">{children}</tbody>
+            <tbody className="divide-y divide-gray-300">{children}</tbody>
           ),
           tr: ({ children }) => (
-            <tr className="border-b border-gray-600 hover:bg-gray-700/50 transition-colors">
+            <tr className="border-b border-gray-300 hover:bg-gray-50 transition-colors">
               {children}
             </tr>
           ),
           th: ({ children }) => (
-            <th className="border border-gray-600 px-4 py-3 text-cyan-300 font-semibold text-left">
+            <th className="border border-gray-300 px-4 py-3 font-semibold text-left" style={{ color: '#000' }}>
               {children}
             </th>
           ),
           td: ({ children }) => (
-            <td className="border border-gray-600 px-4 py-3 text-gray-200">
+            <td className="border border-gray-300 px-4 py-3" style={{ color: '#000' }}>
               {children}
             </td>
           ),
@@ -209,7 +210,8 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
           a: ({ children, href }) => (
             <a
               href={href}
-              className="text-cyan-400 hover:underline hover:text-cyan-300 transition-colors"
+              className="hover:underline transition-colors"
+              style={{ color: '#0066cc' }}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -219,38 +221,38 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
 
           // 列表
           ul: ({ children }) => (
-            <ul className="list-disc pl-6 mb-4 space-y-1 text-gray-100">{children}</ul>
+            <ul className="list-disc pl-6 mb-4 space-y-1" style={{ color: '#000' }}>{children}</ul>
           ),
           ol: ({ children }) => (
-            <ol className="list-decimal pl-6 mb-4 space-y-1 text-gray-100">{children}</ol>
+            <ol className="list-decimal pl-6 mb-4 space-y-1" style={{ color: '#000' }}>{children}</ol>
           ),
           li: ({ children }) => (
-            <li className="leading-relaxed">{children}</li>
+            <li className="leading-relaxed" style={{ color: '#000' }}>{children}</li>
           ),
 
           // 引用块
           blockquote: ({ children }) => (
-            <blockquote className="border-l-4 border-cyan-500 pl-4 italic mb-4 bg-gray-800/50 p-3 rounded-r text-gray-300">
+            <blockquote className="border-l-4 border-gray-400 pl-4 italic mb-4 bg-gray-100 p-3 rounded-r" style={{ color: '#000' }}>
               {children}
             </blockquote>
           ),
 
           // 水平线
           hr: () => (
-            <hr className="my-6 border-gray-600" />
+            <hr className="my-6 border-gray-400" />
           ),
 
           // 强调
           strong: ({ children }) => (
-            <strong className="font-bold text-white">{children}</strong>
+            <strong className="font-bold" style={{ color: '#000' }}>{children}</strong>
           ),
           em: ({ children }) => (
-            <em className="italic text-gray-200">{children}</em>
+            <em className="italic" style={{ color: '#000' }}>{children}</em>
           ),
 
           // 删除线
           del: ({ children }) => (
-            <del className="line-through text-gray-400">{children}</del>
+            <del className="line-through" style={{ color: '#666' }}>{children}</del>
           ),
 
           // 图片
@@ -258,7 +260,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
             <img
               src={src}
               alt={alt}
-              className="max-w-full h-auto rounded-lg my-4 border border-gray-600"
+              className="max-w-full h-auto rounded-lg my-4 border border-gray-300"
               loading="lazy"
             />
           ),
@@ -269,7 +271,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) =
               type="checkbox"
               checked={checked}
               readOnly
-              className="mr-2 h-4 w-4 rounded border-gray-600 bg-gray-700 text-cyan-500 focus:ring-cyan-500"
+              className="mr-2 h-4 w-4 rounded border-gray-400 bg-white"
             />
           ),
 

@@ -185,28 +185,32 @@ class HybridRetriever(BaseRetriever):
         # 缓存 chunk 数据
         self._chunk_cache: Dict[str, Chunk] = {}
     
-    def add_document(self, chunks: List[Chunk]) -> bool:
+    def add_document(self, chunks: List[Chunk], creator: str = "") -> bool:
         """
         添加文档块到检索索引
-        
+
         同时更新向量存储和 BM25 索引
+
+        Args:
+            chunks: 文档块列表
+            creator: 创建者用户ID
         """
         if not chunks:
             return True
-        
+
         try:
-            # 1. 添加到向量存储
-            success = self.vector_store.add_chunks(chunks)
+            # 1. 添加到向量存储（传递 creator）
+            success = self.vector_store.add_chunks(chunks, creator)
             if not success:
                 return False
-            
+
             # 2. 添加到 BM25 索引
             for chunk in chunks:
                 self.bm25_index.add_document(chunk.id, chunk.content)
                 self._chunk_cache[chunk.id] = chunk
-            
+
             return True
-            
+
         except Exception as e:
             print(f"添加文档到检索器失败: {e}")
             return False

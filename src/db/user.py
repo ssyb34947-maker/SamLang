@@ -28,11 +28,18 @@ def init_db():
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         avatar TEXT DEFAULT NULL,
+        bio TEXT DEFAULT NULL,
         is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     ''')
+    
+    # 检查并添加 bio 列（如果不存在）
+    cursor.execute("PRAGMA table_info(users)")
+    columns = [column[1] for column in cursor.fetchall()]
+    if 'bio' not in columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN bio TEXT DEFAULT NULL')
     
     # 创建用户画像表
     cursor.execute('''
@@ -142,7 +149,7 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
     
     try:
         cursor.execute(
-            'SELECT id, username, email, avatar, is_active, created_at FROM users WHERE id = ?',
+            'SELECT id, username, email, avatar, bio, is_active, created_at FROM users WHERE id = ?',
             (user_id,)
         )
         user = cursor.fetchone()
@@ -153,11 +160,48 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
                 'username': user[1],
                 'email': user[2],
                 'avatar': user[3],
-                'is_active': user[4],
-                'created_at': user[5]
+                'bio': user[4],
+                'is_active': user[5],
+                'created_at': user[6]
             }
         return None
         
+    finally:
+        conn.close()
+
+
+def update_user_info(user_id: int, update_data: Dict[str, Any]) -> bool:
+    """更新用户基本信息"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    try:
+        # 构建更新字段
+        allowed_fields = ['username', 'email', 'avatar', 'bio']
+        updates = []
+        values = []
+        
+        for field in allowed_fields:
+            if field in update_data:
+                updates.append(f"{field} = ?")
+                values.append(update_data[field])
+        
+        if not updates:
+            return False
+        
+        values.append(user_id)
+        
+        cursor.execute(
+            f"UPDATE users SET {', '.join(updates)}, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            values
+        )
+        
+        conn.commit()
+        return cursor.rowcount > 0
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
     finally:
         conn.close()
 

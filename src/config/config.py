@@ -89,6 +89,7 @@ class Config:
             vector_dim=rag_data.get("vector_dim", 1024),
             chunk_size=rag_data.get("chunk_size", 1024),
             chunk_overlap=rag_data.get("chunk_overlap", 0.1),
+            top_k=rag_data.get("top_k", 10),
             milvus=milvus_config
         )
 

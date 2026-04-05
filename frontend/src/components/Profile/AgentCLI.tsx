@@ -1,8 +1,47 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+// 缓存键名
+const AGENT_CACHE_KEY = 'sam_agent_session';
+const AGENT_TOKEN_KEY = 'sam_agent_token';
+
+// 获取缓存的会话信息
+const getCachedSession = () => {
+  try {
+    const cached = localStorage.getItem(AGENT_CACHE_KEY);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (e) {
+    console.error('Failed to parse cached session:', e);
+  }
+  return null;
+};
+
+// 保存会话信息到缓存
+const saveSessionToCache = (lines: string[]) => {
+  try {
+    const sessionData = {
+      lines,
+      timestamp: Date.now(),
+      isComplete: true
+    };
+    localStorage.setItem(AGENT_CACHE_KEY, JSON.stringify(sessionData));
+    // 同时设置 token 标记用户已使用过 Agent
+    localStorage.setItem(AGENT_TOKEN_KEY, 'true');
+  } catch (e) {
+    console.error('Failed to save session to cache:', e);
+  }
+};
+
+// 检查用户是否使用过 Agent
+const hasUsedAgent = () => {
+  return localStorage.getItem(AGENT_TOKEN_KEY) === 'true';
+};
+
 /**
  * 助教Agent CLI组件
  * CLI风格的聊天界面，包含启动动画
+ * 支持本地缓存会话信息，避免重复加载
  */
 export const AgentCLI: React.FC = () => {
   const [isBooting, setIsBooting] = useState(true);
@@ -11,6 +50,7 @@ export const AgentCLI: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const hasBootedRef = useRef(false);
+  const isRestoredRef = useRef(false);
 
   // 自动滚动到底部
   const scrollToBottom = () => {
@@ -21,12 +61,32 @@ export const AgentCLI: React.FC = () => {
     scrollToBottom();
   }, [terminalLines, bootProgress]);
 
-  // CLI启动动画效果
+  // 恢复缓存的会话或执行启动动画
   useEffect(() => {
     // 防止重复执行（React 18 StrictMode）
     if (hasBootedRef.current) return;
     hasBootedRef.current = true;
 
+    // 检查是否有缓存的完整会话
+    const cachedSession = getCachedSession();
+    const userHasUsedAgent = hasUsedAgent();
+
+    // 如果有完整缓存且用户之前使用过 Agent，直接恢复
+    if (cachedSession?.isComplete && userHasUsedAgent && !isRestoredRef.current) {
+      isRestoredRef.current = true;
+      setTerminalLines(cachedSession.lines);
+      setIsBooting(false);
+      setBootProgress(100);
+      console.log('[AgentCLI] Restored session from cache');
+      return;
+    }
+
+    // 否则执行完整的启动动画
+    executeBootSequence();
+  }, []);
+
+  // 执行启动动画序列
+  const executeBootSequence = () => {
     // SAM COLLEGE ASCII Logo - 一次性打印
     const logoContent = [
       '',
@@ -89,21 +149,31 @@ export const AgentCLI: React.FC = () => {
         if (log.progress === 100) {
           // 启动完成后打印系统 消息
           setTimeout(() => {
+            const allLines: string[] = [];
             systemMessages.forEach((msg, index) => {
               setTimeout(() => {
-                setTerminalLines(prev => [...prev, JSON.stringify(msg)]);
+                const lineStr = JSON.stringify(msg);
+                allLines.push(lineStr);
+                setTerminalLines(prev => [...prev, lineStr]);
               }, index * 100);
             });
 
-            // 最后标记启动完成
+            // 最后标记启动完成并缓存会话
             setTimeout(() => {
               setIsBooting(false);
+              // 保存完整会话到缓存
+              setTimeout(() => {
+                setTerminalLines(currentLines => {
+                  saveSessionToCache(currentLines);
+                  return currentLines;
+                });
+              }, 100);
             }, systemMessages.length * 100 + 200);
           }, 300);
         }
       }, currentDelay);
     });
-  }, []);
+  };
 
   // 处理输入提交
   const handleSubmit = (e: React.FormEvent) => {

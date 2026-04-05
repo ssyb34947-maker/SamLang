@@ -35,11 +35,19 @@ class User(UserBase):
     """用户响应模型"""
     id: int
     avatar: Optional[str] = None
+    bio: Optional[str] = None
     is_active: bool
     created_at: datetime
 
     class Config:
         from_attributes = True
+
+
+class UserUpdate(BaseModel):
+    """用户更新模型 - 只允许更新用户名、头像和个人简介"""
+    username: Optional[str] = Field(None, min_length=3, max_length=50, description="用户名")
+    avatar: Optional[str] = Field(None, description="头像URL")
+    bio: Optional[str] = Field(None, max_length=500, description="个人简介")
 
 
 class Token(BaseModel):
