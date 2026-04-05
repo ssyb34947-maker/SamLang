@@ -1,399 +1,602 @@
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Patrick+Hand&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Pixel Art Base Styles */
+/* ============================================
+   手绘草稿本风格设计系统 (Hand-Drawn Sketch Style)
+   ============================================ */
+
+/* CSS 变量定义 */
+:root {
+  /* 颜色系统 */
+  --sketch-bg: #fdfbf7;
+  --sketch-text: #2d2d2d;
+  --sketch-muted: #e5e0d8;
+  --sketch-accent: #ff4d4d;
+  --sketch-secondary: #2d5da1;
+  --sketch-border: #2d2d2d;
+  --sketch-paper: #fff9c4;
+  --sketch-pencil: #666;
+
+  /* 不规则圆角 - 手绘感 */
+  --wobbly: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  --wobbly-md: 225px 25px 195px 25px / 25px 195px 25px 225px;
+  --wobbly-sm: 195px 15px 165px 15px / 15px 165px 15px 195px;
+
+  /* 阴影 */
+  --shadow-hard: 4px 4px 0px 0px var(--sketch-border);
+  --shadow-hard-lg: 8px 8px 0px 0px var(--sketch-border);
+  --shadow-hover: 2px 2px 0px 0px var(--sketch-border);
+
+  /* 字体 */
+  --font-hand-heading: 'Kalam', cursive;
+  --font-hand-body: 'Patrick Hand', cursive;
+  --font-chat: system-ui, -apple-system, BlinkMacSystemFont, "Microsoft YaHei", "SimHei", "Heiti SC", sans-serif;
+}
+
+/* 基础样式重置 */
 * {
-  image-rendering: pixelated;
-  image-rendering: -moz-crisp-edges;
-  image-rendering: crisp-edges;
+  box-sizing: border-box;
 }
 
+/* 全局纸张纹理背景 */
 body {
-  font-family: 黑体, sans-serif;
-  background-color: #0a0a0f;
-  color: #ffffff;
+  font-family: var(--font-hand-body);
+  background-color: var(--sketch-bg);
+  color: var(--sketch-text);
+  background-image: radial-gradient(var(--sketch-muted) 1px, transparent 1px);
+  background-size: 24px 24px;
   overflow-x: hidden;
+  line-height: 1.6;
 }
 
-/* Pixel Border Utility */
-.pixel-border {
-  border: 4px solid #00ffff;
-  box-shadow:
-    4px 4px 0px 0px #ff00ff,
-    inset 0 0 0 0px #00ffff;
+/* 标题使用 Kalam */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-hand-heading);
+  font-weight: 700;
+  color: var(--sketch-text);
 }
 
-.pixel-border-secondary {
-  border: 4px solid #ff00ff;
-  box-shadow:
-    4px 4px 0px 0px #00ffff,
-    inset 0 0 0 0px #ff00ff;
+/* ============================================
+   手绘边框样式 (Sketch Borders)
+   ============================================ */
+
+.sketch-border {
+  border: 3px solid var(--sketch-border);
+  border-radius: var(--wobbly);
+  box-shadow: var(--shadow-hard);
 }
 
-.pixel-border-accent {
-  border: 4px solid #00ff00;
-  box-shadow:
-    4px 4px 0px 0px #ff9900,
-    inset 0 0 0 0px #00ff00;
+.sketch-border-md {
+  border: 3px solid var(--sketch-border);
+  border-radius: var(--wobbly-md);
+  box-shadow: var(--shadow-hard);
 }
 
-.pixel-border-error {
-  border: 4px solid #ff0000;
-  box-shadow:
-    4px 4px 0px 0px #ff6666,
-    inset 0 0 0 0px #ff0000;
+.sketch-border-sm {
+  border: 2px solid var(--sketch-border);
+  border-radius: var(--wobbly-sm);
+  box-shadow: var(--shadow-hard);
 }
 
-/* Pixel Button */
-.pixel-btn {
-  font-family: 黑体, sans-serif;
-  background-color: #00ffff;
-  color: #000000;
-  border: 4px solid #ffffff;
-  box-shadow:
-    4px 4px 0px 0px #ff00ff;
+.sketch-border-dashed {
+  border: 3px dashed var(--sketch-border);
+  border-radius: var(--wobbly);
+}
+
+/* ============================================
+   手绘按钮样式 (Sketch Buttons)
+   ============================================ */
+
+.sketch-btn {
+  font-family: var(--font-hand-heading);
+  font-weight: 700;
+  background-color: var(--sketch-bg);
+  color: var(--sketch-text);
+  border: 3px solid var(--sketch-border);
+  border-radius: var(--wobbly);
+  box-shadow: var(--shadow-hard);
   padding: 12px 24px;
-  font-size: 14px;
-  font-weight: bold;
+  font-size: 16px;
   cursor: pointer;
-  transition: all 0.1s ease-in-out;
-  text-transform: uppercase;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
-.pixel-btn:hover:not(:disabled) {
-  transform: translate(-2px, -2px);
-  box-shadow:
-    6px 6px 0px 0px #ff00ff;
-}
-
-.pixel-btn:active:not(:disabled) {
+.sketch-btn:hover:not(:disabled) {
+  background-color: var(--sketch-accent);
+  color: white;
+  box-shadow: var(--shadow-hover);
   transform: translate(2px, 2px);
-  box-shadow:
-    2px 2px 0px 0px #ff00ff;
 }
 
-.pixel-btn:disabled {
-  background-color: #666;
-  color: #999;
+.sketch-btn:active:not(:disabled) {
+  box-shadow: none;
+  transform: translate(4px, 4px);
+}
+
+.sketch-btn:disabled {
+  background-color: var(--sketch-muted);
+  color: var(--sketch-pencil);
   cursor: not-allowed;
-  box-shadow:
-    4px 4px 0px 0px #444;
+  box-shadow: none;
+  border-color: var(--sketch-pencil);
 }
 
-/* Pixel Input */
-.pixel-input {
-  font-family: 黑体, sans-serif;
-  background-color: #0a0a0f;
-  color: #00ffff;
-  border: 4px solid #00ffff;
-  box-shadow:
-    inset 4px 4px 0px 0px #000000;
+/* 次要按钮 - 蓝圆珠笔风格 */
+.sketch-btn-secondary {
+  background-color: var(--sketch-secondary);
+  color: white;
+}
+
+.sketch-btn-secondary:hover:not(:disabled) {
+  background-color: var(--sketch-accent);
+}
+
+/* ============================================
+   手绘输入框样式 (Sketch Inputs)
+   ============================================ */
+
+.sketch-input {
+  font-family: var(--font-hand-body);
+  background-color: white;
+  color: var(--sketch-text);
+  border: 3px solid var(--sketch-border);
+  border-radius: var(--wobbly);
+  box-shadow: var(--shadow-hard);
   padding: 12px 16px;
-  font-size: 14px;
+  font-size: 16px;
   outline: none;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
-.pixel-input:focus {
-  box-shadow:
-    inset 4px 4px 0px 0px #000000,
-    0 0 10px #00ffff;
+.sketch-input:focus {
+  border-color: var(--sketch-secondary);
+  box-shadow: 4px 4px 0px 0px var(--sketch-secondary);
 }
 
-.pixel-input::placeholder {
-  color: #666;
+.sketch-input::placeholder {
+  color: var(--sketch-pencil);
+  font-family: var(--font-hand-body);
 }
 
-/* Pixel Message Bubble - User */
-.pixel-bubble-user {
-  font-family: 黑体, sans-serif;
-  background-color: #ff00ff;
-  color: #ffffff;
-  border: 4px solid #ffffff;
-  box-shadow:
-    4px 4px 0px 0px #00ffff;
+/* 文本域 */
+.sketch-textarea {
+  font-family: var(--font-hand-body);
+  background-color: white;
+  color: var(--sketch-text);
+  border: 3px solid var(--sketch-border);
+  border-radius: var(--wobbly);
+  box-shadow: var(--shadow-hard);
   padding: 12px 16px;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 16px;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+  resize: none;
+  min-height: 80px;
+}
+
+.sketch-textarea:focus {
+  border-color: var(--sketch-secondary);
+  box-shadow: 4px 4px 0px 0px var(--sketch-secondary);
+}
+
+/* ============================================
+   AI对话区域样式 - 使用黑体
+   ============================================ */
+
+/* 用户消息气泡 */
+.chat-bubble-user {
+  font-family: var(--font-chat);
+  background-color: var(--sketch-paper);
+  color: var(--sketch-text);
+  border: 3px solid var(--sketch-border);
+  border-radius: var(--wobbly);
+  box-shadow: var(--shadow-hard);
+  padding: 16px 20px;
+  font-size: 15px;
+  line-height: 1.7;
   word-wrap: break-word;
   max-width: 75%;
 }
 
-/* Pixel Message Bubble - AI */
-.pixel-bubble-ai {
-  font-family: 黑体, sans-serif;
-  background-color: #00ffff;
-  color: #0a0a0f;
-  border: 4px solid #ffffff;
-  box-shadow:
-    4px 4px 0px 0px #ff00ff;
-  padding: 12px 16px;
-  font-size: 14px;
-  line-height: 1.6;
+/* AI消息气泡 */
+.chat-bubble-ai {
+  font-family: var(--font-chat);
+  background-color: white;
+  color: var(--sketch-text);
+  border: 3px solid var(--sketch-border);
+  border-radius: var(--wobbly-md);
+  box-shadow: var(--shadow-hard);
+  padding: 16px 20px;
+  font-size: 15px;
+  line-height: 1.7;
   word-wrap: break-word;
   max-width: 100%;
 }
 
-/* Pixel Header */
-.pixel-header {
-  font-family: 黑体, sans-serif;
-  background-color: #0a0a0f;
-  border-bottom: 4px solid #00ffff;
-  box-shadow:
-    0 4px 0px 0px #ff00ff,
-    0 0 20px rgba(0, 255, 255, 0.3);
+/* 聊天输入框 - 使用黑体 */
+.chat-input {
+  font-family: var(--font-chat);
+  background-color: white;
+  color: var(--sketch-text);
+  border: 3px solid var(--sketch-border);
+  border-radius: var(--wobbly);
+  box-shadow: var(--shadow-hard);
+  padding: 14px 18px;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+  resize: none;
+}
+
+.chat-input:focus {
+  border-color: var(--sketch-secondary);
+  box-shadow: 4px 4px 0px 0px var(--sketch-secondary);
+}
+
+.chat-input::placeholder {
+  color: var(--sketch-pencil);
+  font-family: var(--font-chat);
+}
+
+/* ============================================
+   手绘卡片样式 (Sketch Cards)
+   ============================================ */
+
+.sketch-card {
+  background-color: white;
+  border: 3px solid var(--sketch-border);
+  border-radius: var(--wobbly);
+  box-shadow: var(--shadow-hard);
+  padding: 24px;
+  transition: all 0.2s ease;
+}
+
+.sketch-card:hover {
+  transform: rotate(-1deg) translateY(-2px);
+  box-shadow: var(--shadow-hard-lg);
+}
+
+/* Post-it 便利贴风格 */
+.sketch-card-note {
+  background-color: var(--sketch-paper);
+  border: 3px solid var(--sketch-border);
+  border-radius: var(--wobbly-sm);
+  box-shadow: var(--shadow-hard);
   padding: 20px;
-  text-align: center;
+  transform: rotate(-1deg);
 }
 
-/* Pixel Loading Animation */
-.pixel-loading-text {
-  font-family: 黑体, sans-serif;
-  color: #00ffff;
-  font-size: 12px;
-  animation: blink 1s step-end infinite;
+.sketch-card-note:nth-child(even) {
+  transform: rotate(1deg);
 }
 
-/* Text Colors */
-.text-pixel-primary {
-  color: #00ffff;
+/* ============================================
+   手绘头部样式 (Sketch Header)
+   ============================================ */
+
+.sketch-header {
+  font-family: var(--font-hand-heading);
+  background-color: white;
+  border-bottom: 3px solid var(--sketch-border);
+  box-shadow: var(--shadow-hard);
+  padding: 20px;
+  position: relative;
 }
 
-.text-pixel-secondary {
-  color: #ff00ff;
+.sketch-header::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--sketch-border) 0px,
+    var(--sketch-border) 8px,
+    transparent 8px,
+    transparent 12px
+  );
 }
 
-.text-pixel-accent {
-  color: #00ff00;
+/* ============================================
+   手绘导航样式 (Sketch Navigation)
+   ============================================ */
+
+.sketch-nav-item {
+  font-family: var(--font-hand-body);
+  padding: 12px 16px;
+  border: 2px solid transparent;
+  border-radius: var(--wobbly-sm);
+  transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-.text-pixel-error {
-  color: #ff0000;
+.sketch-nav-item:hover {
+  background-color: var(--sketch-muted);
+  border-color: var(--sketch-border);
+  transform: rotate(-1deg);
 }
 
-@keyframes blink {
+.sketch-nav-item.active {
+  background-color: var(--sketch-paper);
+  border: 3px solid var(--sketch-border);
+  box-shadow: var(--shadow-hard);
+  font-weight: bold;
+}
 
-  0%,
-  100% {
+/* ============================================
+   手绘侧边栏样式 (Sketch Sidebar)
+   ============================================ */
+
+.sketch-sidebar {
+  background-color: white;
+  border-right: 3px solid var(--sketch-border);
+  box-shadow: var(--shadow-hard);
+}
+
+.sketch-sidebar-item {
+  font-family: var(--font-hand-body);
+  padding: 12px 16px;
+  border-bottom: 2px dashed var(--sketch-muted);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.sketch-sidebar-item:hover {
+  background-color: var(--sketch-muted);
+  padding-left: 20px;
+}
+
+.sketch-sidebar-item.active {
+  background-color: var(--sketch-paper);
+  border-left: 4px solid var(--sketch-accent);
+}
+
+/* ============================================
+   手绘对话框/模态框 (Sketch Modal)
+   ============================================ */
+
+.sketch-modal {
+  background-color: white;
+  border: 4px solid var(--sketch-border);
+  border-radius: var(--wobbly);
+  box-shadow: var(--shadow-hard-lg);
+  padding: 24px;
+  position: relative;
+}
+
+.sketch-modal::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 20px;
+  width: 40px;
+  height: 20px;
+  background-color: var(--sketch-paper);
+  border: 2px solid var(--sketch-border);
+  border-radius: 4px;
+  transform: rotate(-5deg);
+}
+
+/* ============================================
+   手绘菜单样式 (Sketch Menu)
+   ============================================ */
+
+.sketch-menu {
+  background-color: white;
+  border: 3px solid var(--sketch-border);
+  border-radius: var(--wobbly-sm);
+  box-shadow: var(--shadow-hard);
+  padding: 8px 0;
+}
+
+.sketch-menu-item {
+  font-family: var(--font-hand-body);
+  padding: 10px 16px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.sketch-menu-item:hover {
+  background-color: var(--sketch-paper);
+  padding-left: 20px;
+}
+
+/* ============================================
+   装饰元素
+   ============================================ */
+
+/* 胶带效果 */
+.sketch-tape {
+  position: relative;
+}
+
+.sketch-tape::before {
+  content: '';
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-2deg);
+  width: 80px;
+  height: 25px;
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* 图钉效果 */
+.sketch-pin {
+  position: relative;
+}
+
+.sketch-pin::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 20px;
+  width: 12px;
+  height: 12px;
+  background-color: var(--sketch-accent);
+  border-radius: 50%;
+  box-shadow: 2px 2px 0px 0px var(--sketch-border);
+}
+
+/* 虚线分隔线 */
+.sketch-divider {
+  border: none;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--sketch-border) 0px,
+    var(--sketch-border) 10px,
+    transparent 10px,
+    transparent 18px
+  );
+  margin: 20px 0;
+}
+
+/* ============================================
+   动画效果
+   ============================================ */
+
+@keyframes jiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-1deg); }
+  75% { transform: rotate(1deg); }
+}
+
+.sketch-jiggle:hover {
+  animation: jiggle 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) rotate(-2deg);
+  }
+  to {
     opacity: 1;
-  }
-
-  50% {
-    opacity: 0.3;
+    transform: translateY(0) rotate(0deg);
   }
 }
 
-/* Pixel Scrollbar */
+.sketch-animate-in {
+  animation: slideIn 0.4s ease-out;
+}
+
+/* 打字机动画 */
+.sketch-typing {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.sketch-typing-dot {
+  width: 8px;
+  height: 8px;
+  background-color: var(--sketch-border);
+  border-radius: 50%;
+  animation: typingBounce 1.4s ease-in-out infinite;
+}
+
+.sketch-typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.sketch-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+.sketch-typing-dot:nth-child(3) { animation-delay: 0s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-10px); }
+}
+
+/* ============================================
+   滚动条样式
+   ============================================ */
+
 ::-webkit-scrollbar {
-  width: 16px;
+  width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a0a0f;
-  border-left: 4px solid #333;
+  background: var(--sketch-bg);
+  border-left: 2px dashed var(--sketch-muted);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #00ffff;
-  border: 4px solid #0a0a0f;
-  box-shadow:
-    inset 2px 2px 0px 0px #ffffff;
+  background: var(--sketch-border);
+  border: 2px solid var(--sketch-bg);
+  border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #ff00ff;
+  background: var(--sketch-accent);
 }
 
-/* Pixel Container */
-.pixel-container {
-  background-color: #0a0a0f;
-  background-image:
-    linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 20px 20px;
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sketch-border) var(--sketch-bg);
 }
 
-/* Neon Text */
-.neon-text-primary {
-  text-shadow:
-    2px 2px 0px #ff00ff,
-    0 0 10px #00ffff,
-    0 0 20px #00ffff;
+/* ============================================
+   选中文字样式
+   ============================================ */
+
+::selection {
+  background-color: var(--sketch-paper);
+  color: var(--sketch-text);
 }
 
-.neon-text-secondary {
-  text-shadow:
-    2px 2px 0px #00ffff,
-    0 0 10px #ff00ff,
-    0 0 20px #ff00ff;
-}
+/* ============================================
+   响应式适配
+   ============================================ */
 
-/* Pixel Divider */
-.pixel-divider {
-  height: 4px;
-  background-color: #00ffff;
-  box-shadow:
-    0 4px 0px 0px #ff00ff;
-  margin: 16px 0;
-}
-
-/* Mobile optimizations */
-@media (max-width: 640px) {
-
-  /* Auth forms mobile optimizations */
-  .pixel-border {
-    padding: 16px;
-    margin: 0 16px;
-  }
-
-  h2 {
-    font-size: 1.5rem !important;
-  }
-
-  .text-gray-400 {
-    font-size: 12px;
-  }
-
-  .pixel-border-error {
-    margin: 0 16px 16px;
-    padding: 12px;
-  }
-
-  /* Login/Register specific */
-  .max-w-md {
-    padding: 0 16px;
-  }
-
-  .mb-6 {
-    margin-bottom: 16px;
-  }
-
-  .mb-4 {
-    margin-bottom: 12px;
-  }
-
-  .mb-8 {
-    margin-bottom: 20px;
-  }
-
-  .pixel-btn {
-    padding: 12px 16px;
-    font-size: 12px;
-  }
-
-  .pixel-input {
-    font-size: 12px;
-    padding: 10px 12px;
-  }
-
-  .pixel-border {
-    border-width: 3px;
-  }
-
-  .pixel-border-error {
-    border-width: 3px;
-  }
-}
-
-/* Responsive Utilities */
 @media (max-width: 768px) {
-
-  /* Tablet optimizations */
-  .max-w-md {
+  .sketch-btn {
+    padding: 10px 18px;
+    font-size: 14px;
+  }
+  
+  .sketch-card {
+    padding: 16px;
+  }
+  
+  .chat-bubble-user,
+  .chat-bubble-ai {
     max-width: 90%;
-  }
-
-  .pixel-border {
-    padding: 20px;
-  }
-
-  h2 {
-    font-size: 1.75rem !important;
+    padding: 12px 16px;
+    font-size: 14px;
   }
 }
 
-/* Enhanced mobile optimizations */
 @media (max-width: 480px) {
-
-  /* Extra small devices */
-  .pixel-border {
-    padding: 12px;
-    margin: 0 12px;
+  body {
+    background-size: 20px 20px;
+  }
+  
+  .sketch-border,
+  .sketch-border-md,
+  .sketch-border-sm {
     border-width: 2px;
   }
-
-  .pixel-border-error {
-    padding: 10px;
-    margin: 0 12px 12px;
-    border-width: 2px;
-  }
-
-  h2 {
-    font-size: 1.25rem !important;
-  }
-
-  .text-gray-400 {
-    font-size: 11px;
-  }
-
-  .pixel-btn {
-    padding: 10px 14px;
-    font-size: 11px;
-    border-width: 3px;
-  }
-
-  .pixel-input {
-    padding: 8px 10px;
-    font-size: 11px;
-    border-width: 3px;
-  }
-
-  .mb-6 {
-    margin-bottom: 12px;
-  }
-
-  .mb-4 {
-    margin-bottom: 8px;
-  }
-
-  .mb-8 {
-    margin-bottom: 16px;
-  }
-
-  /* Logo size for mobile */
-  .w-16 {
-    width: 3rem;
-    height: 3rem;
-  }
-
-  /* Button icons */
-  .w-4 {
-    width: 1rem;
-    height: 1rem;
-  }
-}
-
-/* Additional mobile optimizations for chat */
-@media (max-width: 640px) {
-
-  .pixel-bubble-user,
-  .pixel-bubble-ai {
-    max-width: 90%;
-  }
-
-  .pixel-header h1 {
-    font-size: 16px !important;
-  }
-}
-
-/* Larger screens */
-@media (min-width: 1024px) {
-  .pixel-bubble-ai {
-    max-width: 95%;
-  }
-
-  .pixel-bubble-user {
-    max-width: 80%;
+  
+  .sketch-btn {
+    padding: 8px 14px;
+    font-size: 13px;
   }
 }

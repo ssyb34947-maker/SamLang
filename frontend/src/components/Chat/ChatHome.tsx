@@ -392,7 +392,7 @@ export const ChatHome: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-900 text-white overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ backgroundColor: 'var(--sketch-bg)', color: 'var(--sketch-text)' }}>
       {/* 侧边栏 */}
       <Sidebar
         sidebarOpen={sidebarOpen}
@@ -408,23 +408,35 @@ export const ChatHome: React.FC = () => {
       />
 
       {/* 主内容区域 */}
-      <div className="flex-1 flex flex-col">
-        {/* 顶部导航栏 */}
-        <div className="bg-gray-800 border-b border-gray-700 p-4 flex items-center justify-between">
+      <div className="flex-1 flex flex-col" style={{ backgroundColor: 'var(--sketch-bg)' }}>
+        {/* 顶部导航栏 - 手绘风格 */}
+        <div 
+          className="p-4 flex items-center justify-between"
+          style={{ 
+            backgroundColor: 'white',
+            borderBottom: '3px solid var(--sketch-border)',
+            boxShadow: 'var(--shadow-hard)'
+          }}
+        >
           <div className="flex items-center gap-3">
             <button
               onClick={toggleSidebar}
-              className="p-2 rounded hover:bg-gray-700 transition-colors"
+              className="sketch-btn p-2"
+              style={{ padding: '8px 12px' }}
               title={sidebarOpen ? '收起侧边栏' : '展开侧边栏'}
             >
               {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </button>
-            <h1 className="text-xl font-bold text-cyan-400">
+            <h1 
+              className="text-xl"
+              style={{ fontFamily: 'var(--font-hand-heading)', color: 'var(--sketch-text)' }}
+            >
               {sidebarOpen && !sidebarCollapsed ?
                 conversations.find(c => c.id === currentConversation)?.title || '新对话' :
                 <span
-                  className="cursor-pointer hover:text-cyan-300 transition-colors"
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={navigateToProfile}
+                  style={{ color: 'var(--sketch-secondary)' }}
                 >
                   SamCollege Studio
                 </span>
@@ -433,89 +445,142 @@ export const ChatHome: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <button
-              className="p-2 rounded hover:bg-gray-700 transition-colors"
+              className="sketch-btn p-2"
+              style={{ padding: '8px 12px' }}
               onClick={navigateToProfile}
               title="SamCollege Studio"
             >
               <UserIcon size={20} />
             </button>
-            <button className="p-2 rounded hover:bg-gray-700 transition-colors">
+            <button className="sketch-btn p-2" style={{ padding: '8px 12px' }}>
               <MoreVertical size={20} />
             </button>
           </div>
         </div>
 
         {/* 聊天窗口 */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: 'var(--sketch-bg)' }}>
           {messages[currentConversation]?.map((message) => (
             <div
               key={message.id}
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-6`}
             >
               <div className={`max-w-[80%] ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
-                <div className={`inline-block p-4 rounded-lg ${message.role === 'user' ? 'bg-cyan-500' : 'bg-gray-700'}`}>
+                {/* AI对话区域使用黑体，其他使用手绘字体 */}
+                <div 
+                  className={`inline-block p-4 ${message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'}`}
+                  style={{
+                    fontFamily: 'var(--font-chat)',
+                    backgroundColor: message.role === 'user' ? 'var(--sketch-paper)' : 'white',
+                  }}
+                >
                   {message.role === 'assistant' ? (
                     <MarkdownRenderer content={message.content} />
                   ) : (
-                    <p className="text-white">{message.content}</p>
+                    <p style={{ fontFamily: 'var(--font-chat)' }}>{message.content}</p>
                   )}
                 </div>
-                <p className="text-xs text-gray-400 mt-1">{message.timestamp}</p>
+                <p 
+                  className="text-xs mt-2"
+                  style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
+                >
+                  {message.timestamp}
+                </p>
               </div>
             </div>
           )) || (
-              <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                <p>选择一个对话或创建新对话开始聊天</p>
+              <div 
+                className="flex flex-col items-center justify-center h-full"
+                style={{ color: 'var(--sketch-pencil)', fontFamily: 'var(--font-hand-body)' }}
+              >
+                <div 
+                  className="sketch-card-note text-center p-8"
+                  style={{ maxWidth: '400px' }}
+                >
+                  <p className="text-lg mb-4">选择一个对话或创建新对话开始聊天</p>
+                  <div className="sketch-divider" />
+                  <p className="text-sm mt-4" style={{ color: 'var(--sketch-accent)' }}>
+                    ✏️ 开始你的学习之旅吧！
+                  </p>
+                </div>
               </div>
             )}
         </div>
 
-        {/* 输入区域 */}
-        <div className="bg-gray-800 border-t border-gray-700 p-4">
-          <div className="flex gap-2">
-            <input
-              type="text"
+        {/* 输入区域 - 手绘风格 */}
+        <div 
+          className="p-4"
+          style={{ 
+            backgroundColor: 'white',
+            borderTop: '3px solid var(--sketch-border)',
+            boxShadow: '0 -4px 0px 0px var(--sketch-border)'
+          }}
+        >
+          <div className="flex gap-3 items-end max-w-4xl mx-auto">
+            <textarea
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyPress}
               placeholder="输入消息..."
-              className="flex-1 p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="chat-input flex-1"
+              rows={2}
+              style={{ minHeight: '60px' }}
             />
             <button
               onClick={handleSendMessage}
               disabled={!inputValue.trim()}
-              className={`p-3 rounded-lg ${inputValue.trim() ? 'bg-cyan-500 hover:bg-cyan-600' : 'bg-gray-600 cursor-not-allowed'} transition-colors`}
+              className="sketch-btn"
+              style={{ 
+                backgroundColor: inputValue.trim() ? 'var(--sketch-secondary)' : 'var(--sketch-muted)',
+                color: inputValue.trim() ? 'white' : 'var(--sketch-pencil)'
+              }}
             >
               <Send size={20} />
             </button>
           </div>
+          <p 
+            className="text-xs mt-3 text-center"
+            style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
+          >
+            按 Enter 发送消息，Shift + Enter 换行
+          </p>
         </div>
       </div>
 
-      {/* 右键菜单 */}
+      {/* 右键菜单 - 手绘风格 */}
       {showContextMenu && contextMenuTarget && (
         <div
-          className="fixed z-50 bg-gray-800 border border-gray-700 rounded-lg shadow-lg py-2"
-          style={{ left: contextMenuPosition.x, top: contextMenuPosition.y }}
+          className="fixed z-50 py-2"
+          style={{ 
+            left: contextMenuPosition.x, 
+            top: contextMenuPosition.y,
+            backgroundColor: 'white',
+            border: '3px solid var(--sketch-border)',
+            borderRadius: 'var(--wobbly-sm)',
+            boxShadow: 'var(--shadow-hard)'
+          }}
           onMouseLeave={hideContextMenu}
         >
           <button
             onClick={handlePinConversation}
-            className="w-full text-left px-4 py-2 hover:bg-gray-700 transition-colors flex items-center gap-2"
+            className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-gray-100 transition-colors"
+            style={{ fontFamily: 'var(--font-hand-body)' }}
           >
-            <Pin size={16} />
+            <Pin size={16} style={{ color: 'var(--sketch-secondary)' }} />
             <span>{conversations.find(c => c.id === contextMenuTarget)?.isPinned ? '取消置顶' : '置顶'}</span>
           </button>
           <button
             onClick={handleRenameConversation}
-            className="w-full text-left px-4 py-2 hover:bg-gray-700 transition-colors flex items-center gap-2"
+            className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-gray-100 transition-colors"
+            style={{ fontFamily: 'var(--font-hand-body)' }}
           >
-            <Edit size={16} />
+            <Edit size={16} style={{ color: 'var(--sketch-secondary)' }} />
             <span>重命名</span>
           </button>
           <button
             onClick={handleDeleteConversation}
-            className="w-full text-left px-4 py-2 hover:bg-gray-700 transition-colors flex items-center gap-2 text-red-400"
+            className="w-full text-left px-4 py-2 flex items-center gap-2 hover:bg-gray-100 transition-colors"
+            style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-accent)' }}
           >
             <Trash2 size={16} />
             <span>删除</span>
@@ -523,27 +588,49 @@ export const ChatHome: React.FC = () => {
         </div>
       )}
 
-      {/* 重命名对话框 */}
+      {/* 重命名对话框 - 手绘风格 */}
       {showRenameDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 w-96">
-            <h3 className="text-lg font-bold mb-4">重命名对话</h3>
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: 'rgba(45, 45, 45, 0.5)' }}
+        >
+          <div 
+            className="p-6 w-96"
+            style={{
+              backgroundColor: 'white',
+              border: '4px solid var(--sketch-border)',
+              borderRadius: 'var(--wobbly)',
+              boxShadow: 'var(--shadow-hard-lg)'
+            }}
+          >
+            <h3 
+              className="text-lg mb-4"
+              style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 700 }}
+            >
+              重命名对话
+            </h3>
             <input
               type="text"
               value={newConversationTitle}
               onChange={(e) => setNewConversationTitle(e.target.value)}
-              className="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 mb-4"
+              className="sketch-input mb-4"
             />
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setShowRenameDialog(false)}
-                className="px-4 py-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition-colors"
+                className="sketch-btn"
+                style={{ padding: '8px 16px' }}
               >
                 取消
               </button>
               <button
                 onClick={confirmRename}
-                className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-600 transition-colors"
+                className="sketch-btn"
+                style={{ 
+                  padding: '8px 16px',
+                  backgroundColor: 'var(--sketch-secondary)',
+                  color: 'white'
+                }}
               >
                 确认
               </button>

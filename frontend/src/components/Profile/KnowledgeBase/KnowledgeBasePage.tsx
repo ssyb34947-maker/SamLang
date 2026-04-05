@@ -1,5 +1,5 @@
 import React from 'react';
-import { KnowledgeNotebookLayout } from './KnowledgeBase/KnowledgeNotebookLayout';
+import { KnowledgeNotebookLayout } from './KnowledgeNotebookLayout';
 
 /**
  * KnowledgeBase 页面组件
@@ -9,7 +9,7 @@ import { KnowledgeNotebookLayout } from './KnowledgeBase/KnowledgeNotebookLayout
  * - 中间：Main Content 面板（内容展示）
  * - 右侧：Info 面板（详细信息）
  */
-export const KnowledgeBase: React.FC = () => {
+export const KnowledgeBasePage: React.FC = () => {
   return (
     <div className="h-full">
       <KnowledgeNotebookLayout />

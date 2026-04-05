@@ -1,5 +1,5 @@
 /**
- * 注册页面组件
+ * 注册页面组件 - 手绘草稿本风格
  */
 
 import { useState } from 'react';
@@ -84,54 +84,114 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-pixel-bg">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{ backgroundColor: 'var(--sketch-bg)' }}
+    >
       <div className="w-full max-w-md">
         {/* 返回按钮 */}
         <Link
           to="/login"
-          className="flex items-center gap-2 text-pixel-secondary hover:text-pixel-primary mb-6"
+          className="inline-flex items-center gap-2 mb-6 transition-all hover:translate-x-[-4px]"
+          style={{ 
+            fontFamily: 'var(--font-hand-body)', 
+            color: 'var(--sketch-secondary)' 
+          }}
         >
           <ArrowLeft className="w-4 h-4" />
           <span>返回登录</span>
         </Link>
 
-        {/* 注册表单卡片 */}
-        <div className="pixel-border p-6 md:p-8 rounded-lg">
+        {/* 注册表单卡片 - 手绘风格 */}
+        <div 
+          className="p-6 md:p-8 relative"
+          style={{
+            backgroundColor: 'white',
+            border: '4px solid var(--sketch-border)',
+            borderRadius: 'var(--wobbly)',
+            boxShadow: 'var(--shadow-hard-lg)'
+          }}
+        >
+          {/* 胶带装饰 */}
+          <div 
+            className="absolute -top-3 left-1/2 transform -translate-x-1/2 rotate-1"
+            style={{
+              width: '100px',
+              height: '24px',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              border: '2px solid var(--sketch-border)',
+              borderRadius: '4px'
+            }}
+          />
+
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-pixel-primary mb-2">
+            <div 
+              className="w-20 h-20 mx-auto mb-4 flex items-center justify-center"
+              style={{
+                backgroundColor: 'var(--sketch-paper)',
+                border: '3px solid var(--sketch-border)',
+                borderRadius: 'var(--wobbly-sm)',
+                boxShadow: 'var(--shadow-hard)',
+                transform: 'rotate(2deg)'
+              }}
+            >
+              <span 
+                className="text-3xl"
+                style={{ fontFamily: 'var(--font-hand-heading)' }}
+              >
+                ✏️
+              </span>
+            </div>
+            <h2 
+              className="text-2xl mb-2"
+              style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 700, color: 'var(--sketch-text)' }}
+            >
               创建账号
             </h2>
-            <p className="text-gray-400">
+            <p style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}>
               加入山姆外语，开始你的语言学习之旅
             </p>
           </div>
 
           {/* 错误提示 */}
           {error && (
-            <div className="pixel-border-error p-4 mb-6 rounded">
-              <p className="text-pixel-error text-sm">{error}</p>
+            <div 
+              className="p-4 mb-6"
+              style={{
+                backgroundColor: 'rgba(255, 77, 77, 0.1)',
+                border: '3px solid var(--sketch-accent)',
+                borderRadius: 'var(--wobbly-sm)'
+              }}
+            >
+              <p style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-accent)' }}>{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
             {/* 用户名 */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label 
+                className="block mb-2"
+                style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 600 }}
+              >
                 用户名
               </label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="请输入用户名"
+                placeholder="请输入用户名（字母和数字）"
                 disabled={isLoading}
-                className="pixel-input w-full"
+                className="sketch-input"
               />
             </div>
 
             {/* 邮箱 */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label 
+                className="block mb-2"
+                style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 600 }}
+              >
                 邮箱地址
               </label>
               <input
@@ -140,29 +200,35 @@ const Register: React.FC = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="请输入邮箱地址"
                 disabled={isLoading}
-                className="pixel-input w-full"
+                className="sketch-input"
               />
             </div>
 
             {/* 密码 */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label 
+                className="block mb-2"
+                style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 600 }}
+              >
                 密码
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="请输入密码（6-18位，至少包含两种字符类型）"
+                placeholder="6-18位，至少包含两种字符类型"
                 disabled={isLoading}
                 onCopy={(e) => e.preventDefault()}
-                className="pixel-input w-full"
+                className="sketch-input"
               />
             </div>
 
             {/* 确认密码 */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label 
+                className="block mb-2"
+                style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 600 }}
+              >
                 确认密码
               </label>
               <input
@@ -172,7 +238,7 @@ const Register: React.FC = () => {
                 placeholder="请再次输入密码"
                 disabled={isLoading}
                 onCopy={(e) => e.preventDefault()}
-                className="pixel-input w-full"
+                className="sketch-input"
               />
             </div>
 
@@ -180,26 +246,31 @@ const Register: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="pixel-btn w-full flex items-center justify-center gap-2"
+              className="sketch-btn w-full"
+              style={{
+                backgroundColor: isLoading ? 'var(--sketch-muted)' : 'var(--sketch-secondary)',
+                color: 'white'
+              }}
             >
               {isLoading ? (
-                <>
-                  <div className="pixel-loading-sm"></div>
-                  <span>注册中...</span>
-                </>
+                <span style={{ fontFamily: 'var(--font-hand-body)' }}>注册中...</span>
               ) : (
-                <span>创建账号</span>
+                <span style={{ fontFamily: 'var(--font-hand-heading)' }}>创建账号</span>
               )}
             </button>
           </form>
 
           {/* 登录链接 */}
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-400">
+            <p style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}>
               已有账号？{' '}
               <Link
                 to="/login"
-                className="text-pixel-primary hover:text-pixel-accent underline"
+                style={{ 
+                  color: 'var(--sketch-secondary)', 
+                  textDecoration: 'underline',
+                  fontWeight: 600
+                }}
               >
                 立即登录
               </Link>
