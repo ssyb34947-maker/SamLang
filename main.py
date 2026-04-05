@@ -13,7 +13,7 @@ from src.service import create_chat_agent
 from src.config.config import get_config
 from loguru import logger
 
-from src.api import reset_router, chat_router, test_router
+from src.api import reset_router, chat_router, test_router, auth_router
 
 
 # Set UTF-8 encoding for Windows console
@@ -31,6 +31,12 @@ async def lifespan(app: FastAPI):
     
     # Startup: Initialize the chat agent
     logger.info("Starting up Sam Lang Backend...")
+    
+    # 初始化数据库
+    from src.db.user import init_db
+    init_db()
+    logger.info("Database initialized")
+    
     app.state.agent = create_chat_agent()
     app.state.config = get_config()
     logger.info(f"ConversationAgent 已创建" if app.state.agent else "ConversationAgent 创建失败")
@@ -89,6 +95,7 @@ async def health_check():
 app.include_router(reset_router)
 app.include_router(chat_router)
 app.include_router(test_router)
+app.include_router(auth_router)
 
 
 

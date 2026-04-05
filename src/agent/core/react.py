@@ -6,7 +6,7 @@ ReACT (Reasoning and Acting) 框架实现
 from typing import List, Dict, Any, Optional, Tuple
 import json
 import re
-from venv import logger
+from loguru import logger
 from src.agent.tools import ToolManager
 from src.agent.llm.llmclient import LLMClient
 
@@ -181,13 +181,14 @@ Final Answer: [你的最终答案]
 
         return thought, action, action_input
 
-    def run(self, user_query: str, context_messages: List[Dict[str, str]] = None) -> str:
+    def run(self, user_query: str, context_messages: List[Dict[str, str]] = None, thinking_callback=None) -> str:
         """
         运行 ReACT 循环
 
         输入：
             user_query: 用户查询
             context_messages: 上下文消息（可选）
+            thinking_callback: 思考过程回调函数，用于实时返回思考步骤
         输出：
             最终答案
         """
@@ -230,6 +231,13 @@ Final Answer: [你的最终答案]
                 history.append(f"Thought: {thought}")
                 if self.verbose:
                     print(f"\n[思考] {thought}")
+                
+                # 调用思考回调
+                if thinking_callback:
+                    thinking_callback("thinking_step", {
+                        "thought": thought,
+                        "tool_call": None
+                    })
 
             # 检查是否是最终答案
             if action == "Final Answer":
@@ -245,13 +253,44 @@ Final Answer: [你的最终答案]
                 if self.verbose:
                     print(f"\n[工具] {action}")
                     print(f"[参数] {action_input}")
+                
+                # 调用工具回调
+                if thinking_callback:
+                    thinking_callback("tool_call", {
+                        "tool_name": action,
+                        "arguments": action_input,
+                        "result": None
+                    })
 
                 # 调用工具
-                observation = self.tool_manager.call_tool(action, action_input)
-                history.append(f"Observation: {observation}")
+                try:
+                    observation = self.tool_manager.call_tool(action, action_input)
+                    history.append(f"Observation: {observation}")
 
-                if self.verbose:
-                    print(f"[观察] {observation[:200]}...")
+                    if self.verbose:
+                        print(f"[观察] {observation[:200]}...")
+                    
+                    # 调用工具结果回调
+                    if thinking_callback:
+                        thinking_callback("tool_result", {
+                            "tool_name": action,
+                            "arguments": action_input,
+                            "result": observation
+                        })
+                except Exception as e:
+                    observation = f"Error: {str(e)}"
+                    history.append(f"Observation: {observation}")
+                    
+                    if self.verbose:
+                        print(f"[错误] {observation}")
+                    
+                    # 调用工具结果回调（错误）
+                    if thinking_callback:
+                        thinking_callback("tool_result", {
+                            "tool_name": action,
+                            "arguments": action_input,
+                            "result": observation
+                        })
             else:
                 # 无法解析出有效的 action，尝试直接返回响应
                 if self.verbose:
@@ -272,13 +311,14 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
     功能：使用原生的 function calling 而不是文本解析
     """
 
-    def run(self, user_query: str, context_messages: List[Dict[str, str]] = None) -> str:
+    def run(self, user_query: str, context_messages: List[Dict[str, str]] = None, thinking_callback=None, token_callback=None) -> str:
         """
         运行 ReACT 循环（使用 function calling）
 
         输入：
             user_query: 用户查询
             context_messages: 上下文消息（可选）
+            thinking_callback: 思考过程回调函数，用于实时返回思考步骤
         输出：
             最终答案
         """
@@ -296,14 +336,14 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
             iteration += 1
 
             if self.verbose:
-                print(f"\n{'='*50}")
-                print(f"迭代 {iteration}/{self.max_iterations}")
-                print(f"{'='*50}")
+                #print(f"\n{'='*50}")
+                logger.info(f"迭代 {iteration}/{self.max_iterations}")
+                #print(f"{'='*50}")
 
             # 调用 LLM with function calling
-            if self.stream and self.verbose:
+            if self.stream:
                 # 流式输出（对于 function calling 需要特殊处理）
-                logger.debug(f"tools: {tools}")
+                #logger.debug(f"tools: {tools}")
                 stream_result = self._stream_with_function_calling(messages, tools)
 
                 # 从字典构造消息对象
@@ -377,9 +417,17 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
                 # 打印输出
                 if self.verbose:
                     if is_deepseek_reasoner and reasoning_content:
-                        print(reasoning_content)
+                        logger.info(reasoning_content)
                     elif content:
-                        print(content)
+                        logger.info(content)
+                
+                # 调用思考回调（包含思考内容）
+                thought_content = reasoning_content if reasoning_content else content
+                if thought_content and thinking_callback:
+                    thinking_callback("thinking_step", {
+                        "thought": thought_content,
+                        "tool_call": None
+                    })
 
             # 检查是否需要调用工具
             if has_tool_calls:
@@ -392,14 +440,43 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
                     function_args = json.loads(tool_call["function"]["arguments"])
 
                     if self.verbose:
-                        print(f"\n[调用工具] {function_name}")
-                        print(f"[参数] {function_args}")
+                        logger.info(f"\n[调用工具] {function_name}")
+                        logger.info(f"[参数] {function_args}")
+                    
+                    # 调用工具回调
+                    if thinking_callback:
+                        thinking_callback("tool_call", {
+                            "tool_name": function_name,
+                            "arguments": function_args,
+                            "result": None
+                        })
 
                     # 调用工具
-                    observation = self.tool_manager.call_tool(function_name, function_args)
+                    try:
+                        observation = self.tool_manager.call_tool(function_name, function_args)
 
-                    if self.verbose:
-                        print(f"[结果] {observation[:200]}...")
+                        if self.verbose:
+                            logger.info(f"[结果] {observation[:200]}...")
+                        
+                        # 调用工具结果回调
+                        if thinking_callback:
+                            thinking_callback("tool_result", {
+                                "tool_name": function_name,
+                                "arguments": function_args,
+                                "result": observation
+                            })
+                    except Exception as e:
+                        observation = f"Error: {str(e)}"
+                        if self.verbose:
+                            logger.error(f"[错误] {observation}")
+                        
+                        # 调用工具结果回调（错误）
+                        if thinking_callback:
+                            thinking_callback("tool_result", {
+                                "tool_name": function_name,
+                                "arguments": function_args,
+                                "result": observation
+                            })
 
                     # 添加工具结果到消息
                     messages.append({
@@ -410,15 +487,19 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
                     })
             else:
                 # 没有工具调用，返回最终答案
+                # 如果有 token_callback，使用流式输出
+                if token_callback:
+                    return self._stream_final_answer(messages, token_callback)
+                
                 if self.verbose:
-                    print(f"\n[最终答案]")
+                    logger.info(f"\n[最终答案]")
                     if not self.stream:
-                        print(content)
+                        logger.info(content)
                 return content
 
         # 达到最大迭代次数
         if self.verbose:
-            print(f"\n[警告] 达到最大迭代次数 {self.max_iterations}")
+            logger.warning(f"\n[警告] 达到最大迭代次数 {self.max_iterations}")
 
         return "抱歉，我无法在规定的步骤内完成这个任务。"
 
@@ -503,3 +584,35 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
             result["reasoning_content"] = full_reasoning_content
 
         return result
+
+    def _stream_final_answer(self, messages: List[Dict], token_callback) -> str:
+        """
+        流式生成最终答案，每生成一个token就调用回调
+
+        输入：
+            messages: 消息列表
+            token_callback: token回调函数，每生成一个token时调用
+        输出：
+            完整的最终答案
+        """
+        stream = self.llm_client.get_client().chat.completions.create(
+            model=self.llm_client.config.model_name,
+            messages=messages,
+            temperature=self.llm_client.config.temperature,
+            max_tokens=self.llm_client.config.max_tokens,
+            stream=True
+        )
+
+        full_content = ""
+
+        for chunk in stream:
+            delta = chunk.choices[0].delta
+            
+            # 处理文本内容
+            if delta.content:
+                token = delta.content
+                full_content += token
+                # 调用token回调，实时推送
+                token_callback(token)
+
+        return full_content
