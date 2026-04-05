@@ -15,7 +15,7 @@ from src.service import create_chat_agent
 from src.config.config import get_config
 from loguru import logger
 
-from src.api import reset_router, chat_router, test_router, auth_router, rag_router
+from src.api import reset_router, chat_router, test_router, auth_router, rag_router, conversation_router
 from src.api.rag.pipeline import IngestionPipeline, RetrievalPipeline
 
 # 头像上传目录
@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up Sam Lang Backend...")
 
     # 初始化数据库
-    from src.db.user import init_db
+    from src.db import init_db
     init_db()
     logger.info("Database initialized")
 
@@ -144,6 +144,7 @@ app.include_router(chat_router)
 app.include_router(test_router)
 app.include_router(auth_router)
 app.include_router(rag_router)
+app.include_router(conversation_router)
 
 # 挂载头像静态文件服务
 app.mount("/api/avatars", StaticFiles(directory=AVATAR_UPLOAD_DIR), name="avatars")

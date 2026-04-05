@@ -10,11 +10,13 @@ import 'tailwindcss/tailwind.css';
 // 对话类型定义
 interface Conversation {
   id: string;
+  conversation_id: string;
   title: string;
   lastMessage: string;
   lastMessageTime: string;
   isPinned: boolean;
   unreadCount: number;
+  isTemporary?: boolean; // 标记是否为临时对话（未保存到数据库）
 }
 
 // 消息类型定义
@@ -24,6 +26,7 @@ interface Message {
   content: string;
   timestamp: string;
 }
+       
 /**
  * Agent智能体聊天主页
  * 包含可推拉侧边栏、对话列表和聊天窗口
@@ -43,7 +46,8 @@ export const ChatHome: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [isResizing, setIsResizing] = useState(false);
-  const [currentConversation, setCurrentConversation] = useState<string>('1');
+  const [currentConversation, setCurrentConversation] = useState<string>('');
+  const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(undefined);
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
   const [contextMenuTarget, setContextMenuTarget] = useState<string | null>(null);
@@ -51,41 +55,88 @@ export const ChatHome: React.FC = () => {
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameTarget, setRenameTarget] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
 
-  // 模拟对话数据 - 默认空，进入时创建新对话
+  // 对话数据
   const [conversations, setConversations] = useState<Conversation[]>([]);
-
-  // 模拟消息数据
+  // 消息数据
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
 
-  // 生成唯一ID
+  // 生成唯一ID（用于临时对话）
   const generateId = () => {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   };
 
-  // 创建新对话
+  // 加载用户的对话列表
+  const loadConversations = async () => {
+    try {
+      const response = await apiService.getConversations();
+      const loadedConversations = response.conversations.map((conv: any) => ({
+        id: conv.conversation_id,
+        conversation_id: conv.conversation_id,
+        title: conv.title,
+        lastMessage: conv.last_message || '',
+        lastMessageTime: conv.last_message_time 
+          ? new Date(conv.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : new Date(conv.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isPinned: conv.is_pinned,
+        unreadCount: 0,
+        isTemporary: false
+      }));
+      setConversations(loadedConversations);
+    } catch (error) {
+      console.error('Failed to load conversations:', error);
+    }
+  };
+
+  // 加载特定对话的消息
+  const loadMessages = async (conversationId: string) => {
+    try {
+      const response = await apiService.getConversationMessages(conversationId);
+      const loadedMessages = response.messages.map((msg: any) => ({
+        id: msg.message_id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }));
+      setMessages(prev => ({ ...prev, [conversationId]: loadedMessages }));
+    } catch (error) {
+      console.error('Failed to load messages:', error);
+    }
+  };
+
+  // 初始加载对话列表
+  useEffect(() => {
+    loadConversations();
+  }, []);
+
+  // 创建新对话（临时，不立即保存到数据库）
   const createNewConversation = () => {
     const newId = generateId();
     const newConversation: Conversation = {
       id: newId,
+      conversation_id: newId,
       title: '新对话',
       lastMessage: '',
       lastMessageTime: '刚刚',
       isPinned: false,
-      unreadCount: 0
+      unreadCount: 0,
+      isTemporary: true // 标记为临时对话
     };
 
     setConversations(prev => [newConversation, ...prev]);
     setMessages(prev => ({ ...prev, [newId]: [] }));
     setCurrentConversation(newId);
+    setCurrentConversationId(undefined); // 临时对话没有数据库ID
   };
 
-  // 进入页面时默认创建新对话
+  // 进入页面时默认创建新对话（如果没有对话）
   useEffect(() => {
-    if (conversations.length === 0) {
+    if (conversations.length === 0 && !isLoading) {
       createNewConversation();
     }
-  }, []);
+  }, [conversations.length]);
 
   // 处理侧边栏展开/收起
   const toggleSidebar = () => {
@@ -131,23 +182,22 @@ export const ChatHome: React.FC = () => {
 
   // 新建对话
   const handleNewConversation = () => {
-    const newId = generateId();
-    const newConv: Conversation = {
-      id: newId,
-      title: '新对话',
-      lastMessage: '',
-      lastMessageTime: '刚刚',
-      isPinned: false,
-      unreadCount: 0
-    };
-    setConversations([newConv, ...conversations]);
-    setCurrentConversation(newId);
-    setMessages({ ...messages, [newId]: [] });
+    createNewConversation();
   };
 
   // 切换对话
-  const handleConversationClick = (id: string) => {
+  const handleConversationClick = async (id: string) => {
+    const conversation = conversations.find(c => c.id === id);
+    if (!conversation) return;
+
     setCurrentConversation(id);
+    setCurrentConversationId(conversation.isTemporary ? undefined : conversation.conversation_id);
+    
+    // 如果不是临时对话，加载消息
+    if (!conversation.isTemporary) {
+      await loadMessages(conversation.conversation_id);
+    }
+    
     // 重置未读消息数
     setConversations(conversations.map(conv =>
       conv.id === id ? { ...conv, unreadCount: 0 } : conv
@@ -169,11 +219,25 @@ export const ChatHome: React.FC = () => {
   };
 
   // 处理置顶/取消置顶
-  const handlePinConversation = () => {
+  const handlePinConversation = async () => {
     if (contextMenuTarget) {
-      setConversations(conversations.map(conv =>
-        conv.id === contextMenuTarget ? { ...conv, isPinned: !conv.isPinned } : conv
-      ));
+      const conversation = conversations.find(c => c.id === contextMenuTarget);
+      if (conversation && !conversation.isTemporary) {
+        try {
+          await apiService.updateConversation(conversation.conversation_id, {
+            is_pinned: !conversation.isPinned
+          });
+          // 重新加载对话列表
+          await loadConversations();
+        } catch (error) {
+          console.error('Failed to pin conversation:', error);
+        }
+      } else {
+        // 临时对话只更新本地状态
+        setConversations(conversations.map(conv =>
+          conv.id === contextMenuTarget ? { ...conv, isPinned: !conv.isPinned } : conv
+        ));
+      }
       hideContextMenu();
     }
   };
@@ -192,11 +256,23 @@ export const ChatHome: React.FC = () => {
   };
 
   // 确认重命名
-  const confirmRename = () => {
+  const confirmRename = async () => {
     if (renameTarget && newConversationTitle.trim()) {
-      setConversations(conversations.map(conv =>
-        conv.id === renameTarget ? { ...conv, title: newConversationTitle.trim() } : conv
-      ));
+      const conversation = conversations.find(c => c.id === renameTarget);
+      if (conversation && !conversation.isTemporary) {
+        try {
+          await apiService.updateConversation(conversation.conversation_id, {
+            title: newConversationTitle.trim()
+          });
+          await loadConversations();
+        } catch (error) {
+          console.error('Failed to rename conversation:', error);
+        }
+      } else {
+        setConversations(conversations.map(conv =>
+          conv.id === renameTarget ? { ...conv, title: newConversationTitle.trim() } : conv
+        ));
+      }
       setShowRenameDialog(false);
       setRenameTarget(null);
       setNewConversationTitle('');
@@ -204,14 +280,27 @@ export const ChatHome: React.FC = () => {
   };
 
   // 删除对话
-  const handleDeleteConversation = () => {
+  const handleDeleteConversation = async () => {
     if (contextMenuTarget) {
-      setConversations(conversations.filter(conv => conv.id !== contextMenuTarget));
+      const conversation = conversations.find(c => c.id === contextMenuTarget);
+      if (conversation && !conversation.isTemporary) {
+        try {
+          await apiService.deleteConversation(conversation.conversation_id);
+          await loadConversations();
+        } catch (error) {
+          console.error('Failed to delete conversation:', error);
+        }
+      } else {
+        // 临时对话直接删除
+        setConversations(conversations.filter(conv => conv.id !== contextMenuTarget));
+      }
+      
       // 如果删除的是当前对话，切换到第一个对话
       if (contextMenuTarget === currentConversation && conversations.length > 1) {
         const firstConv = conversations.find(conv => conv.id !== contextMenuTarget);
         if (firstConv) {
           setCurrentConversation(firstConv.id);
+          setCurrentConversationId(firstConv.isTemporary ? undefined : firstConv.conversation_id);
         }
       }
       hideContextMenu();
@@ -220,145 +309,179 @@ export const ChatHome: React.FC = () => {
 
   // 发送消息 - 真正的实时流式
   const handleSendMessage = async () => {
-    if (inputValue.trim() && currentConversation) {
-      const userMessage: Message = {
-        id: `${currentConversation}-${Date.now()}`,
-        role: 'user',
-        content: inputValue.trim(),
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
+    if (!inputValue.trim() || !currentConversation) return;
 
-      // 更新消息列表（用户消息）
-      setMessages(prev => ({
-        ...prev,
-        [currentConversation]: [...(prev[currentConversation] || []), userMessage]
-      }));
+    const userMessage: Message = {
+      id: `${currentConversation}-${Date.now()}`,
+      role: 'user',
+      content: inputValue.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
 
-      // 更新对话列表的最后一条消息
-      setConversations(prev => prev.map(conv =>
-        conv.id === currentConversation
-          ? {
-            ...conv,
-            lastMessage: inputValue.trim(),
-            lastMessageTime: userMessage.timestamp
-          }
-          : conv
-      ));
+    // 更新消息列表（用户消息）
+    setMessages(prev => ({
+      ...prev,
+      [currentConversation]: [...(prev[currentConversation] || []), userMessage]
+    }));
 
-      // 清空输入框
-      setInputValue('');
+    // 更新对话列表的最后一条消息
+    setConversations(prev => prev.map(conv =>
+      conv.id === currentConversation
+        ? {
+          ...conv,
+          lastMessage: inputValue.trim(),
+          lastMessageTime: userMessage.timestamp
+        }
+        : conv
+    ));
 
-      // 创建AI消息的占位符（初始为空）
+    // 清空输入框
+    setInputValue('');
+    
+    // 设置思考状态
+    setIsThinking(true);
+
+    // 调用真正的实时流式API
+    try {
+      const contentRef = { current: '' };
       const aiMessageId = `${currentConversation}-${Date.now() + 1}`;
-      const aiMessage: Message = {
-        id: aiMessageId,
-        role: 'assistant',
-        content: '',  // 初始为空，会逐步填充
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
+      let hasReceivedToken = false;
 
-      // 添加AI消息的占位符到消息列表
-      setMessages(prev => ({
-        ...prev,
-        [currentConversation]: [...(prev[currentConversation] || []), aiMessage]
-      }));
-
-      // 调用真正的实时流式API
-      try {
-        // 使用 ref 来存储当前内容，避免闭包问题
-        const contentRef = { current: '' };
-        // 使用 ref 来标记是否有待处理的更新
-        const pendingUpdateRef = { current: false };
-        // 使用 ref 存储最新的消息ID
-        const messageIdRef = { current: aiMessageId };
-
-        // 强制立即更新UI的函数
-        const forceUpdate = (content: string) => {
-          setMessages(prev => {
-            const currentMessages = prev[currentConversation] || [];
-            const lastMessage = currentMessages[currentMessages.length - 1];
-
-            if (lastMessage && lastMessage.id === messageIdRef.current) {
-              const updatedMessages = [...currentMessages];
-              updatedMessages[updatedMessages.length - 1] = {
-                ...lastMessage,
-                content: content
-              };
-              return {
-                ...prev,
-                [currentConversation]: updatedMessages
-              };
-            }
-            return prev;
-          });
-        };
-
-        await apiService.sendMessageStreamRealTime(
-          userMessage.content,
-          // onToken: 每收到一个token立即更新UI
-          (token: string) => {
-            contentRef.current += token;
-            // 直接立即更新，不批量处理
-            forceUpdate(contentRef.current);
-          },
-          // onComplete: 流完成时更新对话列表
-          (fullResponse: string) => {
-            // 确保最后一次更新
-            forceUpdate(fullResponse);
-
-            setConversations(prev => prev.map(conv =>
-              conv.id === currentConversation
-                ? {
-                  ...conv,
-                  lastMessage: fullResponse,
-                  lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                }
-                : conv
-            ));
-            console.log('Stream complete, full response:', fullResponse);
-          },
-          // onError: 错误处理
-          (error: string) => {
-            console.error('Stream error:', error);
-
-            // 更新AI消息为错误信息
-            setMessages(prev => {
-              const currentMessages = prev[currentConversation] || [];
-              const updatedMessages = [...currentMessages];
-              if (updatedMessages.length > 0) {
-                updatedMessages[updatedMessages.length - 1] = {
-                  ...updatedMessages[updatedMessages.length - 1],
-                  content: '抱歉，发送消息时出现错误。请稍后再试。',
-                  role: 'assistant'
-                };
-              }
-              return {
-                ...prev,
-                [currentConversation]: updatedMessages
-              };
-            });
-          }
-        );
-      } catch (error) {
-        console.error('Error sending message:', error);
-
-        // 更新AI消息为错误信息
+      // 强制立即更新UI的函数
+      const forceUpdate = (content: string) => {
         setMessages(prev => {
           const currentMessages = prev[currentConversation] || [];
-          const updatedMessages = [...currentMessages];
-          if (updatedMessages.length > 0) {
-            updatedMessages[updatedMessages.length - 1] = {
-              ...updatedMessages[updatedMessages.length - 1],
-              content: '抱歉，发送消息时出现错误。请稍后再试。',
-              role: 'assistant'
+          const lastMessage = currentMessages[currentMessages.length - 1];
+
+          // 如果还没有AI消息，或者最后一条不是AI消息，添加新的
+          if (!lastMessage || lastMessage.role !== 'assistant' || lastMessage.id !== aiMessageId) {
+            const newMessage: Message = {
+              id: aiMessageId,
+              role: 'assistant',
+              content: content,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            return {
+              ...prev,
+              [currentConversation]: [...currentMessages, newMessage]
             };
           }
+
+          // 更新现有AI消息
+          const updatedMessages = [...currentMessages];
+          updatedMessages[updatedMessages.length - 1] = {
+            ...lastMessage,
+            content: content
+          };
           return {
             ...prev,
             [currentConversation]: updatedMessages
           };
         });
-      }
+      };
+
+      await apiService.sendMessageStreamRealTime(
+        userMessage.content,
+        currentConversationId, // 如果是临时对话，这里为 undefined
+        // onToken: 每收到一个token立即更新UI
+        (token: string) => {
+          // 收到第一个token时，取消思考状态
+          if (!hasReceivedToken) {
+            hasReceivedToken = true;
+            setIsThinking(false);
+          }
+          contentRef.current += token;
+          forceUpdate(contentRef.current);
+        },
+        // onComplete: 流完成时更新对话列表
+        (fullResponse: string, newConversationId?: string, isNewConversation?: boolean) => {
+          // 确保最后一次更新
+          forceUpdate(fullResponse);
+
+          // 如果是新创建的对话，更新状态
+          if (isNewConversation && newConversationId) {
+            setCurrentConversationId(newConversationId);
+            setConversations(prev => prev.map(conv =>
+              conv.id === currentConversation
+                ? {
+                  ...conv,
+                  id: newConversationId,
+                  conversation_id: newConversationId,
+                  isTemporary: false
+                }
+                : conv
+            ));
+            // 更新消息key
+            setMessages(prev => {
+              const newMessages = { ...prev };
+              newMessages[newConversationId] = newMessages[currentConversation];
+              return newMessages;
+            });
+            setCurrentConversation(newConversationId);
+          }
+
+          setConversations(prev => prev.map(conv =>
+            conv.id === (isNewConversation ? newConversationId : currentConversation)
+              ? {
+                ...conv,
+                lastMessage: fullResponse,
+                lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              }
+              : conv
+          ));
+          // 确保思考状态被取消
+          setIsThinking(false);
+          console.log('Stream complete, full response:', fullResponse);
+        },
+        // onError: 错误处理
+        (error: string) => {
+          console.error('Stream error:', error);
+          // 取消思考状态
+          setIsThinking(false);
+
+          // 更新AI消息为错误信息
+          setMessages(prev => {
+            const currentMessages = prev[currentConversation] || [];
+            const updatedMessages = [...currentMessages];
+            if (updatedMessages.length > 0) {
+              updatedMessages[updatedMessages.length - 1] = {
+                ...updatedMessages[updatedMessages.length - 1],
+                content: '抱歉，发送消息时出现错误。请稍后再试。',
+                role: 'assistant'
+              };
+            }
+            return {
+              ...prev,
+              [currentConversation]: updatedMessages
+            };
+          });
+        },
+        // onConversationCreated: 新对话创建时的回调
+        (convId: string) => {
+          console.log('New conversation created:', convId);
+        }
+      );
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // 取消思考状态
+      setIsThinking(false);
+
+      // 更新AI消息为错误信息
+      setMessages(prev => {
+        const currentMessages = prev[currentConversation] || [];
+        const updatedMessages = [...currentMessages];
+        if (updatedMessages.length > 0) {
+          updatedMessages[updatedMessages.length - 1] = {
+            ...updatedMessages[updatedMessages.length - 1],
+            content: '抱歉，发送消息时出现错误。请稍后再试。',
+            role: 'assistant'
+          };
+        }
+        return {
+          ...prev,
+          [currentConversation]: updatedMessages
+        };
+      });
     }
   };
 
@@ -501,14 +624,24 @@ export const ChatHome: React.FC = () => {
         {/* 聊天窗口 */}
         <div className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: 'var(--sketch-bg)' }}>
           {messages[currentConversation]?.length > 0 ? (
-            messages[currentConversation].map((message) => (
-              <AIOutput
-                key={message.id}
-                content={message.content}
-                timestamp={message.timestamp}
-                isUser={message.role === 'user'}
-              />
-            ))
+            <>
+              {messages[currentConversation].map((message) => (
+                <AIOutput
+                  key={message.id}
+                  content={message.content}
+                  timestamp={message.timestamp}
+                  isUser={message.role === 'user'}
+                />
+              ))}
+              {/* AI 思考中动画 */}
+              {isThinking && (
+                <AIOutput
+                  content=""
+                  isUser={false}
+                  isThinking={true}
+                />
+              )}
+            </>
           ) : (
             /* 欢迎画面 */
             <div className="flex flex-col items-center justify-center h-full text-center">

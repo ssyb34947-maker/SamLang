@@ -15,8 +15,14 @@ const Register: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { register } = useAuth();
+  const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // 如果已经登录，直接跳转到首页
+  if (isAuthenticated) {
+    navigate('/chat', { replace: true });
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +67,7 @@ const Register: React.FC = () => {
       await register(username, email, password);
       // 注册成功后提示并跳转到首页
       alert('注册成功！');
-      navigate('/');
+      navigate('/chat', { replace: true });
     } catch (err: any) {
       let errorMessage = '注册失败，请稍后重试';
 
@@ -84,7 +90,7 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center p-4"
       style={{ backgroundColor: 'var(--sketch-bg)' }}
     >
@@ -93,9 +99,9 @@ const Register: React.FC = () => {
         <Link
           to="/login"
           className="inline-flex items-center gap-2 mb-6 transition-all hover:translate-x-[-4px]"
-          style={{ 
-            fontFamily: 'var(--font-hand-body)', 
-            color: 'var(--sketch-secondary)' 
+          style={{
+            fontFamily: 'var(--font-hand-body)',
+            color: 'var(--sketch-secondary)'
           }}
         >
           <ArrowLeft className="w-4 h-4" />
@@ -103,7 +109,7 @@ const Register: React.FC = () => {
         </Link>
 
         {/* 注册表单卡片 - 手绘风格 */}
-        <div 
+        <div
           className="p-6 md:p-8 relative"
           style={{
             backgroundColor: 'white',
@@ -113,7 +119,7 @@ const Register: React.FC = () => {
           }}
         >
           {/* 胶带装饰 */}
-          <div 
+          <div
             className="absolute -top-3 left-1/2 transform -translate-x-1/2 rotate-1"
             style={{
               width: '100px',
@@ -125,7 +131,7 @@ const Register: React.FC = () => {
           />
 
           <div className="text-center mb-8">
-            <div 
+            <div
               className="w-20 h-20 mx-auto mb-4 flex items-center justify-center"
               style={{
                 backgroundColor: 'var(--sketch-paper)',
@@ -135,14 +141,14 @@ const Register: React.FC = () => {
                 transform: 'rotate(2deg)'
               }}
             >
-              <span 
+              <span
                 className="text-3xl"
                 style={{ fontFamily: 'var(--font-hand-heading)' }}
               >
                 ✏️
               </span>
             </div>
-            <h2 
+            <h2
               className="text-2xl mb-2"
               style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 700, color: 'var(--sketch-text)' }}
             >
@@ -155,7 +161,7 @@ const Register: React.FC = () => {
 
           {/* 错误提示 */}
           {error && (
-            <div 
+            <div
               className="p-4 mb-6"
               style={{
                 backgroundColor: 'rgba(255, 77, 77, 0.1)',
@@ -170,7 +176,7 @@ const Register: React.FC = () => {
           <form onSubmit={handleSubmit}>
             {/* 用户名 */}
             <div className="mb-4">
-              <label 
+              <label
                 className="block mb-2"
                 style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 600 }}
               >
@@ -188,7 +194,7 @@ const Register: React.FC = () => {
 
             {/* 邮箱 */}
             <div className="mb-4">
-              <label 
+              <label
                 className="block mb-2"
                 style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 600 }}
               >
@@ -206,7 +212,7 @@ const Register: React.FC = () => {
 
             {/* 密码 */}
             <div className="mb-4">
-              <label 
+              <label
                 className="block mb-2"
                 style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 600 }}
               >
@@ -225,7 +231,7 @@ const Register: React.FC = () => {
 
             {/* 确认密码 */}
             <div className="mb-6">
-              <label 
+              <label
                 className="block mb-2"
                 style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 600 }}
               >
@@ -266,8 +272,8 @@ const Register: React.FC = () => {
               已有账号？{' '}
               <Link
                 to="/login"
-                style={{ 
-                  color: 'var(--sketch-secondary)', 
+                style={{
+                  color: 'var(--sketch-secondary)',
                   textDecoration: 'underline',
                   fontWeight: 600
                 }}

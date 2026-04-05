@@ -48,14 +48,26 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   // 当检查认证状态时，显示加载动画
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-pixel-bg">
-        <div className="pixel-loading"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--sketch-bg)' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div 
+            className="w-12 h-12 border-4 rounded-full animate-spin"
+            style={{ 
+              borderColor: 'var(--sketch-border)',
+              borderTopColor: 'var(--sketch-accent)'
+            }}
+          />
+          <p style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-text)' }}>
+            检查登录状态...
+          </p>
+        </div>
       </div>
     );
   }
 
+  // 未登录时重定向到登录页，并记录当前路径以便登录后跳转回来
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   return <>{children}</>;

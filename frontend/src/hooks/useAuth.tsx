@@ -36,6 +36,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
+        // 如果没有 token，直接标记为未登录
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setUser(null);
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
+        }
+        
         const userData = await apiService.getCurrentUser();
         setUser(userData);
         setIsAuthenticated(true);
@@ -43,6 +52,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('User not authenticated');
         setUser(null);
         setIsAuthenticated(false);
+        // 清除无效的 token
+        apiService.clearToken();
       } finally {
         setIsLoading(false);
       }
