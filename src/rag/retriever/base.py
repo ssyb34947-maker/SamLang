@@ -31,12 +31,13 @@ class BaseRetriever(ABC):
         pass
     
     @abstractmethod
-    def add_document(self, chunks: List[Chunk]) -> bool:
+    def add_document(self, chunks: List[Chunk], creator: str = "") -> bool:
         """
         添加文档块到检索索引
-        
+
         输入：
             - chunks: 文档块列表
+            - creator: 创建者用户ID
         输出：
             - bool: 是否添加成功
         """

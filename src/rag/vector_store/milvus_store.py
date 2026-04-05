@@ -7,12 +7,14 @@ import json
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
+from loguru import logger
+
 try:
     from pymilvus import (
-        connections, 
-        Collection, 
-        CollectionSchema, 
-        FieldSchema, 
+        connections,
+        Collection,
+        CollectionSchema,
+        FieldSchema,
         DataType,
         utility
     )
@@ -27,7 +29,7 @@ from ..core.schemas import Chunk, DocumentType
 class MilvusStore(BaseVectorStore):
     """
     Milvus 向量存储
-    
+
     Collection 结构：
     | 字段名       | 类型      | 说明                  |
     |-------------|----------|---------------------|
@@ -40,8 +42,9 @@ class MilvusStore(BaseVectorStore):
     | metadata    | VARCHAR  | JSON 格式的元数据      |
     | update_time | VARCHAR  | 更新时间              |
     | source      | VARCHAR  | 来源                  |
-    
-    索引：HNSW（适合小数据集）
+    | creator     | VARCHAR  | 创建者（用户ID）       |
+
+    向量索引搜索算法：HNSW
     """
     
     def __init__(
@@ -80,11 +83,35 @@ class MilvusStore(BaseVectorStore):
             raise ConnectionError(f"连接 Milvus 失败: {e}")
     
     def _ensure_collection(self):
-        """确保 Collection 存在"""
+        """确保 Collection 存在，如果不存在则创建"""
         if utility.has_collection(self.collection_name, using=self.alias):
-            self.collection = Collection(self.collection_name, using=self.alias)
+            # 检查是否需要重建（字段不匹配）
+            collection = Collection(self.collection_name, using=self.alias)
+            existing_fields = {field.name for field in collection.schema.fields}
+            required_fields = {"uid", "chunk_id", "doc_id", "vector", "chunk",
+                             "type", "metadata", "update_time", "source", "creator"}
+
+            if not required_fields.issubset(existing_fields):
+                logger.warning(f"Collection {self.collection_name} 字段不匹配，正在重建...")
+                self._recreate_collection()
+            else:
+                self.collection = collection
+                self.collection.load()
         else:
             self._create_collection()
+
+    def _recreate_collection(self):
+        """删除并重新创建 Collection"""
+        try:
+            # 删除旧 collection
+            if utility.has_collection(self.collection_name, using=self.alias):
+                utility.drop_collection(self.collection_name, using=self.alias)
+                logger.info(f"已删除旧 collection: {self.collection_name}")
+        except Exception as e:
+            logger.warning(f"删除旧 collection 失败: {e}")
+
+        # 创建新 collection
+        self._create_collection()
     
     def _create_collection(self):
         """创建 Collection"""
@@ -99,6 +126,7 @@ class MilvusStore(BaseVectorStore):
             FieldSchema(name="metadata", dtype=DataType.VARCHAR, max_length=4096),
             FieldSchema(name="update_time", dtype=DataType.VARCHAR, max_length=64),
             FieldSchema(name="source", dtype=DataType.VARCHAR, max_length=512),
+            FieldSchema(name="creator", dtype=DataType.VARCHAR, max_length=256),
         ]
         
         schema = CollectionSchema(fields, description="RAG 向量存储")
@@ -116,16 +144,24 @@ class MilvusStore(BaseVectorStore):
         self.collection.create_index(field_name="vector", index_params=index_params)
         self.collection.load()
     
-    def add_chunks(self, chunks: List[Chunk]) -> bool:
+    def add_chunks(self, chunks: List[Chunk], creator: str = "") -> bool:
         """
-        添加块到 Milvus
-        
-        输入：块列表（需包含 vector）
+        添加块到 Milvus（带详细日志）
+
+        输入：
+            - chunks: 块列表（需包含 vector）
+            - creator: 创建者用户ID
         输出：是否成功
         """
+        logger.info(f"[MilvusStore] ========== 添加块到 Milvus ==========")
+        logger.info(f"[MilvusStore] Collection: {self.collection_name}")
+        logger.info(f"[MilvusStore] 块数量: {len(chunks)}")
+        logger.info(f"[MilvusStore] 创建者: {creator}")
+
         if not chunks:
+            logger.info(f"[MilvusStore] 块列表为空，跳过")
             return True
-        
+
         try:
             # 准备数据
             chunk_ids = []
@@ -136,26 +172,38 @@ class MilvusStore(BaseVectorStore):
             metadatas = []
             update_times = []
             sources = []
-            
-            for chunk in chunks:
+            creators = []
+
+            logger.info(f"[MilvusStore] 准备数据...")
+            for i, chunk in enumerate(chunks):
                 if chunk.vector is None:
+                    logger.error(f"[MilvusStore] ❌ 块 {chunk.id} 没有向量")
                     raise ValueError(f"块 {chunk.id} 没有向量")
-                
+
                 chunk_ids.append(chunk.id)
                 doc_ids.append(chunk.doc_id)
                 vectors.append(chunk.vector)
                 contents.append(chunk.content[:65535])  # 限制长度
-                
+
                 # 从 metadata 中提取 type 和 source
                 doc_type = chunk.metadata.get("type", "other")
                 source = chunk.metadata.get("source", "")
-                
+
                 types.append(doc_type)
                 sources.append(source)
                 metadatas.append(json.dumps(chunk.metadata, ensure_ascii=False))
                 update_times.append(datetime.now().isoformat())
-            
+                creators.append(creator)
+
+                if i == 0:
+                    logger.info(f"[MilvusStore] 第一个块信息:")
+                    logger.info(f"[MilvusStore]   - chunk_id: {chunk.id}")
+                    logger.info(f"[MilvusStore]   - doc_id: {chunk.doc_id}")
+                    logger.info(f"[MilvusStore]   - type: {doc_type}")
+                    logger.info(f"[MilvusStore]   - vector_dim: {len(chunk.vector)}")
+
             # 插入数据
+            logger.info(f"[MilvusStore] 插入数据到 Milvus...")
             entities = [
                 chunk_ids,
                 doc_ids,
@@ -164,16 +212,23 @@ class MilvusStore(BaseVectorStore):
                 types,
                 metadatas,
                 update_times,
-                sources
+                sources,
+                creators
             ]
-            
-            self.collection.insert(entities)
+
+            insert_result = self.collection.insert(entities)
+            logger.info(f"[MilvusStore] 插入完成，刷新数据...")
             self.collection.flush()
-            
+            logger.info(f"[MilvusStore] ✅ 成功添加 {len(chunks)} 个块到 Milvus")
+
             return True
-            
+
         except Exception as e:
-            print(f"添加块到 Milvus 失败: {e}")
+            logger.error(f"[MilvusStore] ❌ 添加块到 Milvus 失败")
+            logger.error(f"[MilvusStore]    异常类型: {type(e).__name__}")
+            logger.error(f"[MilvusStore]    异常信息: {e}")
+            import traceback
+            logger.error(f"[MilvusStore]    堆栈跟踪:\n{traceback.format_exc()}")
             return False
     
     def search(
@@ -299,6 +354,90 @@ class MilvusStore(BaseVectorStore):
             print(f"获取文档块失败: {e}")
             return []
     
+    def get_documents_by_creator(
+        self,
+        creator: Optional[str] = None,
+        doc_type: Optional[str] = None,
+        limit: int = 1000
+    ) -> List[Dict[str, Any]]:
+        """
+        根据创建者获取文档列表（去重）
+
+        Args:
+            creator: 创建者用户ID，None 表示查询所有
+            doc_type: 文档类型过滤
+            limit: 最大返回数量
+
+        Returns:
+            List[Dict]: 文档信息列表
+        """
+        try:
+            # 构建查询条件
+            conditions = []
+            if creator:
+                conditions.append(f'creator == "{creator}"')
+            if doc_type:
+                conditions.append(f'type == "{doc_type}"')
+
+            expr = " and ".join(conditions) if conditions else None
+
+            # 查询所有匹配的块
+            results = self.collection.query(
+                expr=expr,
+                output_fields=["doc_id", "source", "type", "metadata", "update_time", "creator"],
+                limit=limit
+            )
+
+            # 按 doc_id 去重
+            docs_map = {}
+            for data in results:
+                doc_id = data.get("doc_id")
+                if doc_id not in docs_map:
+                    metadata = json.loads(data.get("metadata", "{}"))
+                    docs_map[doc_id] = {
+                        "doc_id": doc_id,
+                        "source": data.get("source", ""),
+                        "name": metadata.get("doc_name", ""),
+                        "type": data.get("type", "other"),
+                        "creator": data.get("creator", ""),
+                        "update_time": data.get("update_time", ""),
+                        "chunk_count": 1
+                    }
+                else:
+                    docs_map[doc_id]["chunk_count"] += 1
+
+            return list(docs_map.values())
+
+        except Exception as e:
+            print(f"获取文档列表失败: {e}")
+            return []
+
+    def get_document_creator(self, doc_id: str) -> Optional[str]:
+        """
+        获取文档的创建者
+
+        Args:
+            doc_id: 文档ID
+
+        Returns:
+            str: 创建者用户ID，失败返回 None
+        """
+        try:
+            expr = f'doc_id == "{doc_id}"'
+            results = self.collection.query(
+                expr=expr,
+                output_fields=["creator"],
+                limit=1
+            )
+
+            if results:
+                return results[0].get("creator", "")
+            return None
+
+        except Exception as e:
+            print(f"获取文档创建者失败: {e}")
+            return None
+
     def close(self):
         """关闭连接"""
         try:

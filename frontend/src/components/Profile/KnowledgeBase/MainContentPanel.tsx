@@ -1,16 +1,17 @@
 import React from 'react';
-import { 
-  FileText, 
-  PanelLeft, 
-  PanelRight, 
-  Download, 
-  Trash2, 
+import {
+  FileText,
+  PanelLeft,
+  PanelRight,
+  Download,
+  Trash2,
   Edit3,
   Clock,
   FileType,
   FileCode
 } from 'lucide-react';
 import { MainContentPanelProps, KnowledgeType } from './types';
+import { DocumentViewer } from './DocumentViewer';
 
 /**
  * MainContentPanel - 中间面板组件
@@ -60,11 +61,10 @@ export const MainContentPanel: React.FC<MainContentPanelProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onToggleLeft}
-              className={`p-2 rounded-lg transition-colors ${
-                isLeftCollapsed 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' 
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-              }`}
+              className={`p-2 rounded-lg transition-colors ${isLeftCollapsed
+                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                }`}
               title={isLeftCollapsed ? '展开左侧面板' : '收起左侧面板'}
             >
               <PanelLeft className="w-5 h-5" />
@@ -73,11 +73,10 @@ export const MainContentPanel: React.FC<MainContentPanelProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onToggleRight}
-              className={`p-2 rounded-lg transition-colors ${
-                isRightCollapsed 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' 
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-              }`}
+              className={`p-2 rounded-lg transition-colors ${isRightCollapsed
+                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                }`}
               title={isRightCollapsed ? '展开右侧面板' : '收起右侧面板'}
             >
               <PanelRight className="w-5 h-5" />
@@ -117,125 +116,134 @@ export const MainContentPanel: React.FC<MainContentPanelProps> = ({
 
   // 渲染内容视图
   return (
-    <div className="flex flex-col h-full">
-      {/* 顶部工具栏 */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onToggleLeft}
-            className={`p-2 rounded-lg transition-colors ${
-              isLeftCollapsed 
-                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' 
-                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-            }`}
-            title={isLeftCollapsed ? '展开左侧面板' : '收起左侧面板'}
-          >
-            <PanelLeft className="w-5 h-5" />
-          </button>
-          
-          {/* 文件标题 */}
+    <>
+      <div className="flex flex-col h-full">
+        {/* 顶部工具栏 */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <div className="flex items-center gap-3">
-            {fileTypeIcons[item.type]}
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {item.name}
-              </h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {fileTypeLabels[item.type]} · {item.size} · {item.uploadTime}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* 操作按钮 */}
-          <button
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
-            title="下载"
-          >
-            <Download className="w-5 h-5" />
-          </button>
-          <button
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
-            title="重命名"
-          >
-            <Edit3 className="w-5 h-5" />
-          </button>
-          <button
-            className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-            title="删除"
-          >
-            <Trash2 className="w-5 h-5" />
-          </button>
-          
-          <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
-          
-          <button
-            onClick={onToggleRight}
-            className={`p-2 rounded-lg transition-colors ${
-              isRightCollapsed 
-                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' 
+            <button
+              onClick={onToggleLeft}
+              className={`p-2 rounded-lg transition-colors ${isLeftCollapsed
+                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                 : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-            }`}
-            title={isRightCollapsed ? '展开右侧面板' : '收起右侧面板'}
-          >
-            <PanelRight className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
+                }`}
+              title={isLeftCollapsed ? '展开左侧面板' : '收起左侧面板'}
+            >
+              <PanelLeft className="w-5 h-5" />
+            </button>
 
-      {/* 内容区域 */}
-      <div className="flex-1 overflow-auto p-6 bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-4xl mx-auto">
-          {/* 内容预览卡片 */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-            {/* 内容头部 */}
-            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <Clock className="w-4 h-4" />
-                <span>上传时间：{item.uploadTime}</span>
+            {/* 文件标题 */}
+            <div className="flex items-center gap-3">
+              {fileTypeIcons[item.type]}
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {item.name}
+                </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {fileTypeLabels[item.type]} · {item.size} · {item.uploadTime}
+                </p>
               </div>
-            </div>
-
-            {/* 内容主体 */}
-            <div className="p-6">
-              {item.content ? (
-                <ContentRenderer type={item.type} content={item.content} />
-              ) : (
-                <div className="text-center py-12">
-                  <FileType className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                  <p className="text-gray-500 dark:text-gray-400">
-                    此文件类型暂不支持预览
-                  </p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                    请下载后查看完整内容
-                  </p>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* 标签展示 */}
-          {item.tags.length > 0 && (
-            <div className="mt-6">
-              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                标签
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {item.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 text-sm bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
+          <div className="flex items-center gap-2">
+            {/* 操作按钮 */}
+            <button
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+              title="下载"
+            >
+              <Download className="w-5 h-5" />
+            </button>
+            <button
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+              title="重命名"
+            >
+              <Edit3 className="w-5 h-5" />
+            </button>
+            <button
+              className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+              title="删除"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+
+            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+
+            <button
+              onClick={onToggleRight}
+              className={`p-2 rounded-lg transition-colors ${isRightCollapsed
+                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                }`}
+              title={isRightCollapsed ? '展开右侧面板' : '收起右侧面板'}
+            >
+              <PanelRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* 内容区域 */}
+        <div className="flex-1 overflow-auto p-6 bg-gray-50 dark:bg-gray-900">
+          <div className="max-w-4xl mx-auto">
+            {/* 内容预览卡片 */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              {/* 内容头部 */}
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                  <Clock className="w-4 h-4" />
+                  <span>上传时间：{item.uploadTime}</span>
+                </div>
+              </div>
+
+              {/* 内容主体 */}
+              <div className="p-6">
+                {/* PDF 和 Word 使用 DocumentViewer */}
+                {(item.type === 'pdf' || item.type === 'doc') && item.source ? (
+                  <div className="h-[600px]">
+                    <DocumentViewer
+                      fileUrl={item.source}
+                      fileType={item.type}
+                      fileName={item.name}
+                    />
+                  </div>
+                ) : item.content ? (
+                  <ContentRenderer type={item.type} content={item.content} />
+                ) : (
+                  <div className="text-center py-12">
+                    <FileType className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                    <p className="text-gray-500 dark:text-gray-400">
+                      此文件类型暂不支持预览
+                    </p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                      请下载后查看完整内容
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          )}
+
+            {/* 标签展示 */}
+            {item.tags.length > 0 && (
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  标签
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {item.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1 text-sm bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

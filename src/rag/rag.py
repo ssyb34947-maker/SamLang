@@ -51,6 +51,8 @@ from .loader import (
     ExcelLoader,
     ImageLoader
 )
+from loguru import logger
+
 from .chunker import BaseChunker, RecursiveChunker
 from .embedding import BaseEmbedding, SiliconFlowEmbedding
 from .vector_store import BaseVectorStore, MilvusStore
@@ -203,72 +205,100 @@ class RAG:
         )
     
     def add_document(
-        self, 
+        self,
         source: Union[str, Path],
         doc_type: Optional[DocumentType] = None,
         metadata: Optional[Dict[str, Any]] = None
     ) -> bool:
         """
-        添加文档到 RAG 系统
-        
+        添加文档到 RAG 系统（带详细日志）
+
         流程：
         1. 根据文件类型选择合适的加载器
         2. 加载文档内容（PDF/图片会调用 OCR）
         3. 对文档进行分块
         4. 计算块的向量表示
         5. 存储到向量数据库
-        
+
         参数：
             - source: 文档路径
             - doc_type: 文档类型（book/problem/note/other）
-            - metadata: 额外元数据
+            - metadata: 额外元数据（包含 creator）
         返回：
             - bool: 是否添加成功
         """
+        source_path = str(source)
+        logger.info(f"[RAG] ========== 开始添加文档: {source_path} ==========")
+
+        # 从 metadata 中提取 creator
+        creator = metadata.get("creator", "") if metadata else ""
+        logger.info(f"[RAG] 创建者: {creator}")
+
         try:
             # 1. 选择加载器
+            logger.info(f"[RAG] Step 1/5: 选择加载器...")
             loader = self._get_loader(source)
             if loader is None:
+                logger.error(f"[RAG] ❌ 不支持的文件类型: {source_path}")
                 raise ValueError(f"不支持的文件类型: {source}")
-            
+            logger.info(f"[RAG] ✅ 加载器: {type(loader).__name__}")
+
             # 2. 加载文档
+            logger.info(f"[RAG] Step 2/5: 加载文档内容...")
             if doc_type:
                 loader.doc_type = doc_type
             document = loader.load(source)
-            
+
             # 添加额外元数据
             if metadata:
                 document.metadata.update(metadata)
-            
-            print(f"加载文档: {document.name}, 类型: {document.type}, 长度: {len(document.content)}")
-            
+
+            content_length = len(document.content) if document.content else 0
+            logger.info(f"[RAG] ✅ 文档加载成功")
+            logger.info(f"[RAG]    - 名称: {document.name}")
+            logger.info(f"[RAG]    - 类型: {document.type.value}")
+            logger.info(f"[RAG]    - 内容长度: {content_length} 字符")
+
             # 3. 分块
+            logger.info(f"[RAG] Step 3/5: 文档分块...")
             chunks = self.chunker.split(document)
-            print(f"分块完成: {len(chunks)} 个块")
-            
+            logger.info(f"[RAG] ✅ 分块完成: {len(chunks)} 个块")
+
+            if len(chunks) == 0:
+                logger.warning(f"[RAG] ⚠️ 文档内容为空，没有生成任何块")
+                return False
+
             # 4. 计算向量
+            logger.info(f"[RAG] Step 4/5: 计算向量嵌入...")
             chunk_texts = [chunk.content for chunk in chunks]
+            logger.info(f"[RAG]    - 调用 Embedding API，文本数: {len(chunk_texts)}")
             vectors = self.embedding.embed(chunk_texts)
-            
+            logger.info(f"[RAG] ✅ 向量计算完成: {len(vectors)} 个向量")
+
             for chunk, vector in zip(chunks, vectors):
                 chunk.vector = vector
                 # 添加元数据
                 chunk.metadata["type"] = document.type.value
                 chunk.metadata["source"] = document.source
                 chunk.metadata["doc_name"] = document.name
-            
-            # 5. 添加到检索器（会自动添加到向量存储和 BM25 索引）
-            success = self.retriever.add_document(chunks)
-            
+
+            # 5. 添加到检索器（传递 creator）
+            logger.info(f"[RAG] Step 5/5: 存储到向量数据库...")
+            success = self.retriever.add_document(chunks, creator)
+
             if success:
-                print(f"文档添加成功: {document.name}")
+                logger.info(f"[RAG] ✅ 文档添加成功: {document.name}")
             else:
-                print(f"文档添加失败: {document.name}")
-            
+                logger.error(f"[RAG] ❌ 文档添加失败: {document.name}")
+
             return success
-            
+
         except Exception as e:
-            print(f"添加文档失败: {e}")
+            logger.error(f"[RAG] ❌ 添加文档失败: {source_path}")
+            logger.error(f"[RAG]    异常类型: {type(e).__name__}")
+            logger.error(f"[RAG]    异常信息: {e}")
+            import traceback
+            logger.error(f"[RAG]    堆栈跟踪:\n{traceback.format_exc()}")
             return False
     
     def add_documents(
@@ -398,14 +428,113 @@ class RAG:
     def delete_document(self, doc_id: str) -> bool:
         """
         删除文档
-        
+
         参数：
             - doc_id: 文档ID
         返回：
             - bool: 是否删除成功
         """
         return self.retriever.delete_document(doc_id)
-    
+
+    def get_user_documents(
+        self,
+        user_id: str,
+        include_system: bool = True,
+        doc_type: Optional[DocumentType] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        获取用户的知识列表
+
+        参数：
+            - user_id: 用户ID
+            - include_system: 是否包含系统知识
+            - doc_type: 文档类型过滤
+        返回：
+            - List[Dict]: 文档信息列表
+        """
+        try:
+            # 获取用户自己的文档
+            user_docs = self.vector_store.get_documents_by_creator(
+                creator=user_id,
+                doc_type=doc_type.value if doc_type else None
+            )
+
+            # 标记来源
+            for doc in user_docs:
+                doc["is_system"] = False
+                doc["owner"] = user_id
+
+            # 如果需要系统知识
+            system_docs = []
+            if include_system:
+                # 系统知识的 creator 为空或 "system"
+                all_system = self.vector_store.get_documents_by_creator(
+                    creator="system",
+                    doc_type=doc_type.value if doc_type else None
+                )
+                for doc in all_system:
+                    if doc["doc_id"] not in [d["doc_id"] for d in user_docs]:
+                        doc["is_system"] = True
+                        doc["owner"] = "system"
+                        system_docs.append(doc)
+
+            return user_docs + system_docs
+
+        except Exception as e:
+            print(f"获取用户文档失败: {e}")
+            return []
+
+    def can_delete_document(self, doc_id: str, user_id: str) -> tuple[bool, str]:
+        """
+        检查用户是否有权限删除文档
+
+        参数：
+            - doc_id: 文档ID
+            - user_id: 用户ID
+        返回：
+            - (bool, str): (是否可以删除, 原因)
+        """
+        try:
+            creator = self.vector_store.get_document_creator(doc_id)
+
+            if creator is None:
+                return False, "文档不存在"
+
+            if creator == "system" or creator == "":
+                return False, "系统知识不允许删除"
+
+            if creator != user_id:
+                return False, "只能删除自己上传的知识"
+
+            return True, "可以删除"
+
+        except Exception as e:
+            return False, f"检查权限失败: {e}"
+
+    def delete_user_document(self, doc_id: str, user_id: str) -> tuple[bool, str]:
+        """
+        用户删除自己的文档
+
+        参数：
+            - doc_id: 文档ID
+            - user_id: 用户ID
+        返回：
+            - (bool, str): (是否成功, 消息)
+        """
+        # 检查权限
+        can_delete, message = self.can_delete_document(doc_id, user_id)
+
+        if not can_delete:
+            return False, message
+
+        # 执行删除
+        success = self.delete_document(doc_id)
+
+        if success:
+            return True, "删除成功"
+        else:
+            return False, "删除失败"
+
     def _get_loader(self, source: Union[str, Path]) -> Optional[BaseLoader]:
         """
         根据文件类型获取合适的加载器

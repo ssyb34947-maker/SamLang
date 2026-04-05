@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, MoreVertical, Menu, X, Edit, Trash2, User as UserIcon, Pin } from 'lucide-react';
+import { Send, MoreVertical, Menu, X, Edit, Trash2, User as UserIcon, Pin, PanelLeft, Sparkles, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/api';
+import { useAuth } from '../../hooks/useAuth';
 import { Sidebar } from './Sidebar';
-import { MarkdownRenderer } from './MarkdownRenderer';
+import { AIOutput } from './AIOutput';
 import 'tailwindcss/tailwind.css';
 
 // 对话类型定义
@@ -23,7 +24,6 @@ interface Message {
   content: string;
   timestamp: string;
 }
-
 /**
  * Agent智能体聊天主页
  * 包含可推拉侧边栏、对话列表和聊天窗口
@@ -31,6 +31,7 @@ interface Message {
 export const ChatHome: React.FC = () => {
   // 导航
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   // 跳转到 Profile (SamCollege Studio)
   const navigateToProfile = () => {
@@ -51,62 +52,40 @@ export const ChatHome: React.FC = () => {
   const [renameTarget, setRenameTarget] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
 
-  // 模拟对话数据
-  const [conversations, setConversations] = useState<Conversation[]>([
-    {
-      id: '1',
-      title: 'React学习',
-      lastMessage: '如何使用useEffect钩子？',
-      lastMessageTime: '10:30',
-      isPinned: true,
-      unreadCount: 0
-    },
-    {
-      id: '2',
-      title: 'TypeScript基础',
-      lastMessage: '接口和类型的区别是什么？',
-      lastMessageTime: '09:15',
-      isPinned: false,
-      unreadCount: 2
-    },
-    {
-      id: '3',
-      title: 'Tailwind CSS',
-      lastMessage: '如何实现响应式布局？',
-      lastMessageTime: '昨天',
-      isPinned: false,
-      unreadCount: 0
-    },
-    {
-      id: '4',
-      title: 'API设计',
-      lastMessage: 'RESTful API的最佳实践',
-      lastMessageTime: '2天前',
-      isPinned: false,
-      unreadCount: 0
-    }
-  ]);
+  // 模拟对话数据 - 默认空，进入时创建新对话
+  const [conversations, setConversations] = useState<Conversation[]>([]);
 
   // 模拟消息数据
-  const [messages, setMessages] = useState<Record<string, Message[]>>({
-    '1': [
-      { id: '1-1', role: 'user', content: '你好，我想学习React的useEffect钩子', timestamp: '10:25' },
-      { id: '1-2', role: 'assistant', content: 'useEffect是React中的一个钩子，用于处理副作用。它接收两个参数：一个回调函数和一个依赖数组。当依赖数组中的值发生变化时，回调函数会被执行。', timestamp: '10:30' },
-      { id: '1-3', role: 'user', content: '如何使用useEffect钩子？', timestamp: '10:30' }
-    ],
-    '2': [
-      { id: '2-1', role: 'user', content: 'TypeScript中的接口和类型有什么区别？', timestamp: '09:10' },
-      { id: '2-2', role: 'assistant', content: '接口和类型在TypeScript中都用于定义类型，但接口只能用于对象类型，而类型可以用于任何类型。此外，接口可以被扩展，而类型不能。', timestamp: '09:15' }
-    ],
-    '3': [
-      { id: '3-1', role: 'user', content: '如何使用Tailwind CSS实现响应式布局？', timestamp: '昨天' },
-      { id: '3-2', role: 'assistant', content: 'Tailwind CSS提供了响应式前缀，如sm:, md:, lg:, xl:等，用于在不同屏幕尺寸下应用不同的样式。例如，sm:text-lg表示在小屏幕及以上尺寸应用text-lg样式。', timestamp: '昨天' }
-    ],
-    '4': [
-      { id: '4-1', role: 'user', content: 'RESTful API的最佳实践有哪些？', timestamp: '2天前' },
-      { id: '4-2', role: 'assistant', content: 'RESTful API的最佳实践包括：使用HTTP方法（GET, POST, PUT, DELETE）、使用资源路径、使用状态码、使用JSON格式、使用版本控制等。', timestamp: '2天前' }
-    ]
-  });
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
+
+  // 生成唯一ID
+  const generateId = () => {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  };
+
+  // 创建新对话
+  const createNewConversation = () => {
+    const newId = generateId();
+    const newConversation: Conversation = {
+      id: newId,
+      title: '新对话',
+      lastMessage: '',
+      lastMessageTime: '刚刚',
+      isPinned: false,
+      unreadCount: 0
+    };
+
+    setConversations(prev => [newConversation, ...prev]);
+    setMessages(prev => ({ ...prev, [newId]: [] }));
+    setCurrentConversation(newId);
+  };
+
+  // 进入页面时默认创建新对话
+  useEffect(() => {
+    if (conversations.length === 0) {
+      createNewConversation();
+    }
+  }, []);
 
   // 处理侧边栏展开/收起
   const toggleSidebar = () => {
@@ -152,12 +131,12 @@ export const ChatHome: React.FC = () => {
 
   // 新建对话
   const handleNewConversation = () => {
-    const newId = Date.now().toString();
+    const newId = generateId();
     const newConv: Conversation = {
       id: newId,
       title: '新对话',
       lastMessage: '',
-      lastMessageTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      lastMessageTime: '刚刚',
       isPinned: false,
       unreadCount: 0
     };
@@ -410,107 +389,220 @@ export const ChatHome: React.FC = () => {
       {/* 主内容区域 */}
       <div className="flex-1 flex flex-col" style={{ backgroundColor: 'var(--sketch-bg)' }}>
         {/* 顶部导航栏 - 手绘风格 */}
-        <div 
+        <div
           className="p-4 flex items-center justify-between"
-          style={{ 
+          style={{
             backgroundColor: 'white',
             borderBottom: '3px solid var(--sketch-border)',
             boxShadow: 'var(--shadow-hard)'
           }}
         >
           <div className="flex items-center gap-3">
+            {/* 侧边栏推拉按钮 */}
             <button
               onClick={toggleSidebar}
-              className="sketch-btn p-2"
-              style={{ padding: '8px 12px' }}
-              title={sidebarOpen ? '收起侧边栏' : '展开侧边栏'}
+              style={{
+                border: '2px solid var(--sketch-border)',
+                borderRadius: 'var(--wobbly-sm)',
+                boxShadow: 'var(--shadow-soft)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                backgroundColor: 'var(--sketch-paper)',
+                color: 'var(--sketch-text)',
+                cursor: 'pointer',
+                padding: '8px'
+              }}
+              title="切换侧边栏"
             >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+              <PanelLeft size={20} />
             </button>
-            <h1 
-              className="text-xl"
-              style={{ fontFamily: 'var(--font-hand-heading)', color: 'var(--sketch-text)' }}
-            >
-              {sidebarOpen && !sidebarCollapsed ?
-                conversations.find(c => c.id === currentConversation)?.title || '新对话' :
-                <span
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={navigateToProfile}
-                  style={{ color: 'var(--sketch-secondary)' }}
-                >
-                  SamCollege Studio
-                </span>
-              }
-            </h1>
+
+            {/* Logo 和标题 */}
+            <div className="flex items-center gap-2">
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'var(--sketch-paper)',
+                  border: '3px solid var(--sketch-border)',
+                  borderRadius: 'var(--wobbly-sm)',
+                  boxShadow: 'var(--shadow-hard)',
+                  transform: 'rotate(-3deg)'
+                }}
+              >
+                <Sparkles size={18} style={{ color: 'var(--sketch-accent)' }} />
+              </div>
+              <h1
+                className="text-xl"
+                style={{ fontFamily: 'var(--font-hand-heading)', color: 'var(--sketch-text)' }}
+              >
+                {sidebarOpen && !sidebarCollapsed ?
+                  conversations.find(c => c.id === currentConversation)?.title || '新对话' :
+                  'SAM PROFESSOR AGENT'
+                }
+              </h1>
+            </div>
           </div>
+
+          {/* 用户信息和操作按钮 */}
           <div className="flex items-center gap-2">
-            <button
-              className="sketch-btn p-2"
-              style={{ padding: '8px 12px' }}
-              onClick={navigateToProfile}
-              title="SamCollege Studio"
-            >
-              <UserIcon size={20} />
-            </button>
-            <button className="sketch-btn p-2" style={{ padding: '8px 12px' }}>
-              <MoreVertical size={20} />
-            </button>
+            {/* 用户信息 */}
+            {user && (
+              <div className="flex items-center gap-3">
+                <div className="text-right hidden md:block">
+                  <p style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-text)', fontSize: '14px' }}>
+                    欢迎，{user.username}
+                  </p>
+                </div>
+                <button
+                  onClick={navigateToProfile}
+                  className="sketch-btn"
+                  style={{ padding: '8px' }}
+                  title="SamCollege Studio"
+                >
+                  <UserIcon size={18} />
+                </button>
+                <button
+                  onClick={() => logout()}
+                  className="sketch-btn"
+                  style={{
+                    padding: '8px',
+                    backgroundColor: 'var(--sketch-accent)',
+                    color: 'white'
+                  }}
+                  title="登出"
+                >
+                  <LogOut size={18} />
+                </button>
+              </div>
+            )}
+
+            {/* 未登录用户显示 Studio 按钮 */}
+            {!user && (
+              <button
+                onClick={navigateToProfile}
+                className="sketch-btn"
+                style={{ padding: '8px 16px' }}
+                title="SamCollege Studio"
+              >
+                <UserIcon size={18} className="mr-2" />
+                <span style={{ fontFamily: 'var(--font-hand-body)' }}>Studio</span>
+              </button>
+            )}
           </div>
         </div>
 
         {/* 聊天窗口 */}
         <div className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: 'var(--sketch-bg)' }}>
-          {messages[currentConversation]?.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-6`}
-            >
-              <div className={`max-w-[80%] ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
-                {/* AI对话区域使用黑体，其他使用手绘字体 */}
-                <div 
-                  className={`inline-block p-4 ${message.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai'}`}
+          {messages[currentConversation]?.length > 0 ? (
+            messages[currentConversation].map((message) => (
+              <AIOutput
+                key={message.id}
+                content={message.content}
+                timestamp={message.timestamp}
+                isUser={message.role === 'user'}
+              />
+            ))
+          ) : (
+            /* 欢迎画面 */
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <div
+                className="p-8 relative"
+                style={{
+                  backgroundColor: 'white',
+                  border: '4px solid var(--sketch-border)',
+                  borderRadius: 'var(--wobbly)',
+                  boxShadow: 'var(--shadow-hard-lg)',
+                  maxWidth: '500px'
+                }}
+              >
+                {/* 胶带装饰 */}
+                <div
+                  className="absolute -top-3 left-1/2 transform -translate-x-1/2 -rotate-2"
                   style={{
-                    fontFamily: 'var(--font-chat)',
-                    backgroundColor: message.role === 'user' ? 'var(--sketch-paper)' : 'white',
+                    width: '100px',
+                    height: '24px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    border: '2px solid var(--sketch-border)',
+                    borderRadius: '4px'
+                  }}
+                />
+
+                {/* Logo */}
+                <div
+                  className="w-20 h-20 mx-auto mb-6 flex items-center justify-center"
+                  style={{
+                    backgroundColor: 'var(--sketch-paper)',
+                    border: '3px solid var(--sketch-border)',
+                    borderRadius: 'var(--wobbly-sm)',
+                    boxShadow: 'var(--shadow-hard)',
+                    transform: 'rotate(3deg)'
                   }}
                 >
-                  {message.role === 'assistant' ? (
-                    <MarkdownRenderer content={message.content} />
-                  ) : (
-                    <p style={{ fontFamily: 'var(--font-chat)' }}>{message.content}</p>
-                  )}
+                  <Sparkles size={32} style={{ color: 'var(--sketch-accent)' }} />
                 </div>
-                <p 
-                  className="text-xs mt-2"
+
+                <h2
+                  className="text-lg md:text-xl mb-4"
+                  style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 700, color: 'var(--sketch-text)' }}
+                >
+                  欢迎来到山姆学院！
+                </h2>
+                <p
+                  className="mb-6"
+                  style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-text)' }}
+                >
+                  我是你的 AI 学习助手，可以帮你解答问题、学习知识。
+                </p>
+
+                <div
+                  style={{
+                    backgroundColor: 'var(--sketch-paper)',
+                    border: '2px dashed var(--sketch-border)',
+                    borderRadius: 'var(--wobbly-sm)',
+                    padding: '16px',
+                    marginBottom: '16px'
+                  }}
+                >
+                  <p
+                    className="text-sm mb-2"
+                    style={{ fontFamily: 'var(--font-hand-heading)', color: 'var(--sketch-accent)' }}
+                  >
+                    💡 你可以这样问我：
+                  </p>
+                  <ul
+                    className="text-sm space-y-1"
+                    style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-text)' }}
+                  >
+                    <li>• "帮我解释一下什么是机器学习"</li>
+                    <li>• "给我讲讲 Python 的基础语法"</li>
+                    <li>• "如何准备雅思考试？"</li>
+                  </ul>
+                </div>
+
+                <p
+                  className="text-sm"
                   style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
                 >
-                  {message.timestamp}
+                  ✏️ 在下方输入框开始你的学习之旅吧！
                 </p>
               </div>
             </div>
-          )) || (
-              <div 
-                className="flex flex-col items-center justify-center h-full"
-                style={{ color: 'var(--sketch-pencil)', fontFamily: 'var(--font-hand-body)' }}
-              >
-                <div 
-                  className="sketch-card-note text-center p-8"
-                  style={{ maxWidth: '400px' }}
-                >
-                  <p className="text-lg mb-4">选择一个对话或创建新对话开始聊天</p>
-                  <div className="sketch-divider" />
-                  <p className="text-sm mt-4" style={{ color: 'var(--sketch-accent)' }}>
-                    ✏️ 开始你的学习之旅吧！
-                  </p>
-                </div>
-              </div>
-            )}
+          )}
         </div>
 
+
         {/* 输入区域 - 手绘风格 */}
-        <div 
+        {/* 输入区域 - 手绘风格 */}
+        <div
           className="p-4"
-          style={{ 
+          style={{
             backgroundColor: 'white',
             borderTop: '3px solid var(--sketch-border)',
             boxShadow: '0 -4px 0px 0px var(--sketch-border)'
@@ -521,7 +613,7 @@ export const ChatHome: React.FC = () => {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder="输入消息..."
+              placeholder="输入你想学习的内容吧～"
               className="chat-input flex-1"
               rows={2}
               style={{ minHeight: '60px' }}
@@ -530,7 +622,7 @@ export const ChatHome: React.FC = () => {
               onClick={handleSendMessage}
               disabled={!inputValue.trim()}
               className="sketch-btn"
-              style={{ 
+              style={{
                 backgroundColor: inputValue.trim() ? 'var(--sketch-secondary)' : 'var(--sketch-muted)',
                 color: inputValue.trim() ? 'white' : 'var(--sketch-pencil)'
               }}
@@ -538,7 +630,7 @@ export const ChatHome: React.FC = () => {
               <Send size={20} />
             </button>
           </div>
-          <p 
+          <p
             className="text-xs mt-3 text-center"
             style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
           >
@@ -551,8 +643,8 @@ export const ChatHome: React.FC = () => {
       {showContextMenu && contextMenuTarget && (
         <div
           className="fixed z-50 py-2"
-          style={{ 
-            left: contextMenuPosition.x, 
+          style={{
+            left: contextMenuPosition.x,
             top: contextMenuPosition.y,
             backgroundColor: 'white',
             border: '3px solid var(--sketch-border)',
@@ -590,11 +682,11 @@ export const ChatHome: React.FC = () => {
 
       {/* 重命名对话框 - 手绘风格 */}
       {showRenameDialog && (
-        <div 
+        <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           style={{ backgroundColor: 'rgba(45, 45, 45, 0.5)' }}
         >
-          <div 
+          <div
             className="p-6 w-96"
             style={{
               backgroundColor: 'white',
@@ -603,7 +695,7 @@ export const ChatHome: React.FC = () => {
               boxShadow: 'var(--shadow-hard-lg)'
             }}
           >
-            <h3 
+            <h3
               className="text-lg mb-4"
               style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 700 }}
             >
@@ -626,7 +718,7 @@ export const ChatHome: React.FC = () => {
               <button
                 onClick={confirmRename}
                 className="sketch-btn"
-                style={{ 
+                style={{
                   padding: '8px 16px',
                   backgroundColor: 'var(--sketch-secondary)',
                   color: 'white'
