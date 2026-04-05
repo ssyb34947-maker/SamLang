@@ -3,7 +3,6 @@
 """
 
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -18,6 +17,7 @@ class WebSearchConfig:
     enabled: bool = False
     api_url: str = ""
     api_key: str = ""
+
 
 @dataclass
 class YoudaoDictionaryConfig:
