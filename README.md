@@ -68,20 +68,23 @@ npm run dev
 
 **主页**
 
-<img src="img/home.png" alt="SamLang" width="600"/>
+<img src="img/chat.png" alt="SamLang" width="600"/>
 
 **React循环执行**
 
 <img src="img/react.png" alt="SamLang" width="400"/>
 
-**web端使用**
+**助教AGENT**
 
-<img src="img/web.png" alt="SamLang" width="600"/>
+<img src="img/agent2.png" alt="SamLang" width="600"/>
 
-**移动端使用**
+**用户配置**
 
-<img src="img/mobile.png" alt="SamLang" width="200"/>
+<img src="img/profile.png" alt="SamLang" width="600"/
 
+**知识库**
+
+<img src="img/kdb.png" alt="SamLang" width="600"/>
 
 
 ### 终端使用
