@@ -80,7 +80,7 @@ npm run dev
 
 **用户配置**
 
-<img src="img/profile.png" alt="SamLang" width="600"/
+<img src="img/profile.png" alt="SamLang" width="600"/>
 
 **知识库**
 
