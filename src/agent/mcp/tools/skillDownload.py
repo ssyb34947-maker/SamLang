@@ -39,7 +39,7 @@ class SkillDownloader:
         """
         try:
             # 构建文件路径
-            skill_file = self.skills_dir / f"{skill_name}.md"
+            skill_file = self.skills_dir / f"{skill_name}" / "SKILL.md"
 
             # 检查文件是否存在
             if not skill_file.exists():

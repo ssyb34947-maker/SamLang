@@ -48,12 +48,12 @@ async def login(user_data: UserLogin):
     """
     用户登录
     """
-    # 验证用户
-    user = authenticate_user(user_data.email, user_data.password)
+    # 验证用户（支持用户名或邮箱）
+    user = authenticate_user(user_data.email or user_data.username, user_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="邮箱或密码错误",
+            detail="账号或密码错误",
             headers={"WWW-Authenticate": "Bearer"},
         )
     

@@ -2,7 +2,7 @@
 认证相关的请求和响应模型
 """
 
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import Optional
 from datetime import datetime
 
@@ -20,8 +20,15 @@ class UserCreate(UserBase):
 
 class UserLogin(BaseModel):
     """用户登录模型"""
-    email: EmailStr = Field(..., description="邮箱地址")
+    email: Optional[EmailStr] = Field(None, description="邮箱地址")
+    username: Optional[str] = Field(None, description="用户名")
     password: str = Field(..., min_length=6, description="密码")
+    
+    @field_validator('email', 'username')
+    def validate_email_or_username(cls, v, info):
+        if info.field_name == 'email' and info.data.get('username') is None and v is None:
+            raise ValueError('必须提供邮箱或用户名')
+        return v
 
 
 class User(UserBase):

@@ -8,7 +8,7 @@ import { useAuth } from '../../hooks/useAuth.tsx';
 import { ArrowLeft } from 'lucide-react';
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -21,19 +21,38 @@ const Login: React.FC = () => {
     setError('');
 
     // 表单验证
-    if (!email || !password) {
+    if (!usernameOrEmail || !password) {
       setError('请填写所有字段');
+      return;
+    }
+
+    // 密码验证
+    if (password.length < 6 || password.length > 18) {
+      setError('密码长度必须在6-18位之间');
       return;
     }
 
     try {
       setIsLoading(true);
-      await login(email, password);
-      // 登录成功后提示并跳转到首页
-      alert('登录成功！');
+      await login(usernameOrEmail, password);
+      // 登录成功后跳转到首页
       navigate('/');
     } catch (err: any) {
-      setError(err.message || '登录失败，请检查邮箱和密码');
+      let errorMessage = '登录失败，请检查账号和密码';
+
+      if (err.message) {
+        if (err.message.includes('401')) {
+          errorMessage = '账号或密码错误，请重新输入';
+        } else if (err.message.includes('404')) {
+          errorMessage = '用户不存在，请先注册';
+        } else if (err.message.includes('网络')) {
+          errorMessage = '网络连接失败，请检查网络设置';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -71,16 +90,16 @@ const Login: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit}>
-            {/* 邮箱 */}
+            {/* 用户名或邮箱 */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                邮箱地址
+                用户名或邮箱
               </label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="请输入邮箱地址"
+                type="text"
+                value={usernameOrEmail}
+                onChange={(e) => setUsernameOrEmail(e.target.value)}
+                placeholder="请输入用户名或邮箱"
                 disabled={isLoading}
                 className="pixel-input w-full"
               />

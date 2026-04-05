@@ -82,12 +82,13 @@ class ConversationAgent:
 
         self.memory_manager.set_system_message(system_prompt)
 
-    def chat(self, user_input: str, user_name: str = "山姆教授的大弟子", thinking_callback=None) -> str:
+    def chat(self, user_input: str, user_name: str = "山姆教授的大弟子", thinking_callback=None, token_callback=None) -> str:
         """
         与用户对话
 
         输入：user_input - 用户输入文本
              thinking_callback - 思考过程回调函数，用于实时返回思考步骤
+             token_callback - token回调函数，用于实时流式输出（仅在最后一轮答案生成时调用）
         输出：AI 回复文本
         """
         # 更新系统提示词中的用户信息
@@ -129,6 +130,7 @@ class ConversationAgent:
             assistant_message = self.react_agent.run(
                 user_query=current_user_input,
                 thinking_callback=thinking_callback,
+                token_callback=token_callback,
                 context_messages=context_messages
             )
         else:

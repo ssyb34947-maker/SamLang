@@ -2,7 +2,7 @@
 LLM客户端，支持与模型交互
 """
 
-from typing import List, Dict, Any, Optional, Iterator, Union, Tuple
+from typing import List, Dict, Any, Optional, Iterator, Union, Tuple, Callable
 import sys
 from openai import OpenAI
 from src.config import LLMConfig
@@ -32,7 +32,7 @@ class LLMClient:
 
     def chat(self, messages: List[Dict[str, str]]) -> Union[str, Tuple[str, str]]:
         """
-        与模型对话
+        与模型对话（非流式）
 
         输入：messages - 消息列表，包含系统消息、用户消息等
         输出：模型回复文本
@@ -45,17 +45,14 @@ class LLMClient:
         )
         if self.config.model_name.lower().startswith("deepseek"):
             if "reasoner" in self.config.model_name.lower():
-                # print(response.choices[0].message.reasoning_content)
-                # print(response.choices[0].message.content)
-                return response.choices[0].message.reasoning_content,response.choices[0].message.content
+                return response.choices[0].message.reasoning_content, response.choices[0].message.content
             elif "chat" in self.config.model_name.lower():
-                # print(response.choices[0].message.content)
                 return response.choices[0].message.content
         return response.choices[0].message.content
 
     def chat_stream(self, messages: List[Dict[str, str]], print_output: bool = True) -> str:
         """
-        流式对话
+        流式对话（返回完整字符串）
 
         输入：
             messages - 消息列表
@@ -75,6 +72,43 @@ class LLMClient:
             if chunk.choices[0].delta.content is not None:
                 content = chunk.choices[0].delta.content
                 full_response += content
+                if print_output:
+                    print(content, end='', flush=True)
+
+        if print_output:
+            print()  # 换行
+
+        return full_response
+
+    def chat_stream_with_callback(self, messages: List[Dict[str, str]], 
+                                   token_callback: Callable[[str], None],
+                                   print_output: bool = False) -> str:
+        """
+        流式对话，每生成一个token就调用回调函数
+
+        输入：
+            messages - 消息列表
+            token_callback - 每生成一个token时的回调函数，参数为token内容
+            print_output - 是否实时打印输出
+        输出：完整的模型回复文本
+        """
+        stream = self.client.chat.completions.create(
+            model=self.config.model_name,
+            messages=messages,
+            temperature=self.config.temperature,
+            max_tokens=self.config.max_tokens,
+            stream=True
+        )
+
+        full_response = ""
+        for chunk in stream:
+            if chunk.choices[0].delta.content is not None:
+                content = chunk.choices[0].delta.content
+                full_response += content
+                
+                # 调用回调函数，传递当前token
+                token_callback(content)
+                
                 if print_output:
                     print(content, end='', flush=True)
 

@@ -311,7 +311,7 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
     功能：使用原生的 function calling 而不是文本解析
     """
 
-    def run(self, user_query: str, context_messages: List[Dict[str, str]] = None, thinking_callback=None) -> str:
+    def run(self, user_query: str, context_messages: List[Dict[str, str]] = None, thinking_callback=None, token_callback=None) -> str:
         """
         运行 ReACT 循环（使用 function calling）
 
@@ -341,7 +341,7 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
                 #print(f"{'='*50}")
 
             # 调用 LLM with function calling
-            if self.stream and self.verbose:
+            if self.stream:
                 # 流式输出（对于 function calling 需要特殊处理）
                 #logger.debug(f"tools: {tools}")
                 stream_result = self._stream_with_function_calling(messages, tools)
@@ -487,6 +487,10 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
                     })
             else:
                 # 没有工具调用，返回最终答案
+                # 如果有 token_callback，使用流式输出
+                if token_callback:
+                    return self._stream_final_answer(messages, token_callback)
+                
                 if self.verbose:
                     logger.info(f"\n[最终答案]")
                     if not self.stream:
@@ -580,3 +584,35 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
             result["reasoning_content"] = full_reasoning_content
 
         return result
+
+    def _stream_final_answer(self, messages: List[Dict], token_callback) -> str:
+        """
+        流式生成最终答案，每生成一个token就调用回调
+
+        输入：
+            messages: 消息列表
+            token_callback: token回调函数，每生成一个token时调用
+        输出：
+            完整的最终答案
+        """
+        stream = self.llm_client.get_client().chat.completions.create(
+            model=self.llm_client.config.model_name,
+            messages=messages,
+            temperature=self.llm_client.config.temperature,
+            max_tokens=self.llm_client.config.max_tokens,
+            stream=True
+        )
+
+        full_content = ""
+
+        for chunk in stream:
+            delta = chunk.choices[0].delta
+            
+            # 处理文本内容
+            if delta.content:
+                token = delta.content
+                full_content += token
+                # 调用token回调，实时推送
+                token_callback(token)
+
+        return full_content

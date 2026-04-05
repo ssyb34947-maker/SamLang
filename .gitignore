@@ -12,6 +12,9 @@ docs/
 test/
 data/
 
+docker_server/
+docker/
+
 # Virtual environments
 .venv
 

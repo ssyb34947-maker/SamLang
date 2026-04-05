@@ -33,8 +33,26 @@ const Register: React.FC = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setError('密码长度至少为6位');
+    // 用户名验证：只可以是大小写英文字母和数字
+    const usernameRegex = /^[a-zA-Z0-9]+$/;
+    if (!usernameRegex.test(username)) {
+      setError('用户名只能包含大小写英文字母和数字');
+      return;
+    }
+
+    // 密码验证：长度6-18位，至少包含两种字符类型（数字、大写字母、小写字母）
+    if (password.length < 6 || password.length > 18) {
+      setError('密码长度必须在6-18位之间');
+      return;
+    }
+
+    let charTypes = 0;
+    if (/[0-9]/.test(password)) charTypes++;
+    if (/[A-Z]/.test(password)) charTypes++;
+    if (/[a-z]/.test(password)) charTypes++;
+
+    if (charTypes < 2) {
+      setError('密码必须包含数字、大写字母、小写字母中的至少两种');
       return;
     }
 
@@ -45,7 +63,21 @@ const Register: React.FC = () => {
       alert('注册成功！');
       navigate('/');
     } catch (err: any) {
-      setError(err.message || '注册失败，请稍后重试');
+      let errorMessage = '注册失败，请稍后重试';
+
+      if (err.message) {
+        if (err.message.includes('409') || err.message.includes('用户名已存在') || err.message.includes('邮箱已存在')) {
+          errorMessage = '用户名或邮箱已被注册，请使用其他账号';
+        } else if (err.message.includes('密码')) {
+          errorMessage = '密码格式不正确，请检查密码要求';
+        } else if (err.message.includes('网络')) {
+          errorMessage = '网络连接失败，请检查网络设置';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -121,8 +153,9 @@ const Register: React.FC = () => {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="请输入密码（至少6位）"
+                placeholder="请输入密码（6-18位，至少包含两种字符类型）"
                 disabled={isLoading}
+                onCopy={(e) => e.preventDefault()}
                 className="pixel-input w-full"
               />
             </div>
@@ -138,6 +171,7 @@ const Register: React.FC = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="请再次输入密码"
                 disabled={isLoading}
+                onCopy={(e) => e.preventDefault()}
                 className="pixel-input w-full"
               />
             </div>

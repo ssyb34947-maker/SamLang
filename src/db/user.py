@@ -76,6 +76,11 @@ def create_user(username: str, email: str, password: str) -> int:
     cursor = conn.cursor()
     
     try:
+        # 验证用户名：只可以是大小写英文字母和数字
+        import re
+        if not re.match(r'^[a-zA-Z0-9]+$', username):
+            raise ValueError("用户名只能包含大小写英文字母和数字")
+        
         # 检查用户名和邮箱是否已存在
         cursor.execute('SELECT id FROM users WHERE username = ? OR email = ?', (username, email))
         if cursor.fetchone():
@@ -104,16 +109,16 @@ def create_user(username: str, email: str, password: str) -> int:
     finally:
         conn.close()
 
-def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:
-    """验证用户登录"""
+def authenticate_user(username_or_email: str, password: str) -> Optional[Dict[str, Any]]:
+    """验证用户登录（支持用户名或邮箱）"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
     try:
         password_hash = hash_password(password)
         cursor.execute(
-            'SELECT id, username, email, avatar, is_active FROM users WHERE email = ? AND password_hash = ?',
-            (email, password_hash)
+            'SELECT id, username, email, avatar, is_active FROM users WHERE (email = ? OR username = ?) AND password_hash = ?',
+            (username_or_email, username_or_email, password_hash)
         )
         user = cursor.fetchone()
         
