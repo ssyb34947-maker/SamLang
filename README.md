@@ -36,6 +36,7 @@ SamLang/
 ### 一键启动
 
 **Windows:**
+
 ```bash
 start.bat
 ```
@@ -45,17 +46,20 @@ start.bat
 ### 手动启动（推荐使用uv管理环境）
 
 **1. 安装依赖**
+
 ```bash
 # 安装 Python 依赖（项目根目录）
 uv sync
 ```
 
 **2. 启动服务**
+
 ```bash
 # 模块化运行
 uv run -m main
 ```
-服务将在 http://localhost:8000 运行
+
+服务将在 <http://localhost:8000> 运行
 
 **3. 访问前端**
 
@@ -64,7 +68,8 @@ cd frontend
 npm install
 npm run dev
 ```
-访问：http://localhost:5173
+
+访问：<http://localhost:5173>
 
 **主页**
 
@@ -80,14 +85,14 @@ npm run dev
 
 **用户配置**
 
-<img src="img/profile.png" alt="SamLang" width="600"/
+\<img src="img/profile.png" alt="SamLang" width="600"/>
 
 **知识库**
 
 <img src="img/kdb.png" alt="SamLang" width="600"/>
 
-
 ### 终端使用
+
 如果你不想使用前后端，可以在终端中使用，命令如下：
 
 ```bash
@@ -101,8 +106,9 @@ uv run -m src.main
 ### API 访问
 
 后端启动后，可以访问：
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+
+- **Swagger UI**: <http://localhost:8000/docs>
+- **ReDoc**: <http://localhost:8000/redoc>
 
 ## 🔧 核心配置
 
@@ -125,12 +131,12 @@ DEEPSEEK_API_KEY=your_api_key_here
 
 ## 📡 API 端点
 
-| 端点 | 方法 | 描述 |
-|------|------|------|
-| `/api/chat` | POST | 发送消息获取 AI 回复 |
-| `/api/reset` | POST | 重置对话历史 |
-| `/api/health` | GET | 健康检查 |
-| `/docs` | GET | API 文档（Swagger） |
+| 端点            | 方法   | 描述              |
+| ------------- | ---- | --------------- |
+| `/api/chat`   | POST | 发送消息获取 AI 回复    |
+| `/api/reset`  | POST | 重置对话历史          |
+| `/api/health` | GET  | 健康检查            |
+| `/docs`       | GET  | API 文档（Swagger） |
 
 ## 🛠️ 技术栈
 
@@ -168,8 +174,8 @@ DEEPSEEK_API_KEY=your_api_key_here
 ### 中文显示乱码
 
 Windows 用户请确保：
+
 1. 终端使用 UTF-8 编码
 2. 已设置 `PYTHONIOENCODING=utf-8`
-
 
 **开始使用 SamLang 提升你的语言学习体验！** 🎯✨
