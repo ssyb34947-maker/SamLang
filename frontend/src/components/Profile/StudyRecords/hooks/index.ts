@@ -1,5 +1,3 @@
-// Hooks 导出
-
-export { useStudyStats } from './useStudyStats';
-export { useJournal } from './useJournal';
-export { useAIAnalysis } from './useAIAnalysis';
+export * from './useStudyStats';
+export * from './useJournal';
+export * from './useAIAnalysis';

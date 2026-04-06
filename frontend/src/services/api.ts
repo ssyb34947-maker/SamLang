@@ -151,7 +151,17 @@ class ApiService {
     return this.request('/api/auth/me');
   }
 
-  async updateCurrentUser(userData: { username?: string; email?: string; avatar?: string; bio?: string }) {
+  async updateCurrentUser(userData: {
+    username?: string;
+    email?: string;
+    avatar?: string;
+    bio?: string;
+    gender?: string;
+    age?: number;
+    is_student?: boolean;
+    student_grade?: string;
+    occupation?: string;
+  }) {
     return this.request('/api/auth/me', {
       method: 'PUT',
       body: JSON.stringify(userData),

@@ -166,6 +166,11 @@ async def get_current_user_info(current_user: dict = Depends(get_current_active_
         email=current_user["email"],
         avatar=current_user["avatar"],
         bio=current_user.get("bio"),
+        gender=current_user.get("gender"),
+        age=current_user.get("age"),
+        is_student=current_user.get("is_student"),
+        student_grade=current_user.get("student_grade"),
+        occupation=current_user.get("occupation"),
         is_active=current_user["is_active"],
         created_at=current_user["created_at"]
     )
@@ -215,10 +220,15 @@ async def update_current_user(
             email=updated_user["email"],
             avatar=updated_user["avatar"],
             bio=updated_user.get("bio"),
+            gender=updated_user.get("gender"),
+            age=updated_user.get("age"),
+            is_student=updated_user.get("is_student"),
+            student_grade=updated_user.get("student_grade"),
+            occupation=updated_user.get("occupation"),
             is_active=updated_user["is_active"],
             created_at=updated_user["created_at"]
         )
-        
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -302,6 +312,11 @@ async def upload_avatar(
             email=updated_user["email"],
             avatar=updated_user["avatar"],
             bio=updated_user.get("bio"),
+            gender=updated_user.get("gender"),
+            age=updated_user.get("age"),
+            is_student=updated_user.get("is_student"),
+            student_grade=updated_user.get("student_grade"),
+            occupation=updated_user.get("occupation"),
             is_active=updated_user["is_active"],
             created_at=updated_user["created_at"]
         )

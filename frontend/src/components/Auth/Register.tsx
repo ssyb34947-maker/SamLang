@@ -15,11 +15,12 @@ const Register: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { register, isAuthenticated } = useAuth();
+  const { register, isAuthenticated, isNewUser } = useAuth();
   const navigate = useNavigate();
 
-  // 如果已经登录，直接跳转到首页
-  if (isAuthenticated) {
+  // 如果已经登录且不是新用户，直接跳转到 /chat
+  // 如果是新用户，AuthRoute 会自动重定向到 /welcome
+  if (isAuthenticated && !isNewUser) {
     navigate('/chat', { replace: true });
     return null;
   }
@@ -65,9 +66,9 @@ const Register: React.FC = () => {
     try {
       setIsLoading(true);
       await register(username, email, password);
-      // 注册成功后提示并跳转到首页
-      alert('注册成功！');
-      navigate('/chat', { replace: true });
+      // 注册成功后，isNewUser 会被设置为 true
+      // AuthRoute 会自动将新用户重定向到 /welcome
+      // 不需要手动跳转
     } catch (err: any) {
       let errorMessage = '注册失败，请稍后重试';
 

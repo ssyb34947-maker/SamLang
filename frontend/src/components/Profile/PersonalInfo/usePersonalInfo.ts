@@ -15,6 +15,8 @@ export const usePersonalInfo = () => {
   const [editForm, setEditForm] = useState<EditForm>({
     username: '',
     bio: '',
+    gender: '',
+    age: '',
   });
 
   // 获取用户信息
@@ -27,6 +29,8 @@ export const usePersonalInfo = () => {
       setEditForm({
         username: data.username || '',
         bio: data.bio || '',
+        gender: data.gender || '',
+        age: data.age || '',
       });
     } catch (err: any) {
       setError(err.message || ERROR_MESSAGES.FETCH_FAILED);
@@ -45,6 +49,8 @@ export const usePersonalInfo = () => {
       setEditForm({
         username: userInfo.username || '',
         bio: userInfo.bio || '',
+        gender: userInfo.gender || '',
+        age: userInfo.age || '',
       });
     }
     setIsEditing(true);
@@ -62,10 +68,20 @@ export const usePersonalInfo = () => {
       setIsSaving(true);
       setError(null);
 
-      const updatedUser = await apiService.updateCurrentUser({
+      const updateData: any = {
         username: editForm.username,
         bio: editForm.bio,
-      });
+      };
+
+      // 只提交已设置的值
+      if (editForm.gender) {
+        updateData.gender = editForm.gender;
+      }
+      if (editForm.age !== '' && editForm.age !== undefined) {
+        updateData.age = editForm.age;
+      }
+
+      const updatedUser = await apiService.updateCurrentUser(updateData);
 
       setUserInfo(updatedUser);
       setIsEditing(false);
@@ -77,7 +93,7 @@ export const usePersonalInfo = () => {
   }, [editForm]);
 
   // 处理表单变化
-  const handleChange = useCallback((field: keyof EditForm, value: string) => {
+  const handleChange = useCallback((field: keyof EditForm, value: string | number) => {
     setEditForm((prev) => ({ ...prev, [field]: value }));
   }, []);
 

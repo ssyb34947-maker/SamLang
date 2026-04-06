@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Calendar } from 'lucide-react';
+import { Camera, Calendar, User, Hash } from 'lucide-react';
 import { STYLES } from '../constants';
 import type { UserInfo } from '../types';
 
@@ -125,6 +125,46 @@ export const AvatarSection: React.FC<AvatarSectionProps> = ({
       >
         <Calendar className="w-4 h-4" />
         注册于 {userInfo?.created_at ? new Date(userInfo.created_at).toLocaleDateString('zh-CN') : '-'}
+      </div>
+
+      {/* 性别 */}
+      <div
+        style={{
+          marginTop: '0.75rem',
+          padding: '8px 16px',
+          ...STYLES.DISPLAY_CARD.pink,
+          borderRadius: 'var(--wobbly-sm)',
+          fontFamily: 'var(--font-hand)',
+          fontSize: '0.85rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          transform: 'rotate(1deg)',
+        }}
+      >
+        <span className="text-base">
+          {userInfo?.gender === '男' ? '👦' : userInfo?.gender === '女' ? '👧' : <User className="w-4 h-4" />}
+        </span>
+        {userInfo?.gender || '未设置'}
+      </div>
+
+      {/* 年级 */}
+      <div
+        style={{
+          marginTop: '0.75rem',
+          padding: '8px 16px',
+          ...STYLES.DISPLAY_CARD.orange,
+          borderRadius: 'var(--wobbly-sm)',
+          fontFamily: 'var(--font-hand)',
+          fontSize: '0.85rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          transform: 'rotate(-0.5deg)',
+        }}
+      >
+        <Hash className="w-4 h-4" />
+        {userInfo?.age ? `${userInfo.age}年级` : '未设置年级'}
       </div>
     </div>
   );

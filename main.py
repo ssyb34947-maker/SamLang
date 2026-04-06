@@ -15,7 +15,7 @@ from src.agent import get_agent_factory
 from src.config.config import get_config
 from loguru import logger
 
-from src.api import reset_router, chat_router, test_router, auth_router, rag_router, conversation_router
+from src.api import reset_router, chat_router, test_router, auth_router, rag_router, conversation_router, cold_start_router
 from src.api.rag.pipeline import IngestionPipeline, RetrievalPipeline
 
 # 头像上传目录
@@ -52,6 +52,17 @@ async def lifespan(app: FastAPI):
     logger.info(f"API 地址: {config.llm.base_url}")
     logger.info(f"ReACT 最大迭代次数: {config.agent.react_max_iterations}")
     logger.info(f"记忆窗口大小: {config.agent.max_history} 轮\n")
+
+    # 初始化冷启动预测模型
+    try:
+        from src.code_start import StudentScorePredictor
+
+        app.state.cold_start_predictor = StudentScorePredictor().load()
+        logger.info("冷启动预测模型加载成功")
+    except Exception as e:
+        logger.error(f"冷启动预测模型加载失败: {e}")
+        app.state.cold_start_predictor = None
+        logger.warning("冷启动功能将不可用\n")
 
     # 初始化 RAG Pipeline
     try:
@@ -151,6 +162,7 @@ app.include_router(test_router)
 app.include_router(auth_router)
 app.include_router(rag_router)
 app.include_router(conversation_router)
+app.include_router(cold_start_router)
 
 # 挂载头像静态文件服务
 app.mount("/api/avatars", StaticFiles(directory=AVATAR_UPLOAD_DIR), name="avatars")

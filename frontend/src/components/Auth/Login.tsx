@@ -17,7 +17,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 如果已经登录，直接跳转到首页
+  // 如果已经登录，直接跳转到 /chat
   if (isAuthenticated) {
     navigate('/chat', { replace: true });
     return null;
@@ -42,9 +42,8 @@ const Login: React.FC = () => {
     try {
       setIsLoading(true);
       await login(usernameOrEmail, password);
-      // 登录成功后跳转到之前访问的页面或首页
-      const from = (location.state as any)?.from || '/chat';
-      navigate(from, { replace: true });
+      // 登录成功后跳转到 /chat
+      navigate('/chat', { replace: true });
     } catch (err: any) {
       let errorMessage = '登录失败，请检查账号和密码';
 

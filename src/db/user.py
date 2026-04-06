@@ -45,7 +45,27 @@ def init_db():
     # 检查并添加 uuid 列（如果不存在）
     if 'uuid' not in columns:
         cursor.execute('ALTER TABLE users ADD COLUMN uuid TEXT UNIQUE DEFAULT NULL')
-    
+
+    # 检查并添加 gender 列（如果不存在）
+    if 'gender' not in columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN gender TEXT DEFAULT NULL')
+
+    # 检查并添加 age 列（如果不存在）
+    if 'age' not in columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN age INTEGER DEFAULT NULL')
+
+    # 检查并添加 is_student 列（如果不存在）
+    if 'is_student' not in columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN is_student BOOLEAN DEFAULT NULL')
+
+    # 检查并添加 student_grade 列（如果不存在）
+    if 'student_grade' not in columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN student_grade TEXT DEFAULT NULL')
+
+    # 检查并添加 occupation 列（如果不存在）
+    if 'occupation' not in columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN occupation TEXT DEFAULT NULL')
+
     # 创建用户画像表
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS user_profiles (
@@ -56,10 +76,30 @@ def init_db():
         learning_goals TEXT DEFAULT NULL,
         strengths TEXT DEFAULT NULL,
         weaknesses TEXT DEFAULT NULL,
+        daily_study_time TEXT DEFAULT NULL,
+        math_recognition TEXT DEFAULT NULL,
+        learning_autonomy TEXT DEFAULT NULL,
+        learning_persistence TEXT DEFAULT NULL,
+        learning_curiosity TEXT DEFAULT NULL,
         last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
     )
     ''')
+
+    # 检查并添加用户画像表的新列（兼容已有表）
+    cursor.execute("PRAGMA table_info(user_profiles)")
+    profile_columns = [column[1] for column in cursor.fetchall()]
+
+    if 'daily_study_time' not in profile_columns:
+        cursor.execute('ALTER TABLE user_profiles ADD COLUMN daily_study_time TEXT DEFAULT NULL')
+    if 'math_recognition' not in profile_columns:
+        cursor.execute('ALTER TABLE user_profiles ADD COLUMN math_recognition TEXT DEFAULT NULL')
+    if 'learning_autonomy' not in profile_columns:
+        cursor.execute('ALTER TABLE user_profiles ADD COLUMN learning_autonomy TEXT DEFAULT NULL')
+    if 'learning_persistence' not in profile_columns:
+        cursor.execute('ALTER TABLE user_profiles ADD COLUMN learning_persistence TEXT DEFAULT NULL')
+    if 'learning_curiosity' not in profile_columns:
+        cursor.execute('ALTER TABLE user_profiles ADD COLUMN learning_curiosity TEXT DEFAULT NULL')
     
     # 创建聊天历史表
     cursor.execute('''
@@ -158,7 +198,7 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
 
     try:
         cursor.execute(
-            'SELECT id, uuid, username, email, avatar, bio, is_active, created_at FROM users WHERE id = ?',
+            'SELECT id, uuid, username, email, avatar, bio, gender, age, is_student, student_grade, occupation, is_active, created_at FROM users WHERE id = ?',
             (user_id,)
         )
         user = cursor.fetchone()
@@ -171,8 +211,13 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
                 'email': user[3],
                 'avatar': user[4],
                 'bio': user[5],
-                'is_active': user[6],
-                'created_at': user[7]
+                'gender': user[6],
+                'age': user[7],
+                'is_student': user[8],
+                'student_grade': user[9],
+                'occupation': user[10],
+                'is_active': user[11],
+                'created_at': user[12]
             }
         return None
 
@@ -187,7 +232,7 @@ def get_user_by_uuid(user_uuid: str) -> Optional[Dict[str, Any]]:
 
     try:
         cursor.execute(
-            'SELECT id, uuid, username, email, avatar, bio, is_active, created_at FROM users WHERE uuid = ?',
+            'SELECT id, uuid, username, email, avatar, bio, gender, age, is_student, student_grade, occupation, is_active, created_at FROM users WHERE uuid = ?',
             (user_uuid,)
         )
         user = cursor.fetchone()
@@ -200,8 +245,13 @@ def get_user_by_uuid(user_uuid: str) -> Optional[Dict[str, Any]]:
                 'email': user[3],
                 'avatar': user[4],
                 'bio': user[5],
-                'is_active': user[6],
-                'created_at': user[7]
+                'gender': user[6],
+                'age': user[7],
+                'is_student': user[8],
+                'student_grade': user[9],
+                'occupation': user[10],
+                'is_active': user[11],
+                'created_at': user[12]
             }
         return None
 
@@ -213,31 +263,31 @@ def update_user_info(user_id: int, update_data: Dict[str, Any]) -> bool:
     """更新用户基本信息"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     try:
         # 构建更新字段
-        allowed_fields = ['username', 'email', 'avatar', 'bio']
+        allowed_fields = ['username', 'email', 'avatar', 'bio', 'gender', 'age', 'is_student', 'student_grade', 'occupation']
         updates = []
         values = []
-        
+
         for field in allowed_fields:
             if field in update_data:
                 updates.append(f"{field} = ?")
                 values.append(update_data[field])
-        
+
         if not updates:
             return False
-        
+
         values.append(user_id)
-        
+
         cursor.execute(
             f"UPDATE users SET {', '.join(updates)}, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
             values
         )
-        
+
         conn.commit()
         return cursor.rowcount > 0
-        
+
     except Exception as e:
         conn.rollback()
         raise e
@@ -248,21 +298,26 @@ def update_user_profile(user_id: int, profile_data: Dict[str, Any]) -> bool:
     """更新用户画像"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     try:
         # 将列表转换为JSON字符串
         interests = json.dumps(profile_data.get('interests', [])) if 'interests' in profile_data else None
         learning_goals = json.dumps(profile_data.get('learning_goals', [])) if 'learning_goals' in profile_data else None
         strengths = json.dumps(profile_data.get('strengths', [])) if 'strengths' in profile_data else None
         weaknesses = json.dumps(profile_data.get('weaknesses', [])) if 'weaknesses' in profile_data else None
-        
+
         cursor.execute('''
-        UPDATE user_profiles 
+        UPDATE user_profiles
         SET learning_level = COALESCE(?, learning_level),
             interests = COALESCE(?, interests),
             learning_goals = COALESCE(?, learning_goals),
             strengths = COALESCE(?, strengths),
             weaknesses = COALESCE(?, weaknesses),
+            daily_study_time = COALESCE(?, daily_study_time),
+            math_recognition = COALESCE(?, math_recognition),
+            learning_autonomy = COALESCE(?, learning_autonomy),
+            learning_persistence = COALESCE(?, learning_persistence),
+            learning_curiosity = COALESCE(?, learning_curiosity),
             last_updated = CURRENT_TIMESTAMP
         WHERE user_id = ?
         ''', (
@@ -271,12 +326,17 @@ def update_user_profile(user_id: int, profile_data: Dict[str, Any]) -> bool:
             learning_goals,
             strengths,
             weaknesses,
+            profile_data.get('daily_study_time'),
+            profile_data.get('math_recognition'),
+            profile_data.get('learning_autonomy'),
+            profile_data.get('learning_persistence'),
+            profile_data.get('learning_curiosity'),
             user_id
         ))
-        
+
         conn.commit()
         return cursor.rowcount > 0
-        
+
     except Exception as e:
         conn.rollback()
         raise e
@@ -287,14 +347,17 @@ def get_user_profile(user_id: int) -> Optional[Dict[str, Any]]:
     """获取用户画像"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     try:
         cursor.execute(
-            'SELECT learning_level, interests, learning_goals, strengths, weaknesses, last_updated FROM user_profiles WHERE user_id = ?',
+            '''SELECT learning_level, interests, learning_goals, strengths, weaknesses,
+                      daily_study_time, math_recognition, learning_autonomy,
+                      learning_persistence, learning_curiosity, last_updated
+               FROM user_profiles WHERE user_id = ?''',
             (user_id,)
         )
         profile = cursor.fetchone()
-        
+
         if profile:
             return {
                 'learning_level': profile[0],
@@ -302,9 +365,14 @@ def get_user_profile(user_id: int) -> Optional[Dict[str, Any]]:
                 'learning_goals': json.loads(profile[2]) if profile[2] else [],
                 'strengths': json.loads(profile[3]) if profile[3] else [],
                 'weaknesses': json.loads(profile[4]) if profile[4] else [],
-                'last_updated': profile[5]
+                'daily_study_time': profile[5],
+                'math_recognition': profile[6],
+                'learning_autonomy': profile[7],
+                'learning_persistence': profile[8],
+                'learning_curiosity': profile[9],
+                'last_updated': profile[10]
             }
         return None
-        
+
     finally:
         conn.close()

@@ -4,6 +4,11 @@ export interface UserInfo {
   email: string;
   avatar?: string;
   bio?: string;
+  gender?: string;
+  age?: number;
+  is_student?: boolean;
+  student_grade?: string;
+  occupation?: string;
   is_active: boolean;
   created_at: string;
 }
@@ -11,6 +16,11 @@ export interface UserInfo {
 export interface EditForm {
   username: string;
   bio: string;
+  gender: string;
+  age: number | '';
+  is_student: boolean | null;
+  student_grade: string;
+  occupation: string;
 }
 
 export interface UsePersonalInfoReturn {

@@ -85,6 +85,8 @@ export const STYLES = {
     green: { backgroundColor: '#e8f5e9', opacity: 0.9 },
     purple: { backgroundColor: '#f3e5f5', minHeight: '120px' },
     blue: { backgroundColor: '#e3f2fd', border: '2px solid #90caf9', color: '#1565c0' },
+    pink: { backgroundColor: '#fce4ec', border: '2px solid #f48fb1', color: '#c2185b' },
+    orange: { backgroundColor: '#fff3e0', border: '2px solid #ffb74d', color: '#e65100' },
   },
 } as const;
 

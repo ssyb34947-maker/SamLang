@@ -4,6 +4,7 @@ from src.api.test_api import router as test_router
 from src.api.auth import router as auth_router
 from src.api.rag.routes import router as rag_router
 from src.api.conversation import router as conversation_router
+from src.api.cold_start import router as cold_start_router
 
 __all__ = [
     "reset_router",
@@ -11,5 +12,6 @@ __all__ = [
     "test_router",
     "auth_router",
     "rag_router",
-    "conversation_router"
+    "conversation_router",
+    "cold_start_router"
 ]

@@ -10,10 +10,11 @@ import { useEffect, useRef } from 'react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  requireOnboarding?: boolean;
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requireOnboarding = true }) => {
+  const { isAuthenticated, isLoading, isNewUser } = useAuth();
   const { showLoading, hideLoading } = useLoading();
   const location = useLocation();
   const prevPathname = useRef(location.pathname);
@@ -68,6 +69,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   // 未登录时重定向到登录页，并记录当前路径以便登录后跳转回来
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  }
+
+  // 如果是新用户且需要完成信息填写，且当前不在 /welcome 页面，则重定向到 /welcome
+  if (requireOnboarding && isNewUser && location.pathname !== '/welcome') {
+    return <Navigate to="/welcome" replace />;
   }
 
   return <>{children}</>;
