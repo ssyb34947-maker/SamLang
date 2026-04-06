@@ -1,10 +1,12 @@
 """
 工具管理器模块
 负责管理和调用 MCP 工具
+支持用户隔离和角色权限控制
 """
 
 from typing import List, Dict, Any, Optional
 from src.agent.mcp import get_sync_mcp_client
+from loguru import logger
 
 
 class ToolManager:
@@ -15,29 +17,45 @@ class ToolManager:
     - 管理所有可用工具
     - 提供工具调用接口
     - 将工具转换为 LLM 可用的格式
+    - 支持用户隔离（每个 Agent 独立的 MCP Client）
     """
 
-    def __init__(self):
+    def __init__(
+        self,
+        user_id: Optional[str] = None,
+        role: str = "student"
+    ):
         """
         初始化工具管理器
 
-        输入：无
+        输入：
+            user_id: 用户ID，用于数据隔离
+            role: 用户角色 (professor/assistant/student)
         输出：无
         """
+        self.user_id = user_id
+        self.role = role
         self.mcp_client = None  # 延迟初始化
         self._tools: Optional[List[Dict[str, Any]]] = None
+        
+        logger.debug(f"[ToolManager] 创建: user_id={user_id}, role={role}")
 
     def _ensure_client(self):
         """确保 MCP 客户端已初始化"""
         if self.mcp_client is None:
-            self.mcp_client = get_sync_mcp_client()
+            # 每个 ToolManager 创建独立的 Client，绑定 user_id 和 role
+            self.mcp_client = get_sync_mcp_client(
+                user_id=self.user_id,
+                role=self.role
+            )
+            logger.debug(f"[ToolManager] MCP Client 初始化完成: user_id={self.user_id}")
 
     def get_tools(self) -> List[Dict[str, Any]]:
         """
-        获取所有可用工具
+        获取当前角色可用的工具
 
         输入：无
-        输出：工具列表
+        输出：工具列表（已根据角色过滤）
         """
         self._ensure_client()
         if self._tools is None:
@@ -83,10 +101,13 @@ class ToolManager:
         """
         self._ensure_client()
         try:
+            # MCPClient 会自动注入 user_id 到 RAG 工具
             result = self.mcp_client.call_tool(tool_name, **arguments)
             return result
         except Exception as e:
-            return f"工具调用失败：{str(e)}"
+            error_msg = f"工具调用失败：{str(e)}"
+            logger.error(f"[ToolManager] {error_msg}")
+            return error_msg
 
     def get_tool_by_name(self, tool_name: str) -> Optional[Dict[str, Any]]:
         """
@@ -95,7 +116,7 @@ class ToolManager:
         输入：
             tool_name: 工具名称
         输出：
-            工具信息字典，不存在则返回 None
+            工具信息字典，不存在或无权限则返回 None
         """
         tools = self.get_tools()
         for tool in tools:

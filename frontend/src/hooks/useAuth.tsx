@@ -9,6 +9,7 @@ import { useLoading } from './useLoading.tsx';
 
 interface User {
   id: number;
+  uuid: string;
   username: string;
   email: string;
   avatar?: string;

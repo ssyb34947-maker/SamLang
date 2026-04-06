@@ -96,7 +96,7 @@ export const Loading: React.FC<LoadingProps> = ({ isVisible }) => {
       const screenX = centerX + rotatedX;
       const screenY = centerY + rotatedY;
 
-      // 水滴主体 - 使用渐变模拟水的质感
+      // 水滴主体 - 使用渐变模拟手绘墨水质感的红色系
       const gradient = ctx.createRadialGradient(
         screenX - droplet.radius * 0.3,
         screenY - droplet.radius * 0.3,
@@ -105,10 +105,10 @@ export const Loading: React.FC<LoadingProps> = ({ isVisible }) => {
         screenY,
         droplet.radius
       );
-      gradient.addColorStop(0, `rgba(200, 255, 255, ${droplet.opacity + 0.3})`);
-      gradient.addColorStop(0.3, `rgba(0, 230, 255, ${droplet.opacity})`);
-      gradient.addColorStop(0.7, `rgba(0, 180, 220, ${droplet.opacity * 0.8})`);
-      gradient.addColorStop(1, `rgba(0, 120, 180, ${droplet.opacity * 0.5})`);
+      gradient.addColorStop(0, `rgba(255, 230, 230, ${droplet.opacity + 0.3})`);
+      gradient.addColorStop(0.3, `rgba(255, 100, 100, ${droplet.opacity})`);
+      gradient.addColorStop(0.7, `rgba(220, 60, 60, ${droplet.opacity * 0.8})`);
+      gradient.addColorStop(1, `rgba(180, 40, 40, ${droplet.opacity * 0.5})`);
 
       ctx.beginPath();
       ctx.arc(screenX, screenY, droplet.radius, 0, Math.PI * 2);
@@ -149,38 +149,42 @@ export const Loading: React.FC<LoadingProps> = ({ isVisible }) => {
       ctx.translate(centerX, centerY);
       ctx.rotate(tiltAngle);
 
-      // 容器外框
+      // 容器外框 - 手绘风格深色边框
       ctx.beginPath();
       ctx.roundRect(-CONTAINER_WIDTH / 2, -CONTAINER_HEIGHT / 2, CONTAINER_WIDTH, CONTAINER_HEIGHT, 8);
-      ctx.strokeStyle = 'rgba(0, 255, 255, 0.6)';
+      ctx.strokeStyle = 'rgba(45, 45, 45, 0.8)';
       ctx.lineWidth = 3;
       ctx.stroke();
 
-      // 容器发光效果
-      ctx.shadowColor = '#00ffff';
-      ctx.shadowBlur = 15;
-      ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+      // 容器手绘阴影效果
+      ctx.shadowColor = 'rgba(45, 45, 45, 0.3)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 3;
+      ctx.shadowOffsetY = 3;
+      ctx.strokeStyle = 'rgba(45, 45, 45, 0.2)';
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.shadowBlur = 0;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
 
-      // 容器内部渐变
+      // 容器内部渐变 - 米白色纸张质感
       const containerGradient = ctx.createLinearGradient(
         -CONTAINER_WIDTH / 2,
         -CONTAINER_HEIGHT / 2,
         CONTAINER_WIDTH / 2,
         CONTAINER_HEIGHT / 2
       );
-      containerGradient.addColorStop(0, 'rgba(0, 255, 255, 0.08)');
-      containerGradient.addColorStop(0.5, 'rgba(0, 200, 255, 0.04)');
-      containerGradient.addColorStop(1, 'rgba(0, 150, 255, 0.08)');
+      containerGradient.addColorStop(0, 'rgba(253, 251, 247, 0.9)');
+      containerGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.95)');
+      containerGradient.addColorStop(1, 'rgba(253, 251, 247, 0.9)');
       ctx.fillStyle = containerGradient;
       ctx.fill();
 
-      // 容器盖子
-      ctx.fillStyle = 'rgba(255, 0, 255, 0.8)';
+      // 容器盖子 - 手绘红色强调色
+      ctx.fillStyle = 'rgba(255, 77, 77, 0.85)';
       ctx.fillRect(-20, -CONTAINER_HEIGHT / 2 - 12, 40, 12);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.strokeStyle = 'rgba(45, 45, 45, 0.8)';
       ctx.lineWidth = 2;
       ctx.strokeRect(-20, -CONTAINER_HEIGHT / 2 - 12, 40, 12);
 
@@ -330,7 +334,7 @@ export const Loading: React.FC<LoadingProps> = ({ isVisible }) => {
         <div className="water-droplets-container">
           <canvas ref={canvasRef} className="droplets-canvas" />
         </div>
-        <div className="loading-text pixel-loading-text neon-text-primary">
+        <div className="loading-text">
           加载中...
         </div>
       </div>
@@ -343,7 +347,7 @@ export const Loading: React.FC<LoadingProps> = ({ isVisible }) => {
 const style = document.createElement('style');
 style.textContent = `
   .loading-overlay {
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(253, 251, 247, 0.95);
     backdrop-filter: blur(8px);
   }
 
@@ -377,6 +381,8 @@ style.textContent = `
     text-transform: uppercase;
     letter-spacing: 3px;
     animation: textPulse 2s ease-in-out infinite;
+    font-family: 'Kalam', cursive;
+    color: #2d2d2d;
   }
 
   @keyframes textPulse {

@@ -161,6 +161,7 @@ async def get_current_user_info(current_user: dict = Depends(get_current_active_
     # 构建响应
     user_response = User(
         id=current_user["id"],
+        uuid=current_user["uuid"],
         username=current_user["username"],
         email=current_user["email"],
         avatar=current_user["avatar"],
@@ -206,9 +207,10 @@ async def update_current_user(
         
         # 获取更新后的用户信息
         updated_user = get_user_by_id(user_id)
-        
+
         return User(
             id=updated_user["id"],
+            uuid=updated_user["uuid"],
             username=updated_user["username"],
             email=updated_user["email"],
             avatar=updated_user["avatar"],
@@ -292,9 +294,10 @@ async def upload_avatar(
         
         # 获取更新后的用户信息
         updated_user = get_user_by_id(user_id)
-        
+
         return User(
             id=updated_user["id"],
+            uuid=updated_user["uuid"],
             username=updated_user["username"],
             email=updated_user["email"],
             avatar=updated_user["avatar"],
@@ -302,7 +305,7 @@ async def upload_avatar(
             is_active=updated_user["is_active"],
             created_at=updated_user["created_at"]
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:

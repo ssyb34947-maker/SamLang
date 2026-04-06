@@ -38,6 +38,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="/" element={<Navigate to="/chat" replace />} />
 
               {/* 受保护的路由 */}
+              {/* 支持 /:userUuid/:conversationId 格式的对话路由 */}
               <Route
                 path="/chat"
                 element={
@@ -47,7 +48,23 @@ createRoot(document.getElementById('root')!).render(
                 }
               />
               <Route
+                path="/chat/:userUuid/:conversationId"
+                element={
+                  <ProtectedRoute>
+                    <ChatHome />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile/:userUuid"
                 element={
                   <ProtectedRoute>
                     <Profile />

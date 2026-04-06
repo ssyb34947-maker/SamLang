@@ -1,6 +1,7 @@
 """
 chat api
 提供聊天功能，支持流式响应和消息持久化
+使用 Agent 工厂实现用户隔离和对话隔离
 """
 
 from fastapi import APIRouter, HTTPException, Request, Depends
@@ -15,7 +16,6 @@ import uuid
 from datetime import datetime
 from typing import Optional
 from src.auth.middleware import get_current_active_user
-from src.db.tools import get_user_username
 from src.db.conversation import (
     create_conversation,
     get_conversation_by_id,
@@ -33,21 +33,19 @@ router = APIRouter(tags=["chat"])
 async def chat_stream(request: ChatRequest, req: Request, current_user: dict = Depends(get_current_active_user)):
     """
     Chat endpoint with server-sent events (SSE) for streaming responses
-    支持对话持久化：
-    - 如果 conversation_id 为空，AI回复完成后创建新对话
-    - 如果 conversation_id 存在，追加消息到现有对话
+    支持对话持久化和记忆隔离：
+    - 每个 (user_id, conversation_id) 有独立的 Agent 和记忆
+    - 使用滑动窗口保留最近 n 轮对话
     """
-    logger.info(f"[CHAT_STREAM] Received streaming request from user {current_user['id']}: message_length={len(request.message)}, conversation_id={request.conversation_id}")
+    logger.info(f"[CHAT_STREAM] 收到流式请求: user_id={current_user['id']}, conversation_id={request.conversation_id}")
 
     conversation_id = request.conversation_id
     user_message = request.message.strip()
     
-    logger.info(f"[CHAT_STREAM] Processing request: user_id={current_user['id']}, conversation_id={conversation_id}, is_new={not conversation_id}")
-    
     if not user_message:
-        raise HTTPException(status_code=400, detail="Message cannot be empty")
+        raise HTTPException(status_code=400, detail="消息不能为空")
 
-    # 验证对话存在且属于当前用户（如果提供了conversation_id）
+    # 验证对话存在且属于当前用户
     if conversation_id:
         conversation = get_conversation_by_id(conversation_id)
         if not conversation:
@@ -56,16 +54,36 @@ async def chat_stream(request: ChatRequest, req: Request, current_user: dict = D
             raise HTTPException(status_code=403, detail="无权访问此对话")
 
     try:
-        agent = req.app.state.agent
-        username = get_user_username(current_user['id'])
+        # 使用工厂获取 Agent（实现隔离）
+        agent_factory = req.app.state.agent_factory
+        
+        # 如果是新对话，先创建对话ID
+        is_new_conversation = not conversation_id
+        if is_new_conversation:
+            conversation_id = str(uuid.uuid4())
+            title = user_message[:50] + "..." if len(user_message) > 50 else user_message
+            create_conversation(
+                user_id=current_user['id'],
+                conversation_id=conversation_id,
+                title=title
+            )
+            logger.info(f"[CHAT_STREAM] 创建新对话: {conversation_id}")
+        
+        # 获取或创建 Agent（关键：每个 user+conversation 组合有独立 Agent）
+        agent = agent_factory.get_agent(
+            user_id=str(current_user['id']),
+            conversation_id=conversation_id,
+            use_react=True,
+            verbose=False,  # 生产环境关闭详细日志
+            stream=True
+        )
+        
+        logger.info(f"[CHAT_STREAM] Agent 准备就绪: user_id={current_user['id']}, conversation_id={conversation_id}")
 
         async def event_generator():
-            """Generate SSE events for streaming response"""
+            """生成 SSE 事件"""
             event_queue = queue.Queue()
             full_response = ""
-            is_new_conversation = not conversation_id
-            # 使用列表作为可变引用，避免 nonlocal 问题
-            conversation_id_ref = [conversation_id]
 
             def thinking_callback(event_type: str, data: dict):
                 event_queue.put({"type": event_type, "data": data})
@@ -74,7 +92,6 @@ async def chat_stream(request: ChatRequest, req: Request, current_user: dict = D
                 try:
                     response = agent.chat(
                         user_message,
-                        user_name=username,
                         thinking_callback=thinking_callback,
                         token_callback=lambda token: event_queue.put({
                             "type": "token",
@@ -86,10 +103,10 @@ async def chat_stream(request: ChatRequest, req: Request, current_user: dict = D
                         "data": {"content": response}
                     })
                 except Exception as e:
-                    logger.error(f"Error in agent chat: {e}")
+                    logger.error(f"Agent chat 错误: {e}")
                     event_queue.put({"type": "error", "data": {"message": str(e)}})
 
-            # 启动AI处理线程
+            # 启动 AI 处理线程
             thread = threading.Thread(target=run_agent)
             thread.start()
 
@@ -108,34 +125,29 @@ async def chat_stream(request: ChatRequest, req: Request, current_user: dict = D
                         full_response += data.get("content", "")
                         yield f"data: {json.dumps(event)}\n\n"
 
-                    elif event_type in ["thinking_step", "tool_call"]:
+                    elif event_type in ["thinking_step", "tool_call", "tool_result"]:
                         yield f"data: {json.dumps(event)}\n\n"
 
                     elif event_type == "final_response":
                         full_response = data.get("content", full_response)
-                        logger.info(f"[CHAT_STREAM] AI response completed, length={len(full_response)}, is_new_conversation={is_new_conversation}")
+                        logger.info(f"[CHAT_STREAM] AI 回复完成, 长度={len(full_response)}")
                         
-                        # AI回复完成后，保存消息到数据库
+                        # 保存消息到数据库
                         try:
-                            logger.info(f"[CHAT_STREAM] Starting to save chat completion...")
-                            # 使用可变对象来存储 conversation_id
-                            result = await save_chat_completion(
+                            await save_chat_completion(
                                 user_id=current_user['id'],
-                                conversation_id=conversation_id_ref[0],
+                                conversation_id=conversation_id,
                                 user_message=user_message,
                                 ai_response=full_response,
-                                is_new_conversation=is_new_conversation
+                                is_new_conversation=False  # 已经创建过了
                             )
-                            conversation_id_ref[0] = result
-                            logger.info(f"[CHAT_STREAM] Chat saved successfully, conversation_id={result}")
+                            logger.info(f"[CHAT_STREAM] 消息已保存")
                             
-                            # 在最终响应中包含conversation_id
-                            data['conversation_id'] = result
+                            # 在最终响应中包含 conversation_id
+                            data['conversation_id'] = conversation_id
                             data['is_new_conversation'] = is_new_conversation
                         except Exception as e:
-                            logger.error(f"[CHAT_STREAM] Error saving chat: {e}")
-                            import traceback
-                            logger.error(traceback.format_exc())
+                            logger.error(f"[CHAT_STREAM] 保存消息失败: {e}")
                         
                         yield f"data: {json.dumps({'type': 'final_response', 'data': data})}\n\n"
                         break
@@ -145,7 +157,7 @@ async def chat_stream(request: ChatRequest, req: Request, current_user: dict = D
                         break
 
                 except asyncio.TimeoutError:
-                    yield f"data: {json.dumps({'type': 'error', 'data': {'message': 'Stream timed out'}})}\n\n"
+                    yield f"data: {json.dumps({'type': 'error', 'data': {'message': '流式响应超时'}})}\n\n"
                     break
                 except queue.Empty:
                     await asyncio.sleep(0.001)
@@ -164,78 +176,50 @@ async def chat_stream(request: ChatRequest, req: Request, current_user: dict = D
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in chat stream endpoint: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get AI response: {str(e)}")
+        logger.error(f"[CHAT_STREAM] 错误: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"AI 响应失败: {str(e)}")
 
 
 async def save_chat_completion(
     user_id: int,
-    conversation_id: Optional[str],
+    conversation_id: str,
     user_message: str,
     ai_response: str,
     is_new_conversation: bool
 ) -> str:
     """
     保存聊天完成结果到数据库
-    
-    Returns:
-        conversation_id: 对话ID（新建或现有）
     """
-    logger.info(f"[SAVE_CHAT] Starting save_chat_completion: user_id={user_id}, is_new_conversation={is_new_conversation}, existing_conversation_id={conversation_id}")
-    
-    # 如果是新对话，先创建对话元数据
-    if is_new_conversation:
-        new_conversation_id = str(uuid.uuid4())
-        # 使用用户的第一条消息作为标题（截取前50字符）
-        title = user_message[:50] + "..." if len(user_message) > 50 else user_message
-        
-        logger.info(f"[SAVE_CHAT] Creating new conversation: id={new_conversation_id}, title={title}")
-        
-        create_conversation(
-            user_id=user_id,
-            conversation_id=new_conversation_id,
-            title=title
-        )
-        conversation_id = new_conversation_id
-        logger.info(f"[SAVE_CHAT] Created new conversation {conversation_id} with title: {title}")
-    else:
-        logger.info(f"[SAVE_CHAT] Using existing conversation: {conversation_id}")
+    logger.debug(f"[SAVE_CHAT] 保存消息: conversation_id={conversation_id}")
     
     # 保存用户消息
     user_message_id = str(uuid.uuid4())
-    logger.info(f"[SAVE_CHAT] Saving user message: id={user_message_id}, conversation_id={conversation_id}, content_length={len(user_message)}")
-    
     create_message(
         conversation_id=conversation_id,
         message_id=user_message_id,
         role='user',
         content=user_message
     )
-    logger.info(f"[SAVE_CHAT] Saved user message: {user_message_id}")
     
-    # 保存AI回复
+    # 保存 AI 回复
     ai_message_id = str(uuid.uuid4())
-    logger.info(f"[SAVE_CHAT] Saving AI message: id={ai_message_id}, conversation_id={conversation_id}, content_length={len(ai_response)}")
-    
     create_message(
         conversation_id=conversation_id,
         message_id=ai_message_id,
         role='assistant',
         content=ai_response
     )
-    logger.info(f"[SAVE_CHAT] Saved AI message: {ai_message_id}")
     
     # 更新对话最后消息信息
     last_msg_preview = ai_response[:100] + "..." if len(ai_response) > 100 else ai_response
-    logger.info(f"[SAVE_CHAT] Updating conversation last_message: conversation_id={conversation_id}, preview={last_msg_preview[:50]}...")
-    
     update_conversation_last_message(
         conversation_id=conversation_id,
         last_message=last_msg_preview,
         increment_count=True
     )
     
-    logger.info(f"[SAVE_CHAT] Completed save_chat_completion for conversation {conversation_id}")
     return conversation_id
 
 
@@ -244,13 +228,13 @@ async def chat(request: ChatRequest, req: Request, current_user: dict = Depends(
     """
     非流式聊天接口
     """
-    logger.info(f"Received request from user {current_user['id']}: {request}")
+    logger.info(f"[CHAT] 收到请求: user_id={current_user['id']}, conversation_id={request.conversation_id}")
     
     conversation_id = request.conversation_id
     user_message = request.message.strip()
     
     if not user_message:
-        raise HTTPException(status_code=400, detail="Message cannot be empty")
+        raise HTTPException(status_code=400, detail="消息不能为空")
 
     # 验证对话存在且属于当前用户
     if conversation_id:
@@ -261,26 +245,44 @@ async def chat(request: ChatRequest, req: Request, current_user: dict = Depends(
             raise HTTPException(status_code=403, detail="无权访问此对话")
 
     try:
-        agent = req.app.state.agent
-        username = get_user_username(current_user['id'])
+        agent_factory = req.app.state.agent_factory
+        
+        # 如果是新对话，先创建
         is_new_conversation = not conversation_id
+        if is_new_conversation:
+            conversation_id = str(uuid.uuid4())
+            title = user_message[:50] + "..." if len(user_message) > 50 else user_message
+            create_conversation(
+                user_id=current_user['id'],
+                conversation_id=conversation_id,
+                title=title
+            )
+        
+        # 获取 Agent
+        agent = agent_factory.get_agent(
+            user_id=str(current_user['id']),
+            conversation_id=conversation_id,
+            use_react=True,
+            verbose=False,
+            stream=False  # 非流式
+        )
 
-        # 获取AI响应
-        ai_response = agent.chat(user_message, user_name=username)
+        # 获取 AI 响应
+        ai_response = agent.chat(user_message)
 
         # 保存到数据库
-        conv_id = await save_chat_completion(
+        await save_chat_completion(
             user_id=current_user['id'],
             conversation_id=conversation_id,
             user_message=user_message,
             ai_response=ai_response,
-            is_new_conversation=is_new_conversation
+            is_new_conversation=False
         )
 
         return {
             "success": True,
             "message": ai_response,
-            "conversation_id": conv_id,
+            "conversation_id": conversation_id,
             "is_new_conversation": is_new_conversation,
             "timestamp": datetime.now().isoformat()
         }
@@ -288,5 +290,5 @@ async def chat(request: ChatRequest, req: Request, current_user: dict = Depends(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in chat endpoint: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get AI response: {str(e)}")
+        logger.error(f"[CHAT] 错误: {e}")
+        raise HTTPException(status_code=500, detail=f"AI 响应失败: {str(e)}")

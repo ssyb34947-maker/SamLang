@@ -22,6 +22,7 @@ def init_conversation_tables():
         user_id INTEGER NOT NULL,
         conversation_id TEXT UNIQUE NOT NULL,
         title TEXT DEFAULT '新对话',
+        summary TEXT DEFAULT NULL,
         is_pinned BOOLEAN DEFAULT FALSE,
         is_archived BOOLEAN DEFAULT FALSE,
         is_deleted BOOLEAN DEFAULT FALSE,
@@ -72,39 +73,41 @@ def init_conversation_tables():
 # ==================== 对话表操作 ====================
 
 def create_conversation(
-    user_id: int, 
-    conversation_id: str, 
+    user_id: int,
+    conversation_id: str,
     title: str = '新对话',
+    summary: Optional[str] = None,
     model_config: Optional[Dict[str, Any]] = None
 ) -> int:
     """
     创建新对话
-    
+
     Args:
         user_id: 用户ID
         conversation_id: 对话唯一标识（UUID）
         title: 对话标题
+        summary: 对话摘要（可选）
         model_config: 模型配置（JSON格式）
-    
+
     Returns:
         新创建对话的数据库ID
     """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     try:
         model_config_json = json.dumps(model_config) if model_config else None
-        
+
         cursor.execute('''
-        INSERT INTO conversations 
-        (user_id, conversation_id, title, model_config, updated_at)
-        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (user_id, conversation_id, title, model_config_json))
-        
+        INSERT INTO conversations
+        (user_id, conversation_id, title, summary, model_config, updated_at)
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (user_id, conversation_id, title, summary, model_config_json))
+
         conversation_db_id = cursor.lastrowid
         conn.commit()
         return conversation_db_id
-        
+
     except Exception as e:
         conn.rollback()
         raise e
@@ -127,31 +130,32 @@ def get_conversation_by_id(conversation_id: str) -> Optional[Dict[str, Any]]:
     
     try:
         cursor.execute('''
-        SELECT id, user_id, conversation_id, title, is_pinned, is_archived, 
+        SELECT id, user_id, conversation_id, title, summary, is_pinned, is_archived,
                is_deleted, message_count, last_message, last_message_time,
                model_config, created_at, updated_at
-        FROM conversations 
+        FROM conversations
         WHERE conversation_id = ? AND is_deleted = FALSE
         ''', (conversation_id,))
-        
+
         row = cursor.fetchone()
         if not row:
             return None
-            
+
         return {
             'id': row[0],
             'user_id': row[1],
             'conversation_id': row[2],
             'title': row[3],
-            'is_pinned': bool(row[4]),
-            'is_archived': bool(row[5]),
-            'is_deleted': bool(row[6]),
-            'message_count': row[7],
-            'last_message': row[8],
-            'last_message_time': row[9],
-            'model_config': json.loads(row[10]) if row[10] else None,
-            'created_at': row[11],
-            'updated_at': row[12]
+            'summary': row[4],
+            'is_pinned': bool(row[5]),
+            'is_archived': bool(row[6]),
+            'is_deleted': bool(row[7]),
+            'message_count': row[8],
+            'last_message': row[9],
+            'last_message_time': row[10],
+            'model_config': json.loads(row[11]) if row[11] else None,
+            'created_at': row[12],
+            'updated_at': row[13]
         }
         
     finally:
@@ -182,37 +186,38 @@ def get_user_conversations(
     try:
         if include_archived:
             cursor.execute('''
-            SELECT id, conversation_id, title, is_pinned, is_archived,
+            SELECT id, conversation_id, title, summary, is_pinned, is_archived,
                    message_count, last_message, last_message_time, created_at, updated_at
-            FROM conversations 
+            FROM conversations
             WHERE user_id = ? AND is_deleted = FALSE
             ORDER BY is_pinned DESC, updated_at DESC
             LIMIT ? OFFSET ?
             ''', (user_id, limit, offset))
         else:
             cursor.execute('''
-            SELECT id, conversation_id, title, is_pinned, is_archived,
+            SELECT id, conversation_id, title, summary, is_pinned, is_archived,
                    message_count, last_message, last_message_time, created_at, updated_at
-            FROM conversations 
+            FROM conversations
             WHERE user_id = ? AND is_deleted = FALSE AND is_archived = FALSE
             ORDER BY is_pinned DESC, updated_at DESC
             LIMIT ? OFFSET ?
             ''', (user_id, limit, offset))
-        
+
         rows = cursor.fetchall()
-        
+
         return [
             {
                 'id': row[0],
                 'conversation_id': row[1],
                 'title': row[2],
-                'is_pinned': bool(row[3]),
-                'is_archived': bool(row[4]),
-                'message_count': row[5],
-                'last_message': row[6],
-                'last_message_time': row[7],
-                'created_at': row[8],
-                'updated_at': row[9]
+                'summary': row[3],
+                'is_pinned': bool(row[4]),
+                'is_archived': bool(row[5]),
+                'message_count': row[6],
+                'last_message': row[7],
+                'last_message_time': row[8],
+                'created_at': row[9],
+                'updated_at': row[10]
             }
             for row in rows
         ]
@@ -222,32 +227,33 @@ def get_user_conversations(
 
 
 def update_conversation(
-    conversation_id: str, 
+    conversation_id: str,
     update_data: Dict[str, Any]
 ) -> bool:
     """
     更新对话信息
-    
+
     Args:
         conversation_id: 对话唯一标识
         update_data: 要更新的字段字典
             - title: 标题
+            - summary: 摘要
             - is_pinned: 是否置顶
             - is_archived: 是否归档
             - is_deleted: 是否删除（软删除）
             - model_config: 模型配置
-    
+
     Returns:
         是否更新成功
     """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     try:
-        allowed_fields = ['title', 'is_pinned', 'is_archived', 'is_deleted', 'model_config']
+        allowed_fields = ['title', 'summary', 'is_pinned', 'is_archived', 'is_deleted', 'model_config']
         updates = []
         values = []
-        
+
         for field in allowed_fields:
             if field in update_data:
                 if field == 'model_config':
@@ -255,22 +261,22 @@ def update_conversation(
                 else:
                     values.append(update_data[field])
                 updates.append(f"{field} = ?")
-        
+
         if not updates:
             return False
-        
+
         # 自动更新 updated_at
         updates.append("updated_at = CURRENT_TIMESTAMP")
         values.append(conversation_id)
-        
+
         cursor.execute(
             f"UPDATE conversations SET {', '.join(updates)} WHERE conversation_id = ?",
             values
         )
-        
+
         conn.commit()
         return cursor.rowcount > 0
-        
+
     except Exception as e:
         conn.rollback()
         raise e

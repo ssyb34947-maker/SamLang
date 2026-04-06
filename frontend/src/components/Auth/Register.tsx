@@ -155,7 +155,7 @@ const Register: React.FC = () => {
               创建账号
             </h2>
             <p style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}>
-              加入山姆外语，开始你的语言学习之旅
+              加入山姆学院，开始你的学习之旅
             </p>
           </div>
 

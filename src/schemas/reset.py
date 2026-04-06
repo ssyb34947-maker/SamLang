@@ -1,10 +1,14 @@
 from pydantic import BaseModel, Field
+from typing import Optional
 
 class ResetRequest(BaseModel):
     """
-    Request schema for reset endpoint (optional body)
+    Request schema for reset endpoint
     """
-    pass
+    conversation_id: Optional[str] = Field(
+        None, 
+        description="要重置的对话ID，如果不提供则重置该用户的所有对话"
+    )
 
 
 class ResetResponse(BaseModel):

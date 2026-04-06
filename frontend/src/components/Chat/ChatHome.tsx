@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, MoreVertical, Menu, X, Edit, Trash2, User as UserIcon, Pin, PanelLeft, Sparkles, LogOut } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { apiService } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { Sidebar } from './Sidebar';
@@ -26,19 +26,28 @@ interface Message {
   content: string;
   timestamp: string;
 }
-       
+
 /**
  * Agent智能体聊天主页
  * 包含可推拉侧边栏、对话列表和聊天窗口
  */
 export const ChatHome: React.FC = () => {
-  // 导航
+  // 导航和URL参数
   const navigate = useNavigate();
+  const { userUuid, conversationId } = useParams<{ userUuid?: string; conversationId?: string }>();
   const { user, logout } = useAuth();
+
+  // 从URL参数中获取用户UUID和对话ID（如果存在）
+  const urlUserUuid = userUuid;
+  const urlConversationId = conversationId;
 
   // 跳转到 Profile (SamCollege Studio)
   const navigateToProfile = () => {
-    navigate('/profile');
+    if (user?.uuid) {
+      navigate(`/profile/${user.uuid}`);
+    } else {
+      navigate('/profile');
+    }
   };
 
   // 状态管理
@@ -77,7 +86,7 @@ export const ChatHome: React.FC = () => {
         conversation_id: conv.conversation_id,
         title: conv.title,
         lastMessage: conv.last_message || '',
-        lastMessageTime: conv.last_message_time 
+        lastMessageTime: conv.last_message_time
           ? new Date(conv.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           : new Date(conv.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isPinned: conv.is_pinned,
@@ -106,9 +115,23 @@ export const ChatHome: React.FC = () => {
     }
   };
 
-  // 初始加载对话列表
+  // 初始加载对话列表，并处理 URL 参数
   useEffect(() => {
-    loadConversations();
+    const init = async () => {
+      await loadConversations();
+
+      // 如果 URL 中有 userUuid 和 conversationId，自动加载对应对话
+      if (urlUserUuid && urlConversationId && user?.uuid === urlUserUuid) {
+        // 检查对话是否存在
+        const conversation = conversations.find(c => c.conversation_id === urlConversationId);
+        if (conversation) {
+          setCurrentConversation(conversation.id);
+          setCurrentConversationId(urlConversationId);
+          await loadMessages(urlConversationId);
+        }
+      }
+    };
+    init();
   }, []);
 
   // 创建新对话（临时，不立即保存到数据库）
@@ -192,12 +215,19 @@ export const ChatHome: React.FC = () => {
 
     setCurrentConversation(id);
     setCurrentConversationId(conversation.isTemporary ? undefined : conversation.conversation_id);
-    
-    // 如果不是临时对话，加载消息
+
+    // 如果不是临时对话，加载消息并更新 URL
     if (!conversation.isTemporary) {
       await loadMessages(conversation.conversation_id);
+      // 更新 URL（包含 userUuid 和 conversationId）
+      if (user?.uuid) {
+        navigate(`/chat/${user.uuid}/${conversation.conversation_id}`);
+      }
+    } else {
+      // 临时对话，回到基础 /chat 路径
+      navigate('/chat');
     }
-    
+
     // 重置未读消息数
     setConversations(conversations.map(conv =>
       conv.id === id ? { ...conv, unreadCount: 0 } : conv
@@ -294,7 +324,7 @@ export const ChatHome: React.FC = () => {
         // 临时对话直接删除
         setConversations(conversations.filter(conv => conv.id !== contextMenuTarget));
       }
-      
+
       // 如果删除的是当前对话，切换到第一个对话
       if (contextMenuTarget === currentConversation && conversations.length > 1) {
         const firstConv = conversations.find(conv => conv.id !== contextMenuTarget);
@@ -337,7 +367,7 @@ export const ChatHome: React.FC = () => {
 
     // 清空输入框
     setInputValue('');
-    
+
     // 设置思考状态
     setIsThinking(true);
 
@@ -418,6 +448,11 @@ export const ChatHome: React.FC = () => {
               return newMessages;
             });
             setCurrentConversation(newConversationId);
+
+            // 导航到新的 URL（包含 userUuid 和 conversationId）
+            if (user?.uuid) {
+              navigate(`/chat/${user.uuid}/${newConversationId}`);
+            }
           }
 
           setConversations(prev => prev.map(conv =>

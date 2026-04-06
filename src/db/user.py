@@ -19,11 +19,12 @@ def init_db():
     """初始化数据库表"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     # 创建用户表
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT UNIQUE DEFAULT NULL,
         username TEXT UNIQUE NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
@@ -34,12 +35,16 @@ def init_db():
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     ''')
-    
+
     # 检查并添加 bio 列（如果不存在）
     cursor.execute("PRAGMA table_info(users)")
     columns = [column[1] for column in cursor.fetchall()]
     if 'bio' not in columns:
         cursor.execute('ALTER TABLE users ADD COLUMN bio TEXT DEFAULT NULL')
+
+    # 检查并添加 uuid 列（如果不存在）
+    if 'uuid' not in columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN uuid TEXT UNIQUE DEFAULT NULL')
     
     # 创建用户画像表
     cursor.execute('''
@@ -79,37 +84,41 @@ def hash_password(password: str) -> str:
 
 def create_user(username: str, email: str, password: str) -> int:
     """创建新用户"""
+    import uuid
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     try:
         # 验证用户名：只可以是大小写英文字母和数字
         import re
         if not re.match(r'^[a-zA-Z0-9]+$', username):
             raise ValueError("用户名只能包含大小写英文字母和数字")
-        
+
         # 检查用户名和邮箱是否已存在
         cursor.execute('SELECT id FROM users WHERE username = ? OR email = ?', (username, email))
         if cursor.fetchone():
             raise ValueError("用户名或邮箱已存在")
-        
+
+        # 生成用户 UUID
+        user_uuid = str(uuid.uuid4())
+
         # 创建用户
         password_hash = hash_password(password)
         cursor.execute(
-            'INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)',
-            (username, email, password_hash)
+            'INSERT INTO users (uuid, username, email, password_hash) VALUES (?, ?, ?, ?)',
+            (user_uuid, username, email, password_hash)
         )
         user_id = cursor.lastrowid
-        
+
         # 创建用户画像
         cursor.execute(
             'INSERT INTO user_profiles (user_id) VALUES (?)',
             (user_id,)
         )
-        
+
         conn.commit()
         return user_id
-        
+
     except Exception as e:
         conn.rollback()
         raise e
@@ -146,26 +155,56 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
     """根据ID获取用户信息"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     try:
         cursor.execute(
-            'SELECT id, username, email, avatar, bio, is_active, created_at FROM users WHERE id = ?',
+            'SELECT id, uuid, username, email, avatar, bio, is_active, created_at FROM users WHERE id = ?',
             (user_id,)
         )
         user = cursor.fetchone()
-        
+
         if user:
             return {
                 'id': user[0],
-                'username': user[1],
-                'email': user[2],
-                'avatar': user[3],
-                'bio': user[4],
-                'is_active': user[5],
-                'created_at': user[6]
+                'uuid': user[1],
+                'username': user[2],
+                'email': user[3],
+                'avatar': user[4],
+                'bio': user[5],
+                'is_active': user[6],
+                'created_at': user[7]
             }
         return None
-        
+
+    finally:
+        conn.close()
+
+
+def get_user_by_uuid(user_uuid: str) -> Optional[Dict[str, Any]]:
+    """根据UUID获取用户信息"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    try:
+        cursor.execute(
+            'SELECT id, uuid, username, email, avatar, bio, is_active, created_at FROM users WHERE uuid = ?',
+            (user_uuid,)
+        )
+        user = cursor.fetchone()
+
+        if user:
+            return {
+                'id': user[0],
+                'uuid': user[1],
+                'username': user[2],
+                'email': user[3],
+                'avatar': user[4],
+                'bio': user[5],
+                'is_active': user[6],
+                'created_at': user[7]
+            }
+        return None
+
     finally:
         conn.close()
 

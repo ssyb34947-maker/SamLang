@@ -360,7 +360,7 @@ function App() {
                                 </p>
                             </div>
                             <button
-                                onClick={() => navigate('/profile')}
+                                onClick={() => user?.uuid ? navigate(`/profile/${user.uuid}`) : navigate('/profile')}
                                 className="sketch-btn"
                                 style={{ padding: '8px' }}
                                 title="SamCollege Studio"
@@ -387,7 +387,7 @@ function App() {
                             onClick={() => navigate('/profile')}
                             className="sketch-btn"
                             style={{ padding: '8px 16px' }}
-                            title="SamLang Studio"
+                            title="SamCollege Studio"
                         >
                             <UserIcon className="w-4 h-4 mr-2" />
                             <span style={{ fontFamily: 'var(--font-hand-body)' }}>Studio</span>

@@ -34,6 +34,7 @@ class UserLogin(BaseModel):
 class User(UserBase):
     """用户响应模型"""
     id: int
+    uuid: str
     avatar: Optional[str] = None
     bio: Optional[str] = None
     is_active: bool

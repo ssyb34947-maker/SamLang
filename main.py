@@ -11,7 +11,7 @@ import io
 import os
 
 from src.schemas import HealthResponse
-from src.service import create_chat_agent
+from src.agent import get_agent_factory
 from src.config.config import get_config
 from loguru import logger
 
@@ -33,10 +33,10 @@ if sys.platform == 'win32':
 async def lifespan(app: FastAPI):
     """
     Application lifespan manager
-    Initialize chat agent on startup
+    Initialize chat agent factory on startup
     """
 
-    # Startup: Initialize the chat agent
+    # Startup: Initialize the chat agent factory
     logger.info("Starting up Sam Lang Backend...")
 
     # 初始化数据库
@@ -44,20 +44,20 @@ async def lifespan(app: FastAPI):
     init_db()
     logger.info("Database initialized")
 
-    app.state.agent = create_chat_agent()
-    app.state.config = get_config()
-    logger.info(f"ConversationAgent 已创建" if app.state.agent else "ConversationAgent 创建失败")
-    logger.info(f"使用模型: {app.state.config.llm.model_name}")
-    logger.info(f"API 地址: {app.state.config.llm.base_url}")
-    logger.info(f"ReACT 模式: {'启用' if app.state.agent.use_react else '禁用'}")
-    logger.info(f"最大迭代次数: {app.state.config.agent.react_max_iterations}\n")
+    # 初始化 Agent 工厂（替代原来的单例 Agent）
+    config = get_config()
+    app.state.agent_factory = get_agent_factory(config)
+    logger.info("Agent Factory 已初始化")
+    logger.info(f"使用模型: {config.llm.model_name}")
+    logger.info(f"API 地址: {config.llm.base_url}")
+    logger.info(f"ReACT 最大迭代次数: {config.agent.react_max_iterations}")
+    logger.info(f"记忆窗口大小: {config.agent.max_history} 轮\n")
 
     # 初始化 RAG Pipeline
     try:
         from src.rag.rag import RAG
         from src.ocr import get_ocr_client
 
-        config = get_config()
         ocr_client = get_ocr_client()
 
         rag = RAG.from_config(
@@ -100,8 +100,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI application
 app = FastAPI(
-    title="Sam Lang",
-    description="Backend API for Sam Lang with ReACT agent",
+    title="Sam College",
+    description="Backend API for Sam College",
     version="0.1.0",
     lifespan=lifespan
 )
@@ -132,10 +132,16 @@ async def health_check():
     """
     Health check endpoint
     """
+    # 获取工厂统计信息
+    factory_stats = {}
+    if hasattr(app.state, "agent_factory"):
+        factory_stats = app.state.agent_factory.get_stats()
+    
     return {
         "status": "healthy",
         "message": "API is running",
-        "version": "0.1.0"
+        "version": "0.1.0",
+        "agent_factory": factory_stats
     }
 
 # Include routers
