@@ -34,8 +34,15 @@ class UserLogin(BaseModel):
 class User(UserBase):
     """用户响应模型"""
     id: int
+    uuid: str
     avatar: Optional[str] = None
     bio: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
+    is_student: Optional[bool] = None
+    student_grade: Optional[str] = None
+    occupation: Optional[str] = None
+    persona: Optional[str] = None
     is_active: bool
     created_at: datetime
 
@@ -44,10 +51,16 @@ class User(UserBase):
 
 
 class UserUpdate(BaseModel):
-    """用户更新模型 - 只允许更新用户名、头像和个人简介"""
+    """用户更新模型 - 允许更新用户名、头像、个人简介、性别、年龄、学生身份等"""
     username: Optional[str] = Field(None, min_length=3, max_length=50, description="用户名")
     avatar: Optional[str] = Field(None, description="头像URL")
     bio: Optional[str] = Field(None, max_length=500, description="个人简介")
+    gender: Optional[str] = Field(None, description="性别")
+    age: Optional[int] = Field(None, ge=1, le=100, description="年级")
+    is_student: Optional[bool] = Field(None, description="是否是学生")
+    student_grade: Optional[str] = Field(None, max_length=50, description="学生年级")
+    occupation: Optional[str] = Field(None, max_length=50, description="职业")
+    persona: Optional[str] = Field(None, description="用户画像自然文本")
 
 
 class Token(BaseModel):

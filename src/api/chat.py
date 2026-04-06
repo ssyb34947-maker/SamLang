@@ -1,5 +1,7 @@
 """
 chat api
+提供聊天功能，支持流式响应和消息持久化
+使用 Agent 工厂实现用户隔离和对话隔离
 """
 
 from fastapi import APIRouter, HTTPException, Request, Depends
@@ -10,8 +12,19 @@ import asyncio
 import json
 import queue
 import threading
+import uuid
+from datetime import datetime
+from typing import Optional
 from src.auth.middleware import get_current_active_user
-from src.db.tools import get_user_username
+from src.db.conversation import (
+    create_conversation,
+    get_conversation_by_id,
+    update_conversation_last_message
+)
+from src.db.message import (
+    create_message,
+    get_conversation_messages_for_agent
+)
 
 router = APIRouter(tags=["chat"])
 
@@ -20,80 +33,86 @@ router = APIRouter(tags=["chat"])
 async def chat_stream(request: ChatRequest, req: Request, current_user: dict = Depends(get_current_active_user)):
     """
     Chat endpoint with server-sent events (SSE) for streaming responses
-
-    Args:
-        request: ChatRequest containing user message
-        current_user: Current authenticated user
-
-    Returns:
-        StreamingResponse with AI reply streamed in real-time
+    支持对话持久化和记忆隔离：
+    - 每个 (user_id, conversation_id) 有独立的 Agent 和记忆
+    - 使用滑动窗口保留最近 n 轮对话
     """
-    logger.info(f"Received streaming request from user {current_user['id']}: {request}")
+    logger.info(f"[CHAT_STREAM] 收到流式请求: user_id={current_user['id']}, conversation_id={request.conversation_id}")
+
+    conversation_id = request.conversation_id
+    user_message = request.message.strip()
+    
+    if not user_message:
+        raise HTTPException(status_code=400, detail="消息不能为空")
+
+    # 验证对话存在且属于当前用户
+    if conversation_id:
+        conversation = get_conversation_by_id(conversation_id)
+        if not conversation:
+            raise HTTPException(status_code=404, detail="对话不存在")
+        if conversation['user_id'] != current_user['id']:
+            raise HTTPException(status_code=403, detail="无权访问此对话")
 
     try:
-        # Get user message
-        user_message = request.message.strip()
-        logger.info(f"Received message from user {current_user['id']}: {user_message}")
-
-        if not user_message:
-            raise HTTPException(status_code=400, detail="Message cannot be empty")
-
-        # Get AI response using the agent
-        agent = req.app.state.agent
-
-        # Get username from database
-        username = get_user_username(current_user['id'])
+        # 使用工厂获取 Agent（实现隔离）
+        agent_factory = req.app.state.agent_factory
+        
+        # 如果是新对话，先创建对话ID
+        is_new_conversation = not conversation_id
+        if is_new_conversation:
+            conversation_id = str(uuid.uuid4())
+            title = user_message[:50] + "..." if len(user_message) > 50 else user_message
+            create_conversation(
+                user_id=current_user['id'],
+                conversation_id=conversation_id,
+                title=title
+            )
+            logger.info(f"[CHAT_STREAM] 创建新对话: {conversation_id}")
+        
+        # 获取或创建 Agent（关键：每个 user+conversation 组合有独立 Agent）
+        agent = agent_factory.get_agent(
+            user_id=str(current_user['id']),
+            conversation_id=conversation_id,
+            use_react=True,
+            verbose=False,  # 生产环境关闭详细日志
+            stream=True
+        )
+        
+        logger.info(f"[CHAT_STREAM] Agent 准备就绪: user_id={current_user['id']}, conversation_id={conversation_id}")
 
         async def event_generator():
-            """Generate SSE events for streaming response"""
-            # 使用同步队列（线程安全）
+            """生成 SSE 事件"""
             event_queue = queue.Queue()
+            full_response = ""
 
             def thinking_callback(event_type: str, data: dict):
-                """Callback function to receive events from agent"""
-                # 将事件放入同步队列
-                event_queue.put({
-                    "type": event_type,
-                    "data": data
-                })
-
-            # Run the agent in a separate thread to avoid blocking
-            agent_response = {"content": ""}
+                event_queue.put({"type": event_type, "data": data})
 
             def run_agent():
                 try:
-                    # Use the agent's chat method with thinking and token callbacks
                     response = agent.chat(
                         user_message,
-                        user_name=username,
                         thinking_callback=thinking_callback,
                         token_callback=lambda token: event_queue.put({
                             "type": "token",
                             "data": {"content": token}
                         })
                     )
-                    agent_response["content"] = response
-                    # Signal completion
                     event_queue.put({
                         "type": "final_response",
                         "data": {"content": response}
                     })
                 except Exception as e:
-                    logger.error(f"Error in agent chat: {e}")
-                    event_queue.put({
-                        "type": "error",
-                        "data": {"message": str(e)}
-                    })
+                    logger.error(f"Agent chat 错误: {e}")
+                    event_queue.put({"type": "error", "data": {"message": str(e)}})
 
-            # Start agent in background thread
+            # 启动 AI 处理线程
             thread = threading.Thread(target=run_agent)
             thread.start()
 
-            # Stream events to client
+            # 流式发送事件
             while True:
                 try:
-                    # 使用 asyncio.to_thread 在异步环境中等待同步队列
-                    # 减少超时时间，让token更快地被发送
                     event = await asyncio.wait_for(
                         asyncio.to_thread(event_queue.get, timeout=0.01),
                         timeout=60.0
@@ -102,40 +121,45 @@ async def chat_stream(request: ChatRequest, req: Request, current_user: dict = D
                     event_type = event.get("type")
                     data = event.get("data")
 
-                    if event_type == "thinking_step":
-                        # Send thinking step to client
-                        json_str = json.dumps({"type": "thinking_step", "data": data})
-                        yield f"data: {json_str}\n\n"
+                    if event_type == "token":
+                        full_response += data.get("content", "")
+                        yield f"data: {json.dumps(event)}\n\n"
 
-                    elif event_type == "tool_call":
-                        # Send tool call to client
-                        json_str = json.dumps({"type": "tool_call", "data": data})
-                        yield f"data: {json_str}\n\n"
-
-                    elif event_type == "token":
-                        # Send token to client for real-time streaming
-                        json_str = json.dumps({"type": "token", "data": data})
-                        yield f"data: {json_str}\n\n"
+                    elif event_type in ["thinking_step", "tool_call", "tool_result"]:
+                        yield f"data: {json.dumps(event)}\n\n"
 
                     elif event_type == "final_response":
-                        # Send final response
-                        json_str = json.dumps({"type": "final_response", "data": data})
-                        yield f"data: {json_str}\n\n"
+                        full_response = data.get("content", full_response)
+                        logger.info(f"[CHAT_STREAM] AI 回复完成, 长度={len(full_response)}")
+                        
+                        # 保存消息到数据库
+                        try:
+                            await save_chat_completion(
+                                user_id=current_user['id'],
+                                conversation_id=conversation_id,
+                                user_message=user_message,
+                                ai_response=full_response,
+                                is_new_conversation=False  # 已经创建过了
+                            )
+                            logger.info(f"[CHAT_STREAM] 消息已保存")
+                            
+                            # 在最终响应中包含 conversation_id
+                            data['conversation_id'] = conversation_id
+                            data['is_new_conversation'] = is_new_conversation
+                        except Exception as e:
+                            logger.error(f"[CHAT_STREAM] 保存消息失败: {e}")
+                        
+                        yield f"data: {json.dumps({'type': 'final_response', 'data': data})}\n\n"
                         break
 
                     elif event_type == "error":
-                        # Send error
-                        json_str = json.dumps({"type": "error", "data": data})
-                        yield f"data: {json_str}\n\n"
+                        yield f"data: {json.dumps(event)}\n\n"
                         break
 
                 except asyncio.TimeoutError:
-                    logger.error("Stream timeout")
-                    json_str = json.dumps({"type": "error", "data": {"message": "Stream timed out"}})
-                    yield f"data: {json_str}\n\n"
+                    yield f"data: {json.dumps({'type': 'error', 'data': {'message': '流式响应超时'}})}\n\n"
                     break
                 except queue.Empty:
-                    # 队列为空，继续等待，减少等待时间以实现更实时的效果
                     await asyncio.sleep(0.001)
                     continue
 
@@ -145,82 +169,126 @@ async def chat_stream(request: ChatRequest, req: Request, current_user: dict = D
             headers={
                 "Cache-Control": "no-cache",
                 "Connection": "keep-alive",
-                "X-Accel-Buffering": "no"  # 禁用Nginx缓冲
+                "X-Accel-Buffering": "no"
             }
         )
 
-    except HTTPException as e:
-        logger.error(f"HTTP Exception in chat stream endpoint: {e}")
+    except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in chat stream endpoint: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to get AI response: {str(e)}"
-        )
+        logger.error(f"[CHAT_STREAM] 错误: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"AI 响应失败: {str(e)}")
+
+
+async def save_chat_completion(
+    user_id: int,
+    conversation_id: str,
+    user_message: str,
+    ai_response: str,
+    is_new_conversation: bool
+) -> str:
+    """
+    保存聊天完成结果到数据库
+    """
+    logger.debug(f"[SAVE_CHAT] 保存消息: conversation_id={conversation_id}")
+    
+    # 保存用户消息
+    user_message_id = str(uuid.uuid4())
+    create_message(
+        conversation_id=conversation_id,
+        message_id=user_message_id,
+        role='user',
+        content=user_message
+    )
+    
+    # 保存 AI 回复
+    ai_message_id = str(uuid.uuid4())
+    create_message(
+        conversation_id=conversation_id,
+        message_id=ai_message_id,
+        role='assistant',
+        content=ai_response
+    )
+    
+    # 更新对话最后消息信息
+    last_msg_preview = ai_response[:100] + "..." if len(ai_response) > 100 else ai_response
+    update_conversation_last_message(
+        conversation_id=conversation_id,
+        last_message=last_msg_preview,
+        increment_count=True
+    )
+    
+    return conversation_id
 
 
 @router.post("/api/chat", response_model=dict)
 async def chat(request: ChatRequest, req: Request, current_user: dict = Depends(get_current_active_user)):
     """
-    Chat endpoint - send a message and get AI response
-
-    Args:
-        request: ChatRequest containing user message
-        current_user: Current authenticated user
-
-    Returns:
-        ChatResponse with AI reply and thinking process
+    非流式聊天接口
     """
-    logger.info(f"Received request from user {current_user['id']}: {request}")
+    logger.info(f"[CHAT] 收到请求: user_id={current_user['id']}, conversation_id={request.conversation_id}")
+    
+    conversation_id = request.conversation_id
+    user_message = request.message.strip()
+    
+    if not user_message:
+        raise HTTPException(status_code=400, detail="消息不能为空")
+
+    # 验证对话存在且属于当前用户
+    if conversation_id:
+        conversation = get_conversation_by_id(conversation_id)
+        if not conversation:
+            raise HTTPException(status_code=404, detail="对话不存在")
+        if conversation['user_id'] != current_user['id']:
+            raise HTTPException(status_code=403, detail="无权访问此对话")
+
     try:
-        # Get user message
-        user_message = request.message.strip()
-        logger.info(f"Received message from user {current_user['id']}: {user_message}")
+        agent_factory = req.app.state.agent_factory
+        
+        # 如果是新对话，先创建
+        is_new_conversation = not conversation_id
+        if is_new_conversation:
+            conversation_id = str(uuid.uuid4())
+            title = user_message[:50] + "..." if len(user_message) > 50 else user_message
+            create_conversation(
+                user_id=current_user['id'],
+                conversation_id=conversation_id,
+                title=title
+            )
+        
+        # 获取 Agent
+        agent = agent_factory.get_agent(
+            user_id=str(current_user['id']),
+            conversation_id=conversation_id,
+            use_react=True,
+            verbose=False,
+            stream=False  # 非流式
+        )
 
-        if not user_message:
-            raise HTTPException(status_code=400, detail="Message cannot be empty")
+        # 获取 AI 响应
+        ai_response = agent.chat(user_message)
 
-        # Get AI response using the agent
-        agent = req.app.state.agent
-
-        # Get username from database
-        username = get_user_username(current_user['id'])
-
-        # Get AI response using the agent
-        ai_response = agent.chat(user_message, user_name=username)
-
-        # Simulate thinking process for demonstration
-        thinking_steps = [
-            {
-                "thought": "用户想要学习英语，我需要提供一些学习建议",
-                "tool_call": {
-                    "tool_name": "get_user_profile",
-                    "arguments": "{\"user_id\": " + str(current_user['id']) + "}",
-                    "result": "用户是初学者，学习目标是通过四级考试"
-                }
-            },
-            {
-                "thought": "根据用户的学习水平和目标，我应该推荐适合的学习方法和资源"
-            }
-        ]
-
-        logger.info(f"AI Response for user {current_user['id']}: {ai_response}")
-        logger.info(f"Thinking steps generated: {len(thinking_steps)} steps")
+        # 保存到数据库
+        await save_chat_completion(
+            user_id=current_user['id'],
+            conversation_id=conversation_id,
+            user_message=user_message,
+            ai_response=ai_response,
+            is_new_conversation=False
+        )
 
         return {
             "success": True,
             "message": ai_response,
-            "thinking_steps": thinking_steps,
-            "timestamp": None  # Will be set by FastAPI
+            "conversation_id": conversation_id,
+            "is_new_conversation": is_new_conversation,
+            "timestamp": datetime.now().isoformat()
         }
 
-    except HTTPException as e:
-        logger.error(f"HTTP Exception in chat endpoint: {e}")
+    except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error in chat endpoint: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to get AI response: {str(e)}"
-        )
+        logger.error(f"[CHAT] 错误: {e}")
+        raise HTTPException(status_code=500, detail=f"AI 响应失败: {str(e)}")

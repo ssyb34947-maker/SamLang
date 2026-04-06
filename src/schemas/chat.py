@@ -26,11 +26,16 @@ class ChatRequest(BaseModel):
         max_length=5000,
         description="User message to send to AI"
     )
+    conversation_id: Optional[str] = Field(
+        default=None,
+        description="对话ID，为空则创建新对话"
+    )
     
     class Config:
         json_schema_extra = {
             "example": {
-                "message": "你好，介绍一下你自己"
+                "message": "你好，介绍一下你自己",
+                "conversation_id": None
             }
         }
 

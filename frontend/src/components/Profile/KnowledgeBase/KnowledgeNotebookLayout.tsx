@@ -7,14 +7,14 @@ import { KnowledgeItem } from './types';
 
 /**
  * KnowledgeNotebookLayout
- * 三栏可调整布局组件 - 类似 Google NotebookLM 的简化版
+ * 三栏可调整布局组件
  * 
  * Layout Structure:
  * - Left: Sources Panel (知识来源列表)
  * - Center: Main Content (知识内容展示)
  * - Right: Optional Info Panel (元数据信息)
  */
-
+    
 // 默认面板宽度
 const DEFAULT_LEFT_WIDTH = 300;
 const DEFAULT_RIGHT_WIDTH = 320;
@@ -56,7 +56,6 @@ export const KnowledgeNotebookLayout: React.FC = () => {
     try {
       const response = await apiService.getKnowledgeList(true);
       if (response.success) {
-        // 合并系统知识和用户知识
         const allKnowledge = [
           ...response.system_knowledge.map((k: any) => ({
             id: k.doc_id,
@@ -88,22 +87,18 @@ export const KnowledgeNotebookLayout: React.FC = () => {
     }
   }, []);
 
-  // 初始加载一次
   useEffect(() => {
     fetchKnowledgeList();
   }, [fetchKnowledgeList]);
 
-  // 处理左侧面板拖拽
   const handleLeftResizeStart = useCallback(() => {
     setIsResizingLeft(true);
   }, []);
 
-  // 处理右侧面板拖拽
   const handleRightResizeStart = useCallback(() => {
     setIsResizingRight(true);
   }, []);
 
-  // 全局鼠标移动处理
   React.useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isResizingLeft) {
@@ -137,19 +132,14 @@ export const KnowledgeNotebookLayout: React.FC = () => {
     };
   }, [isResizingLeft, isResizingRight]);
 
-  // 上传处理 - 只添加到待上传列表，不入库
   const handleUpload = useCallback((files: FileList) => {
-    // 文件已经在 SourcesPanel 中被添加到 pendingFiles
-    // 这里可以添加预览逻辑
     console.log('Files selected:', files);
   }, []);
 
-  // 入库成功后的回调
   const handleIngestSuccess = useCallback(() => {
-    fetchKnowledgeList(); // 立即刷新列表
+    fetchKnowledgeList();
   }, [fetchKnowledgeList]);
 
-  // 删除处理
   const handleDelete = useCallback((id: string) => {
     setKnowledgeItems(prev => prev.filter(item => item.id !== id));
     if (selectedId === id) {
@@ -157,12 +147,10 @@ export const KnowledgeNotebookLayout: React.FC = () => {
     }
   }, [selectedId]);
 
-  // 选择处理
   const handleSelect = useCallback((id: string) => {
     setSelectedId(id);
   }, []);
 
-  // 过滤知识项
   const filteredItems = knowledgeItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesFilter = filterType === 'all' ||
@@ -172,42 +160,48 @@ export const KnowledgeNotebookLayout: React.FC = () => {
   });
 
   return (
-    <div className="h-[calc(100vh-140px)] flex overflow-hidden bg-gray-50 dark:bg-gray-900">
-      {/* 左侧面板 */}
-      <div
-        className={`flex-shrink-0 flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-all duration-300 ${isLeftCollapsed ? 'w-0 overflow-hidden' : ''
-          }`}
-        style={{ width: isLeftCollapsed ? 0 : leftWidth }}
-      >
-        <SourcesPanel
-          items={filteredItems}
-          selectedId={selectedId}
-          searchQuery={searchQuery}
-          filterType={filterType}
-          pendingFiles={pendingFiles}
-          isLoading={isLoading}
-          onSearchChange={setSearchQuery}
-          onFilterChange={setFilterType}
-          onUpload={handleUpload}
-          onSelect={handleSelect}
-          onDelete={handleDelete}
-          onPendingFilesChange={setPendingFiles}
-          onIngestSuccess={handleIngestSuccess}
-          onRefresh={fetchKnowledgeList}
-        />
-      </div>
-
-      {/* 左侧拖拽手柄 */}
+    <div className="h-[calc(100vh-140px)] flex overflow-hidden" style={{ backgroundColor: 'var(--sketch-bg)' }}>
       {!isLeftCollapsed && (
         <div
-          className="w-1 flex-shrink-0 cursor-col-resize hover:bg-blue-500 transition-colors"
-          onMouseDown={handleLeftResizeStart}
-          title="拖拽调整宽度"
-        />
+          className="flex-shrink-0 h-full flex flex-col"
+          style={{
+            width: leftWidth,
+            backgroundColor: 'white',
+            border: '3px solid var(--sketch-border)',
+            borderRight: '3px solid var(--sketch-border)',
+            boxShadow: 'var(--shadow-hard)',
+          }}
+        >
+          <SourcesPanel
+            items={filteredItems}
+            selectedId={selectedId}
+            searchQuery={searchQuery}
+            filterType={filterType}
+            pendingFiles={pendingFiles}
+            isLoading={isLoading}
+            onSearchChange={setSearchQuery}
+            onFilterChange={setFilterType}
+            onUpload={handleUpload}
+            onSelect={handleSelect}
+            onDelete={handleDelete}
+            onPendingFilesChange={setPendingFiles}
+            onIngestSuccess={handleIngestSuccess}
+            onRefresh={fetchKnowledgeList}
+          />
+        </div>
       )}
 
-      {/* 中间面板 */}
-      <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900">
+      {!isLeftCollapsed && (
+        <div
+          className="w-2 flex-shrink-0 cursor-col-resize flex items-center justify-center z-10"
+          style={{ backgroundColor: 'var(--sketch-muted)' }}
+          onMouseDown={handleLeftResizeStart}
+        >
+          <div className="w-0.5 h-8 rounded-full" style={{ backgroundColor: 'var(--sketch-pencil)' }} />
+        </div>
+      )}
+
+      <div className="flex-1 flex flex-col min-w-0">
         <MainContentPanel
           item={selectedItem}
           isLeftCollapsed={isLeftCollapsed}
@@ -217,32 +211,38 @@ export const KnowledgeNotebookLayout: React.FC = () => {
         />
       </div>
 
-      {/* 右侧拖拽手柄 */}
       {!isRightCollapsed && (
         <div
-          className="w-1 flex-shrink-0 cursor-col-resize hover:bg-blue-500 transition-colors"
+          className="w-2 flex-shrink-0 cursor-col-resize flex items-center justify-center z-10"
+          style={{ backgroundColor: 'var(--sketch-muted)' }}
           onMouseDown={handleRightResizeStart}
-          title="拖拽调整宽度"
-        />
+        >
+          <div className="w-0.5 h-8 rounded-full" style={{ backgroundColor: 'var(--sketch-pencil)' }} />
+        </div>
       )}
 
-      {/* 右侧面板 */}
-      <div
-        className={`flex-shrink-0 flex flex-col bg-gray-50 dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 transition-all duration-300 ${isRightCollapsed ? 'w-0 overflow-hidden' : ''
-          }`}
-        style={{ width: isRightCollapsed ? 0 : rightWidth }}
-      >
-        <OptionalRightPanel
-          item={selectedItem}
-          isCollapsed={isRightCollapsed}
-          onToggle={() => setIsRightCollapsed(!isRightCollapsed)}
-        />
-      </div>
+      {!isRightCollapsed && (
+        <div
+          className="flex-shrink-0 h-full flex flex-col"
+          style={{
+            width: rightWidth,
+            backgroundColor: 'white',
+            border: '3px solid var(--sketch-border)',
+            borderLeft: '3px solid var(--sketch-border)',
+            boxShadow: 'var(--shadow-hard)',
+          }}
+        >
+          <OptionalRightPanel
+            item={selectedItem}
+            isCollapsed={isRightCollapsed}
+            onToggle={() => setIsRightCollapsed(!isRightCollapsed)}
+          />
+        </div>
+      )}
     </div>
   );
 };
 
-// 辅助函数
 function getFileType(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase() || '';
   const typeMap: Record<string, string> = {
@@ -255,12 +255,4 @@ function getFileType(filename: string): string {
     'csv': 'csv'
   };
   return typeMap[ext] || 'other';
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }

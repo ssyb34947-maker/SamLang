@@ -1,0 +1,305 @@
+/**
+ * 龙虾教授组件样式
+ * 所有CSS样式集中管理，与组件逻辑解耦
+ */
+
+/* ============================================
+   根容器样式
+   ============================================ */
+
+.lobster-professor {
+  position: relative;
+  display: inline-block;
+  user-select: none;
+}
+
+.lobster-professor--interactive {
+  cursor: pointer;
+}
+
+.lobster-professor--interactive:hover {
+  filter: brightness(1.05);
+}
+
+/* ============================================
+   SVG 画布样式
+   ============================================ */
+
+.lobster-canvas {
+  display: block;
+  overflow: visible;
+}
+
+/* ============================================
+   黑板样式
+   ============================================ */
+
+.lobster-blackboard {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.lobster-blackboard__frame {
+  fill: none;
+  stroke: #8B4513;
+  stroke-width: 8;
+}
+
+.lobster-blackboard__surface {
+  fill: #2D3436;
+}
+
+.lobster-blackboard__grid {
+  stroke: rgba(255, 255, 255, 0.03);
+  stroke-width: 1;
+}
+
+.lobster-blackboard__chalk-tray {
+  fill: #8B4513;
+}
+
+.lobster-blackboard__formula {
+  font-family: 'Kalam', cursive;
+  font-size: 18px;
+  fill: rgba(255, 255, 255, 0.9);
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.lobster-blackboard__formula--active {
+  fill: #FFD93D;
+  filter: drop-shadow(0 0 4px rgba(255, 217, 61, 0.5));
+}
+
+.lobster-blackboard__formula--secondary {
+  fill: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+/* ============================================
+   龙虾身体部件样式
+   ============================================ */
+
+.lobster-body {
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.lobster-body__shell {
+  fill: url(#lobsterBodyGradient);
+  stroke: #D00000;
+  stroke-width: 2;
+}
+
+.lobster-body__segment {
+  fill: url(#lobsterSegmentGradient);
+  stroke: #E85D04;
+  stroke-width: 1.5;
+}
+
+.lobster-body__highlight {
+  fill: none;
+  stroke: rgba(255, 217, 61, 0.4);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* ============================================
+   龙虾头部样式
+   ============================================ */
+
+.lobster-head {
+  filter: drop-shadow(1px 1px 3px rgba(0, 0, 0, 0.2));
+}
+
+.lobster-head__shell {
+  fill: url(#lobsterHeadGradient);
+  stroke: #D00000;
+  stroke-width: 2;
+}
+
+/* ============================================
+   龙虾眼睛样式
+   ============================================ */
+
+.lobster-eye {
+  cursor: pointer;
+}
+
+.lobster-eye__white {
+  fill: #FFFFFF;
+  stroke: #D00000;
+  stroke-width: 1.5;
+}
+
+.lobster-eye__pupil {
+  fill: #1A1A2E;
+}
+
+.lobster-eye__shine {
+  fill: rgba(255, 255, 255, 0.8);
+}
+
+/* ============================================
+   龙虾触角样式
+   ============================================ */
+
+.lobster-antenna {
+  fill: none;
+  stroke: #FF6B35;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.lobster-antenna__tip {
+  fill: #FF6B35;
+}
+
+.lobster-antenna--long {
+  stroke-width: 2;
+}
+
+.lobster-antenna--short {
+  stroke-width: 2.5;
+}
+
+/* ============================================
+   龙虾钳子样式
+   ============================================ */
+
+.lobster-claw {
+  cursor: pointer;
+  filter: drop-shadow(2px 2px 3px rgba(0, 0, 0, 0.25));
+}
+
+.lobster-claw__main {
+  fill: url(#lobsterClawGradient);
+  stroke: #D00000;
+  stroke-width: 2;
+}
+
+.lobster-claw__pincer {
+  fill: #F7931E;
+  stroke: #E85D04;
+  stroke-width: 1.5;
+}
+
+.lobster-claw__highlight {
+  fill: none;
+  stroke: rgba(255, 217, 61, 0.5);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* ============================================
+   龙虾腿部样式
+   ============================================ */
+
+.lobster-leg {
+  fill: none;
+  stroke: #E85D04;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.lobster-leg__joint {
+  fill: #FF6B35;
+}
+
+/* ============================================
+   龙虾尾巴样式
+   ============================================ */
+
+.lobster-tail {
+  filter: drop-shadow(1px 2px 3px rgba(0, 0, 0, 0.2));
+}
+
+.lobster-tail__segment {
+  fill: url(#lobsterTailGradient);
+  stroke: #D00000;
+  stroke-width: 1.5;
+}
+
+.lobster-tail__fan {
+  fill: #FF6B35;
+  stroke: #E85D04;
+  stroke-width: 1;
+}
+
+/* ============================================
+   平板样式
+   ============================================ */
+
+.lobster-tablet {
+  filter: drop-shadow(3px 3px 6px rgba(0, 0, 0, 0.3));
+}
+
+.lobster-tablet__body {
+  fill: #2D3436;
+  stroke: #636E72;
+  stroke-width: 2;
+  rx: 4;
+}
+
+.lobster-tablet__screen {
+  fill: #1A1A2E;
+}
+
+.lobster-tablet__content {
+  font-family: 'Courier New', monospace;
+  font-size: 6px;
+  fill: #00FF88;
+}
+
+.lobster-tablet__button {
+  fill: #636E72;
+}
+
+/* ============================================
+   渐变定义
+   ============================================ */
+
+/* 身体渐变 */
+.lobster-gradient--body {
+  --gradient-start: #FFB347;
+  --gradient-mid: #FF8C42;
+  --gradient-end: #E85D04;
+}
+
+/* 钳子渐变 */
+.lobster-gradient--claw {
+  --gradient-start: #FF6B35;
+  --gradient-mid: #F7931E;
+  --gradient-end: #E85D04;
+}
+
+/* ============================================
+   动画类
+   ============================================ */
+
+.lobster--breathing {
+  animation: lobsterBreathe 3s ease-in-out infinite;
+}
+
+@keyframes lobsterBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.lobster--swaying {
+  animation: lobsterSway 2s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+@keyframes lobsterSway {
+  0%, 100% { transform: rotate(-1deg); }
+  50% { transform: rotate(1deg); }
+}
+
+.lobster-antenna--waving {
+  animation: antennaWave 1.5s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+@keyframes antennaWave {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}

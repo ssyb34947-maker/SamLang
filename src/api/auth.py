@@ -161,10 +161,17 @@ async def get_current_user_info(current_user: dict = Depends(get_current_active_
     # 构建响应
     user_response = User(
         id=current_user["id"],
+        uuid=current_user["uuid"],
         username=current_user["username"],
         email=current_user["email"],
         avatar=current_user["avatar"],
         bio=current_user.get("bio"),
+        gender=current_user.get("gender"),
+        age=current_user.get("age"),
+        is_student=current_user.get("is_student"),
+        student_grade=current_user.get("student_grade"),
+        occupation=current_user.get("occupation"),
+        persona=current_user.get("persona"),
         is_active=current_user["is_active"],
         created_at=current_user["created_at"]
     )
@@ -206,17 +213,24 @@ async def update_current_user(
         
         # 获取更新后的用户信息
         updated_user = get_user_by_id(user_id)
-        
+
         return User(
             id=updated_user["id"],
+            uuid=updated_user["uuid"],
             username=updated_user["username"],
             email=updated_user["email"],
             avatar=updated_user["avatar"],
             bio=updated_user.get("bio"),
+            gender=updated_user.get("gender"),
+            age=updated_user.get("age"),
+            is_student=updated_user.get("is_student"),
+            student_grade=updated_user.get("student_grade"),
+            occupation=updated_user.get("occupation"),
+            persona=updated_user.get("persona"),
             is_active=updated_user["is_active"],
             created_at=updated_user["created_at"]
         )
-        
+
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -292,17 +306,24 @@ async def upload_avatar(
         
         # 获取更新后的用户信息
         updated_user = get_user_by_id(user_id)
-        
+
         return User(
             id=updated_user["id"],
+            uuid=updated_user["uuid"],
             username=updated_user["username"],
             email=updated_user["email"],
             avatar=updated_user["avatar"],
             bio=updated_user.get("bio"),
+            gender=updated_user.get("gender"),
+            age=updated_user.get("age"),
+            is_student=updated_user.get("is_student"),
+            student_grade=updated_user.get("student_grade"),
+            occupation=updated_user.get("occupation"),
+            persona=updated_user.get("persona"),
             is_active=updated_user["is_active"],
             created_at=updated_user["created_at"]
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:

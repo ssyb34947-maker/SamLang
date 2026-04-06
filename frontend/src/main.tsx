@@ -5,9 +5,12 @@ import { AuthProvider } from './hooks/useAuth.tsx'
 import { LoadingProvider, useLoading } from './hooks/useLoading.tsx'
 import { apiService } from './services/api.ts'
 import ProtectedRoute from './components/ProtectedRoute'
+import AuthRoute from './components/AuthRoute'
 import App from './App.tsx'
 import { Profile } from './components/Profile/Profile.tsx'
 import { ChatHome } from './components/Chat/ChatHome.tsx'
+import { HomePage } from './components/Home/HomePage.tsx'
+import { UserOnboarding } from './components/Onboarding/UserOnboarding.tsx'
 import Login from './components/Auth/Login'
 import Register from './components/Auth/Register'
 import './index.css'
@@ -34,33 +37,99 @@ createRoot(document.getElementById('root')!).render(
         <Router>
           <AuthProvider>
             <Routes>
-              {/* 根路径重定向到 /chat */}
-              <Route path="/" element={<Navigate to="/chat" replace />} />
+              {/* 根路径 / 重定向到 /home */}
+              <Route
+                path="/"
+                element={
+                  <AuthRoute>
+                    <Navigate to="/home" replace />
+                  </AuthRoute>
+                }
+              />
 
-              {/* 受保护的路由 */}
+              {/* 首页 /home - 公开访问 */}
+              <Route
+                path="/home"
+                element={
+                  <AuthRoute>
+                    <HomePage />
+                  </AuthRoute>
+                }
+              />
+
+              {/* 登录页 - 已登录用户会被重定向到 /home */}
+              <Route
+                path="/login"
+                element={
+                  <AuthRoute>
+                    <Login />
+                  </AuthRoute>
+                }
+              />
+
+              {/* 注册页 - 已登录用户会被重定向到 /home */}
+              <Route
+                path="/register"
+                element={
+                  <AuthRoute>
+                    <Register />
+                  </AuthRoute>
+                }
+              />
+
+              {/* 用户引导页 - 注册后信息收集 */}
+              <Route
+                path="/welcome"
+                element={
+                  <AuthRoute requireAuth>
+                    <UserOnboarding />
+                  </AuthRoute>
+                }
+              />
+
+              {/* 受保护的路由 - 必须登录才能访问 */}
               <Route
                 path="/chat"
                 element={
-                  <ProtectedRoute>
+                  <AuthRoute requireAuth>
                     <ChatHome />
-                  </ProtectedRoute>
+                  </AuthRoute>
+                }
+              />
+              <Route
+                path="/chat/:userUuid/:conversationId"
+                element={
+                  <AuthRoute requireAuth>
+                    <ChatHome />
+                  </AuthRoute>
                 }
               />
               <Route
                 path="/profile"
                 element={
-                  <ProtectedRoute>
+                  <AuthRoute requireAuth>
                     <Profile />
-                  </ProtectedRoute>
+                  </AuthRoute>
+                }
+              />
+              <Route
+                path="/profile/:userUuid"
+                element={
+                  <AuthRoute requireAuth>
+                    <Profile />
+                  </AuthRoute>
                 }
               />
 
-              {/* 公开路由 */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-
-              {/* 重定向所有其他路由到登录页 */}
-              <Route path="*" element={<Navigate to="/login" />} />
+              {/* 未匹配的路由 - 未登录用户重定向到登录页 */}
+              <Route
+                path="*"
+                element={
+                  <AuthRoute>
+                    <Navigate to="/login" replace />
+                  </AuthRoute>
+                }
+              />
             </Routes>
           </AuthProvider>
         </Router>

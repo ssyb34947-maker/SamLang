@@ -487,14 +487,15 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
                     })
             else:
                 # 没有工具调用，返回最终答案
-                # 如果有 token_callback，使用流式输出
-                if token_callback:
-                    return self._stream_final_answer(messages, token_callback)
+                # 直接使用第一次调用的结果，不再第二次调用 LLM
+                if token_callback and content:
+                    # 通过 token_callback 逐字发送第一次的内容给前端
+                    for char in content:
+                        token_callback(char)
                 
                 if self.verbose:
                     logger.info(f"\n[最终答案]")
-                    if not self.stream:
-                        logger.info(content)
+                    logger.info(content)
                 return content
 
         # 达到最大迭代次数

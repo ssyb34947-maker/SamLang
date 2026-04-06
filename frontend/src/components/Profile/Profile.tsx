@@ -1,26 +1,35 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { PersonalInfo } from './PersonalInfo';
 import { StudyRecords } from './StudyRecords';
 import { StudyPreferences } from './StudyPreferences';
 import { AgentCLI } from './AgentCLI';
 import { KnowledgeBase } from './KnowledgeBase';
 import { ArrowLeft } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
 /**
  * 个人主页组件 - 手绘草稿本风格
- * SamLang Studio - 包含个人信息、学习记录、学习偏好、助教Agent和知识库管理
+ * SamLang Studio - 包含个人信息、学习看板、助教Agent和知识库管理
  */
 export const Profile: React.FC = () => {
   // 当前选中的导航项
   const [activeTab, setActiveTab] = useState('info');
   const navigate = useNavigate();
+  const { userUuid } = useParams<{ userUuid?: string }>();
+  const { user } = useAuth();
+
+  // 页面加载时，如果没有 URL 参数但有 user.uuid，则导航到带参数的 URL
+  useEffect(() => {
+    if (!userUuid && user?.uuid) {
+      navigate(`/profile/${user.uuid}`, { replace: true });
+    }
+  }, [userUuid, user?.uuid, navigate]);
 
   // 导航项配置
   const tabs = [
     { id: 'info', label: '个人信息' },
-    { id: 'records', label: '学习记录' },
-    { id: 'preferences', label: '学习偏好' },
+    { id: 'records', label: '学习看板' },
     { id: 'agent', label: '助教Agent' },
     { id: 'knowledge', label: '知识库管理' }
   ];
@@ -32,8 +41,6 @@ export const Profile: React.FC = () => {
         return <PersonalInfo />;
       case 'records':
         return <StudyRecords />;
-      case 'preferences':
-        return <StudyPreferences />;
       case 'agent':
         return <AgentCLI />;
       case 'knowledge':
@@ -61,7 +68,7 @@ export const Profile: React.FC = () => {
             {/* 返回按钮和标题 */}
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => navigate('/chat')}
                 className="sketch-btn"
                 style={{ padding: '8px 12px' }}
                 title="返回"
@@ -72,7 +79,7 @@ export const Profile: React.FC = () => {
                 className="text-2xl"
                 style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 700, color: 'var(--sketch-text)' }}
               >
-                SamLang Studio
+                Sam Studio
               </h1>
             </div>
 

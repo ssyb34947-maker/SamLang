@@ -1,6 +1,7 @@
 """
 MCP Client 同步版本
 提供同步接口，方便在非异步环境中使用
+支持用户隔离和角色权限控制
 """
 
 import asyncio
@@ -8,6 +9,7 @@ from typing import Any, Dict, List, Optional
 from functools import wraps
 from src.agent.mcp.client import MCPClient, get_mcp_client
 from src.agent.mcp import setup
+from loguru import logger
 
 
 def run_async(coro):
@@ -62,28 +64,55 @@ class SyncMCPClient:
     功能：
     - 提供同步接口封装异步的 MCPClient
     - 自动处理事件循环
-    - 方便在普通函数中调用 MCP 工具
+    - 支持用户隔离和角色权限控制
+    - 每个 Agent 独立的 Client 实例
     """
 
-    def __init__(self, mcp_server=None):
+    def __init__(
+        self,
+        mcp_server=None,
+        user_id: Optional[str] = None,
+        role: str = "student"
+    ):
         """
         初始化同步 MCP Client
 
         输入：
             mcp_server: FastMCP 服务器实例，默认使用 main_mcp
+            user_id: 用户ID，用于数据隔离
+            role: 用户角色 (professor/assistant/student)
         输出：无
         """
         self._async_client: Optional[MCPClient] = None
         self._mcp_server = mcp_server
+        self._user_id = user_id
+        self._role = role
         self._initialized = False
+
+        logger.debug(f"[SyncMCPClient] 创建 Client: user_id={user_id}, role={role}")
 
     def _ensure_initialized(self):
         """确保客户端已初始化"""
         if not self._initialized:
             # 初始化服务器
             run_async(setup())
-            self._async_client = get_mcp_client(self._mcp_server)
+            # 创建异步客户端（每个 SyncMCPClient 有自己的实例）
+            self._async_client = get_mcp_client(
+                self._mcp_server,
+                user_id=self._user_id,
+                role=self._role
+            )
             self._initialized = True
+
+    @property
+    def user_id(self) -> Optional[str]:
+        """获取用户ID"""
+        return self._user_id
+
+    @property
+    def role(self) -> str:
+        """获取角色"""
+        return self._role
 
     def connect(self) -> bool:
         """
@@ -103,12 +132,12 @@ class SyncMCPClient:
 
     def list_tools(self, use_cache: bool = True) -> List[Dict[str, Any]]:
         """
-        列出所有可用的工具
+        列出当前角色可用的工具
 
         输入：
             use_cache: 是否使用缓存的工具列表
         输出：
-            工具列表
+            工具列表（根据角色过滤）
         """
         self._ensure_initialized()
 
@@ -154,23 +183,24 @@ class SyncMCPClient:
         return run_async(_get_tool_info())
 
 
-# 全局单例
-_global_sync_client: Optional[SyncMCPClient] = None
-
-
-def get_sync_mcp_client(mcp_server=None) -> SyncMCPClient:
+def get_sync_mcp_client(
+    mcp_server=None,
+    user_id: Optional[str] = None,
+    role: str = "student"
+) -> SyncMCPClient:
     """
-    获取同步 MCP Client 单例
+    工厂函数：创建同步 MCP Client 实例
+    
+    注意：每个 Agent 应该创建独立的 Client 实例，以实现用户隔离
 
     输入：
         mcp_server: FastMCP 服务器实例
+        user_id: 用户ID
+        role: 用户角色 (professor/assistant/student)
     输出：
         SyncMCPClient 实例
     """
-    global _global_sync_client
-    if _global_sync_client is None:
-        _global_sync_client = SyncMCPClient(mcp_server)
-    return _global_sync_client
+    return SyncMCPClient(mcp_server, user_id=user_id, role=role)
 
 
 # 示例用法
@@ -181,36 +211,23 @@ def demo():
     输入：无
     输出：无
     """
-    # 创建客户端
-    client = get_sync_mcp_client()
+    # 创建教授客户端（只能检索）
+    prof_client = get_sync_mcp_client(user_id="prof_1", role="professor")
+    print("=== 教授角色 ===")
+    tools = prof_client.list_tools()
+    print(f"可用工具：{[t['name'] for t in tools]}")
 
-    # 连接测试
-    connected = client.connect()
-    print(f"连接状态：{'成功' if connected else '失败'}\n")
+    # 创建助教客户端（可以增删查）
+    assist_client = get_sync_mcp_client(user_id="assist_1", role="assistant")
+    print("\n=== 助教角色 ===")
+    tools = assist_client.list_tools()
+    print(f"可用工具：{[t['name'] for t in tools]}")
 
-    # 列出所有工具
-    tools = client.list_tools()
-    print("可用工具列表：")
-    for tool in tools:
-        print(f"  - {tool.get('name')}: {tool.get('description', '无描述')}")
-    print()
-
-    # 调用 websearch 工具
-    print("测试 websearch 工具：")
-    result = client.call_tool(
-        "websearch_websearch",
-        query="Python 最新版本",
-        max_results=3
-    )
-    print(f"搜索结果：\n{result}\n")
-
-    # 调用 youdao 词典工具
-    print("测试 youdaodictionary 工具：")
-    result = client.call_tool(
-        "youdao_youdaodictionary",
-        word="hello"
-    )
-    print(f"词典查询结果：\n{result}\n")
+    # 创建学生客户端（无 RAG 工具）
+    student_client = get_sync_mcp_client(user_id="student_1", role="student")
+    print("\n=== 学生角色 ===")
+    tools = student_client.list_tools()
+    print(f"可用工具：{[t['name'] for t in tools]}")
 
 
 if __name__ == "__main__":

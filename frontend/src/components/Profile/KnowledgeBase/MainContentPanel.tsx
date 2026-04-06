@@ -55,16 +55,20 @@ export const MainContentPanel: React.FC<MainContentPanelProps> = ({
   // 渲染空状态
   if (!item) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full font-[var(--font-hand-body)]">
         {/* 顶部工具栏 */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <div
+          className="flex items-center justify-between px-4 py-3 border-b-2"
+          style={{ borderColor: 'var(--sketch-border)', backgroundColor: 'white' }}
+        >
           <div className="flex items-center gap-2">
             <button
               onClick={onToggleLeft}
-              className={`p-2 rounded-lg transition-colors ${isLeftCollapsed
-                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-                }`}
+              className="p-2 rounded-lg transition-all hover:shadow-[var(--shadow-hover)] hover:translate-x-[1px] hover:translate-y-[1px]"
+              style={{
+                backgroundColor: isLeftCollapsed ? 'var(--sketch-paper)' : 'transparent',
+                color: isLeftCollapsed ? 'var(--sketch-accent)' : 'var(--sketch-pencil)'
+              }}
               title={isLeftCollapsed ? '展开左侧面板' : '收起左侧面板'}
             >
               <PanelLeft className="w-5 h-5" />
@@ -73,10 +77,11 @@ export const MainContentPanel: React.FC<MainContentPanelProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onToggleRight}
-              className={`p-2 rounded-lg transition-colors ${isRightCollapsed
-                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-                }`}
+              className="p-2 rounded-lg transition-all hover:shadow-[var(--shadow-hover)] hover:translate-x-[1px] hover:translate-y-[1px]"
+              style={{
+                backgroundColor: isRightCollapsed ? 'var(--sketch-paper)' : 'transparent',
+                color: isRightCollapsed ? 'var(--sketch-accent)' : 'var(--sketch-pencil)'
+              }}
               title={isRightCollapsed ? '展开右侧面板' : '收起右侧面板'}
             >
               <PanelRight className="w-5 h-5" />
@@ -86,26 +91,38 @@ export const MainContentPanel: React.FC<MainContentPanelProps> = ({
 
         {/* 空状态内容 */}
         <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center mb-6">
-            <FileText className="w-12 h-12 text-blue-500 dark:text-blue-400" />
+          <div
+            className="w-24 h-24 flex items-center justify-center mb-6"
+            style={{
+              backgroundColor: 'var(--sketch-paper)',
+              border: '3px solid var(--sketch-border)',
+              borderRadius: 'var(--wobbly)',
+              boxShadow: 'var(--shadow-hard)',
+              transform: 'rotate(-2deg)'
+            }}
+          >
+            <FileText className="w-12 h-12" style={{ color: 'var(--sketch-accent)' }} />
           </div>
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          <h3
+            className="text-xl font-bold mb-2"
+            style={{ fontFamily: 'var(--font-hand-heading)', color: 'var(--sketch-text)' }}
+          >
             选择一个知识文件
           </h3>
-          <p className="text-gray-500 dark:text-gray-400 text-center max-w-md mb-6">
+          <p className="text-center max-w-md mb-6" style={{ color: 'var(--sketch-pencil)' }}>
             从左侧列表中选择一个知识文件来查看其内容详情，或者上传新的知识文件。
           </p>
-          <div className="flex items-center gap-4 text-sm text-gray-400 dark:text-gray-500">
+          <div className="flex items-center gap-4 text-sm" style={{ color: 'var(--sketch-pencil)' }}>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-green-500"></span>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#4caf50' }}></span>
               支持 PDF、Word
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--sketch-secondary)' }}></span>
               支持 TXT、MD
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#9c27b0' }}></span>
               支持 JSON、CSV
             </span>
           </div>
@@ -117,16 +134,20 @@ export const MainContentPanel: React.FC<MainContentPanelProps> = ({
   // 渲染内容视图
   return (
     <>
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full font-[var(--font-hand-body)]">
         {/* 顶部工具栏 */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div
+          className="flex items-center justify-between px-4 py-3 border-b-2 bg-white"
+          style={{ borderColor: 'var(--sketch-border)' }}
+        >
           <div className="flex items-center gap-3">
             <button
               onClick={onToggleLeft}
-              className={`p-2 rounded-lg transition-colors ${isLeftCollapsed
-                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-                }`}
+              className="p-2 rounded-lg transition-all hover:shadow-[var(--shadow-hover)] hover:translate-x-[1px] hover:translate-y-[1px]"
+              style={{
+                backgroundColor: isLeftCollapsed ? 'var(--sketch-paper)' : 'transparent',
+                color: isLeftCollapsed ? 'var(--sketch-accent)' : 'var(--sketch-pencil)'
+              }}
               title={isLeftCollapsed ? '展开左侧面板' : '收起左侧面板'}
             >
               <PanelLeft className="w-5 h-5" />
@@ -136,10 +157,13 @@ export const MainContentPanel: React.FC<MainContentPanelProps> = ({
             <div className="flex items-center gap-3">
               {fileTypeIcons[item.type]}
               <div>
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h2
+                  className="text-lg font-bold"
+                  style={{ fontFamily: 'var(--font-hand-heading)', color: 'var(--sketch-text)' }}
+                >
                   {item.name}
                 </h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs" style={{ color: 'var(--sketch-pencil)' }}>
                   {fileTypeLabels[item.type]} · {item.size} · {item.uploadTime}
                 </p>
               </div>
@@ -149,32 +173,36 @@ export const MainContentPanel: React.FC<MainContentPanelProps> = ({
           <div className="flex items-center gap-2">
             {/* 操作按钮 */}
             <button
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+              className="p-2 rounded-lg transition-all hover:shadow-[var(--shadow-hover)] hover:translate-x-[1px] hover:translate-y-[1px]"
+              style={{ color: 'var(--sketch-pencil)' }}
               title="下载"
             >
               <Download className="w-5 h-5" />
             </button>
             <button
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors"
+              className="p-2 rounded-lg transition-all hover:shadow-[var(--shadow-hover)] hover:translate-x-[1px] hover:translate-y-[1px]"
+              style={{ color: 'var(--sketch-pencil)' }}
               title="重命名"
             >
               <Edit3 className="w-5 h-5" />
             </button>
             <button
-              className="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+              className="p-2 rounded-lg transition-all hover:shadow-[var(--shadow-hover)] hover:translate-x-[1px] hover:translate-y-[1px]"
+              style={{ color: 'var(--sketch-pencil)' }}
               title="删除"
             >
               <Trash2 className="w-5 h-5" />
             </button>
 
-            <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1" />
+            <div className="w-px h-6 mx-1" style={{ backgroundColor: 'var(--sketch-muted)' }} />
 
             <button
               onClick={onToggleRight}
-              className={`p-2 rounded-lg transition-colors ${isRightCollapsed
-                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
-                }`}
+              className="p-2 rounded-lg transition-all hover:shadow-[var(--shadow-hover)] hover:translate-x-[1px] hover:translate-y-[1px]"
+              style={{
+                backgroundColor: isRightCollapsed ? 'var(--sketch-paper)' : 'transparent',
+                color: isRightCollapsed ? 'var(--sketch-accent)' : 'var(--sketch-pencil)'
+              }}
               title={isRightCollapsed ? '展开右侧面板' : '收起右侧面板'}
             >
               <PanelRight className="w-5 h-5" />
@@ -183,13 +211,23 @@ export const MainContentPanel: React.FC<MainContentPanelProps> = ({
         </div>
 
         {/* 内容区域 */}
-        <div className="flex-1 overflow-auto p-6 bg-gray-50 dark:bg-gray-900">
+        <div className="flex-1 overflow-auto p-6" style={{ backgroundColor: 'var(--sketch-bg)' }}>
           <div className="max-w-4xl mx-auto">
             {/* 内容预览卡片 */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div
+              className="bg-white overflow-hidden"
+              style={{
+                border: '3px solid var(--sketch-border)',
+                borderRadius: 'var(--wobbly)',
+                boxShadow: 'var(--shadow-hard)'
+              }}
+            >
               {/* 内容头部 */}
-              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div
+                className="px-6 py-4 border-b-2"
+                style={{ borderColor: 'var(--sketch-muted)', backgroundColor: 'var(--sketch-bg)' }}
+              >
+                <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--sketch-pencil)' }}>
                   <Clock className="w-4 h-4" />
                   <span>上传时间：{item.uploadTime}</span>
                 </div>
@@ -210,11 +248,11 @@ export const MainContentPanel: React.FC<MainContentPanelProps> = ({
                   <ContentRenderer type={item.type} content={item.content} />
                 ) : (
                   <div className="text-center py-12">
-                    <FileType className="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">
+                    <FileType className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--sketch-muted)' }} />
+                    <p style={{ color: 'var(--sketch-pencil)' }}>
                       此文件类型暂不支持预览
                     </p>
-                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                    <p className="text-sm mt-1" style={{ color: 'var(--sketch-pencil)' }}>
                       请下载后查看完整内容
                     </p>
                   </div>
@@ -225,14 +263,23 @@ export const MainContentPanel: React.FC<MainContentPanelProps> = ({
             {/* 标签展示 */}
             {item.tags.length > 0 && (
               <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                <h4
+                  className="text-sm font-bold mb-3"
+                  style={{ fontFamily: 'var(--font-hand-heading)', color: 'var(--sketch-text)' }}
+                >
                   标签
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {item.tags.map((tag, index) => (
                     <span
                       key={index}
-                      className="px-3 py-1 text-sm bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full"
+                      className="px-3 py-1 text-sm rounded-full"
+                      style={{
+                        backgroundColor: 'var(--sketch-paper)',
+                        color: 'var(--sketch-text)',
+                        border: '1px solid var(--sketch-border)',
+                        fontFamily: 'var(--font-hand-body)'
+                      }}
                     >
                       {tag}
                     </span>

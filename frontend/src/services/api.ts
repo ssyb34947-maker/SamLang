@@ -90,6 +90,16 @@ class ApiService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+
+        // 处理 401 未授权错误，清除 token 并跳转登录页
+        if (response.status === 401) {
+          this.clearToken();
+          // 如果不在登录页，则跳转
+          if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+            window.location.href = '/login';
+          }
+        }
+
         throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
 
@@ -141,10 +151,73 @@ class ApiService {
     return this.request('/api/auth/me');
   }
 
-  async updateCurrentUser(userData: { username?: string; email?: string; avatar?: string; bio?: string }) {
+  async updateCurrentUser(userData: {
+    username?: string;
+    email?: string;
+    avatar?: string;
+    bio?: string;
+    gender?: string;
+    age?: number;
+    is_student?: boolean;
+    student_grade?: string;
+    occupation?: string;
+    persona?: string;
+  }): Promise<{
+    id: number;
+    uuid: string;
+    username: string;
+    email: string;
+    avatar?: string;
+    bio?: string;
+    gender?: string;
+    age?: number;
+    is_student?: boolean;
+    student_grade?: string;
+    occupation?: string;
+    persona?: string;
+    is_active: boolean;
+    created_at: string;
+  }> {
     return this.request('/api/auth/me', {
       method: 'PUT',
       body: JSON.stringify(userData),
+    });
+  }
+
+  /**
+   * 更新用户画像（冷启动后使用）
+   * @param persona 用户画像自然文本
+   */
+  async updateUserProfile(persona: string) {
+    return this.updateCurrentUser({ persona });
+  }
+
+  /**
+   * 冷启动预测 - 根据学习特征预测成绩
+   * @param data 学习特征数据
+   */
+  async coldStartPredict(data: {
+    gender: string;
+    grade: string;
+    daily_study_time: string;
+    math_recognition: string;
+    learning_autonomy: string;
+    learning_perseverance: string;
+    learning_curiosity: string;
+    current_goal: string;
+  }): Promise<{
+    success: boolean;
+    data: {
+      math: { score: number; level: string };
+      reading: { score: number; level: string };
+      science: { score: number; level: string };
+    };
+    persona_text: string;
+    message?: string;
+  }> {
+    return this.request('/api/cold-start/predict', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 
@@ -172,10 +245,10 @@ class ApiService {
   }
 
   // 聊天相关API
-  async sendMessage(message: string, skipLoading: boolean = true): Promise<{ success: boolean, message: string, thinking_steps?: any[] }> {
-    return this.request<{ success: boolean, message: string, thinking_steps?: any[] }>('/api/chat', {
+  async sendMessage(message: string, conversationId?: string, skipLoading: boolean = true): Promise<{ success: boolean, message: string, thinking_steps?: any[], conversation_id?: string, is_new_conversation?: boolean }> {
+    return this.request<{ success: boolean, message: string, thinking_steps?: any[], conversation_id?: string, is_new_conversation?: boolean }>('/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, conversation_id: conversationId }),
       skipLoading,
     });
   }
@@ -184,16 +257,20 @@ class ApiService {
    * 真正的流式对话：后端每生成一个token，前端立即收到并显示
    * 
    * @param message 用户消息
+   * @param conversationId 对话ID，为空则创建新对话
    * @param onToken 每收到一个token时的回调
    * @param onComplete 流结束时的回调
    * @param onError 错误时的回调
+   * @param onConversationCreated 新对话创建时的回调
    * @param skipLoading 是否跳过loading显示
    */
   async sendMessageStreamRealTime(
     message: string,
+    conversationId: string | undefined,
     onToken: (token: string) => void,
-    onComplete: (fullResponse: string) => void,
+    onComplete: (fullResponse: string, conversationId?: string, isNewConversation?: boolean) => void,
     onError: (error: string) => void,
+    onConversationCreated?: (conversationId: string) => void,
     skipLoading: boolean = true
   ): Promise<void> {
     try {
@@ -212,7 +289,7 @@ class ApiService {
           'Cache-Control': 'no-cache',
           ...(this.token && { 'Authorization': `Bearer ${this.token}` }),
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, conversation_id: conversationId }),
       });
 
       console.log('Response status:', response.status, response.ok);
@@ -271,7 +348,13 @@ class ApiService {
               if (event.data?.content) {
                 fullResponse = event.data.content;
               }
-              onComplete(fullResponse);
+              // 如果有conversation_id，说明是新创建的对话
+              const convId = event.data?.conversation_id;
+              const isNewConv = event.data?.is_new_conversation;
+              if (convId && isNewConv && onConversationCreated) {
+                onConversationCreated(convId);
+              }
+              onComplete(fullResponse, convId, isNewConv);
               return;
             } else if (event.type === 'error') {
               // 错误
@@ -588,6 +671,55 @@ class ApiService {
         max_context_length: maxContextLength,
       }),
     });
+  }
+
+  // ==================== 对话管理 API ====================
+
+  /**
+   * 获取用户的对话列表
+   */
+  async getConversations(includeArchived: boolean = false) {
+    return this.request<{ conversations: any[], total: number }>(`/api/conversations?include_archived=${includeArchived}`);
+  }
+
+  /**
+   * 获取单个对话详情
+   */
+  async getConversation(conversationId: string) {
+    return this.request<any>(`/api/conversations/${conversationId}`);
+  }
+
+  /**
+   * 获取对话的消息列表
+   */
+  async getConversationMessages(conversationId: string) {
+    return this.request<{ conversation_id: string, messages: any[], total: number }>(`/api/conversations/${conversationId}/messages`);
+  }
+
+  /**
+   * 更新对话信息
+   */
+  async updateConversation(conversationId: string, data: { title?: string, is_pinned?: boolean, is_archived?: boolean }) {
+    return this.request<any>(`/api/conversations/${conversationId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * 删除对话
+   */
+  async deleteConversation(conversationId: string, permanent: boolean = false) {
+    return this.request<{ success: boolean, message: string }>(`/api/conversations/${conversationId}?permanent=${permanent}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * 搜索消息
+   */
+  async searchMessages(keyword: string) {
+    return this.request<{ results: any[], total: number, keyword: string }>(`/api/conversations/search?keyword=${encodeURIComponent(keyword)}`);
   }
 }
 

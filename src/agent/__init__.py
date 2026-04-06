@@ -4,5 +4,14 @@ Agent 模块
 """
 
 from .agent import ConversationAgent
+from .factory import SimpleAgentFactory, get_agent_factory, reset_agent_factory
+from .memory import MemoryManager, Message
 
-__all__ = ["ConversationAgent"]
+__all__ = [
+    "ConversationAgent",
+    "SimpleAgentFactory",
+    "get_agent_factory",
+    "reset_agent_factory",
+    "MemoryManager",
+    "Message"
+]

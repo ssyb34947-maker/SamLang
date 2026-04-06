@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.tsx';
 import { ArrowLeft } from 'lucide-react';
 
@@ -13,8 +13,15 @@ const Login: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // 如果已经登录，直接跳转到 /chat
+  if (isAuthenticated) {
+    navigate('/chat', { replace: true });
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +42,8 @@ const Login: React.FC = () => {
     try {
       setIsLoading(true);
       await login(usernameOrEmail, password);
-      // 登录成功后跳转到首页
-      navigate('/');
+      // 登录成功后跳转到 /chat
+      navigate('/chat', { replace: true });
     } catch (err: any) {
       let errorMessage = '登录失败，请检查账号和密码';
 
@@ -59,7 +66,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center p-4"
       style={{ backgroundColor: 'var(--sketch-bg)' }}
     >
@@ -68,9 +75,9 @@ const Login: React.FC = () => {
         <Link
           to="/"
           className="inline-flex items-center gap-2 mb-6 transition-all hover:translate-x-[-4px]"
-          style={{ 
-            fontFamily: 'var(--font-hand-body)', 
-            color: 'var(--sketch-secondary)' 
+          style={{
+            fontFamily: 'var(--font-hand-body)',
+            color: 'var(--sketch-secondary)'
           }}
         >
           <ArrowLeft className="w-4 h-4" />
@@ -78,7 +85,7 @@ const Login: React.FC = () => {
         </Link>
 
         {/* 登录表单卡片 - 手绘风格 */}
-        <div 
+        <div
           className="p-6 md:p-8 relative"
           style={{
             backgroundColor: 'white',
@@ -88,7 +95,7 @@ const Login: React.FC = () => {
           }}
         >
           {/* 胶带装饰 */}
-          <div 
+          <div
             className="absolute -top-3 left-1/2 transform -translate-x-1/2 -rotate-2"
             style={{
               width: '100px',
@@ -100,7 +107,7 @@ const Login: React.FC = () => {
           />
 
           <div className="text-center mb-8">
-            <div 
+            <div
               className="w-20 h-20 mx-auto mb-4 flex items-center justify-center"
               style={{
                 backgroundColor: 'var(--sketch-paper)',
@@ -112,7 +119,7 @@ const Login: React.FC = () => {
             >
               <img src="/logo.png" className="w-12 h-12" alt="Logo" />
             </div>
-            <h2 
+            <h2
               className="text-2xl mb-2"
               style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 700, color: 'var(--sketch-text)' }}
             >
@@ -125,7 +132,7 @@ const Login: React.FC = () => {
 
           {/* 错误提示 */}
           {error && (
-            <div 
+            <div
               className="p-4 mb-6"
               style={{
                 backgroundColor: 'rgba(255, 77, 77, 0.1)',
@@ -140,7 +147,7 @@ const Login: React.FC = () => {
           <form onSubmit={handleSubmit}>
             {/* 用户名或邮箱 */}
             <div className="mb-4">
-              <label 
+              <label
                 className="block mb-2"
                 style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 600 }}
               >
@@ -158,7 +165,7 @@ const Login: React.FC = () => {
 
             {/* 密码 */}
             <div className="mb-6">
-              <label 
+              <label
                 className="block mb-2"
                 style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 600 }}
               >
@@ -198,8 +205,8 @@ const Login: React.FC = () => {
               还没有账号？{' '}
               <Link
                 to="/register"
-                style={{ 
-                  color: 'var(--sketch-secondary)', 
+                style={{
+                  color: 'var(--sketch-secondary)',
                   textDecoration: 'underline',
                   fontWeight: 600
                 }}

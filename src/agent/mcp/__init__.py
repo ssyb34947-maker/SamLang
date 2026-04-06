@@ -17,6 +17,7 @@ from .tools.websearch import websearch_mcp
 from .tools.youdaodictionary import youdao_mcp
 from .tools.dictionary import dictionary_mcp
 from .tools.skillDownload import skill_mcp
+from .tools.rag import rag_server
 
 
 @lru_cache(maxsize=1)
@@ -44,6 +45,9 @@ async def setup():
     # 挂载skill服务器
     main_mcp.mount(skill_mcp, namespace="skill")
 
+    # 挂载rag服务器（知识库检索）
+    main_mcp.mount(rag_server, namespace="rag")
+
     # 挂载youdaodictionary服务器
     #main_mcp.mount(youdao_mcp, namespace="youdao")
 
@@ -59,6 +63,7 @@ __all__ = [
     "dictionary_mcp",
     "skill_mcp",
     "youdao_mcp",
+    "rag_server",
     "MCPClient",
     "get_mcp_client",
     "SyncMCPClient",
