@@ -42,6 +42,7 @@ class User(UserBase):
     is_student: Optional[bool] = None
     student_grade: Optional[str] = None
     occupation: Optional[str] = None
+    persona: Optional[str] = None
     is_active: bool
     created_at: datetime
 
@@ -59,6 +60,7 @@ class UserUpdate(BaseModel):
     is_student: Optional[bool] = Field(None, description="是否是学生")
     student_grade: Optional[str] = Field(None, max_length=50, description="学生年级")
     occupation: Optional[str] = Field(None, max_length=50, description="职业")
+    persona: Optional[str] = Field(None, description="用户画像自然文本")
 
 
 class Token(BaseModel):

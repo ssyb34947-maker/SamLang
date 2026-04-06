@@ -161,10 +161,63 @@ class ApiService {
     is_student?: boolean;
     student_grade?: string;
     occupation?: string;
-  }) {
+    persona?: string;
+  }): Promise<{
+    id: number;
+    uuid: string;
+    username: string;
+    email: string;
+    avatar?: string;
+    bio?: string;
+    gender?: string;
+    age?: number;
+    is_student?: boolean;
+    student_grade?: string;
+    occupation?: string;
+    persona?: string;
+    is_active: boolean;
+    created_at: string;
+  }> {
     return this.request('/api/auth/me', {
       method: 'PUT',
       body: JSON.stringify(userData),
+    });
+  }
+
+  /**
+   * 更新用户画像（冷启动后使用）
+   * @param persona 用户画像自然文本
+   */
+  async updateUserProfile(persona: string) {
+    return this.updateCurrentUser({ persona });
+  }
+
+  /**
+   * 冷启动预测 - 根据学习特征预测成绩
+   * @param data 学习特征数据
+   */
+  async coldStartPredict(data: {
+    gender: string;
+    grade: string;
+    daily_study_time: string;
+    math_recognition: string;
+    learning_autonomy: string;
+    learning_perseverance: string;
+    learning_curiosity: string;
+    current_goal: string;
+  }): Promise<{
+    success: boolean;
+    data: {
+      math: { score: number; level: string };
+      reading: { score: number; level: string };
+      science: { score: number; level: string };
+    };
+    persona_text: string;
+    message?: string;
+  }> {
+    return this.request('/api/cold-start/predict', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 

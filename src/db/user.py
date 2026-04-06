@@ -66,6 +66,10 @@ def init_db():
     if 'occupation' not in columns:
         cursor.execute('ALTER TABLE users ADD COLUMN occupation TEXT DEFAULT NULL')
 
+    # 检查并添加 persona 列（如果不存在）
+    if 'persona' not in columns:
+        cursor.execute('ALTER TABLE users ADD COLUMN persona TEXT DEFAULT NULL')
+
     # 创建用户画像表
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS user_profiles (
@@ -198,7 +202,7 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
 
     try:
         cursor.execute(
-            'SELECT id, uuid, username, email, avatar, bio, gender, age, is_student, student_grade, occupation, is_active, created_at FROM users WHERE id = ?',
+            'SELECT id, uuid, username, email, avatar, bio, gender, age, is_student, student_grade, occupation, persona, is_active, created_at FROM users WHERE id = ?',
             (user_id,)
         )
         user = cursor.fetchone()
@@ -216,8 +220,9 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
                 'is_student': user[8],
                 'student_grade': user[9],
                 'occupation': user[10],
-                'is_active': user[11],
-                'created_at': user[12]
+                'persona': user[11],
+                'is_active': user[12],
+                'created_at': user[13]
             }
         return None
 
@@ -232,7 +237,7 @@ def get_user_by_uuid(user_uuid: str) -> Optional[Dict[str, Any]]:
 
     try:
         cursor.execute(
-            'SELECT id, uuid, username, email, avatar, bio, gender, age, is_student, student_grade, occupation, is_active, created_at FROM users WHERE uuid = ?',
+            'SELECT id, uuid, username, email, avatar, bio, gender, age, is_student, student_grade, occupation, persona, is_active, created_at FROM users WHERE uuid = ?',
             (user_uuid,)
         )
         user = cursor.fetchone()
@@ -250,8 +255,9 @@ def get_user_by_uuid(user_uuid: str) -> Optional[Dict[str, Any]]:
                 'is_student': user[8],
                 'student_grade': user[9],
                 'occupation': user[10],
-                'is_active': user[11],
-                'created_at': user[12]
+                'persona': user[11],
+                'is_active': user[12],
+                'created_at': user[13]
             }
         return None
 
@@ -266,7 +272,7 @@ def update_user_info(user_id: int, update_data: Dict[str, Any]) -> bool:
 
     try:
         # 构建更新字段
-        allowed_fields = ['username', 'email', 'avatar', 'bio', 'gender', 'age', 'is_student', 'student_grade', 'occupation']
+        allowed_fields = ['username', 'email', 'avatar', 'bio', 'gender', 'age', 'is_student', 'student_grade', 'occupation', 'persona']
         updates = []
         values = []
 

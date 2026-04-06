@@ -171,6 +171,7 @@ async def get_current_user_info(current_user: dict = Depends(get_current_active_
         is_student=current_user.get("is_student"),
         student_grade=current_user.get("student_grade"),
         occupation=current_user.get("occupation"),
+        persona=current_user.get("persona"),
         is_active=current_user["is_active"],
         created_at=current_user["created_at"]
     )
@@ -225,6 +226,7 @@ async def update_current_user(
             is_student=updated_user.get("is_student"),
             student_grade=updated_user.get("student_grade"),
             occupation=updated_user.get("occupation"),
+            persona=updated_user.get("persona"),
             is_active=updated_user["is_active"],
             created_at=updated_user["created_at"]
         )
@@ -317,6 +319,7 @@ async def upload_avatar(
             is_student=updated_user.get("is_student"),
             student_grade=updated_user.get("student_grade"),
             occupation=updated_user.get("occupation"),
+            persona=updated_user.get("persona"),
             is_active=updated_user["is_active"],
             created_at=updated_user["created_at"]
         )
