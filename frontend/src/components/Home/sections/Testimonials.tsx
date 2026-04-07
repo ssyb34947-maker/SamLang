@@ -1,8 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Quote } from 'lucide-react';
-import { TESTIMONIALS } from '../constants';
-import { fadeInUp, staggerContainer, viewportConfig } from '../constants';
+import { TESTIMONIALS_SECTION, TESTIMONIALS_LIST, fadeInUp, staggerContainer, viewportConfig } from '../constants';
 
 export const Testimonials: React.FC = () => {
   return (
@@ -20,14 +19,14 @@ export const Testimonials: React.FC = () => {
             className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6"
             style={{ fontFamily: 'var(--font-hand-heading)', color: 'var(--sketch-text)' }}
           >
-            用户怎么说
+            {TESTIMONIALS_SECTION.TITLE}
           </motion.h2>
           <motion.p
             variants={fadeInUp}
             className="text-lg md:text-xl max-w-2xl mx-auto"
             style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
           >
-            来自真实用户的反馈
+            {TESTIMONIALS_SECTION.SUBTITLE}
           </motion.p>
         </motion.div>
 
@@ -38,7 +37,7 @@ export const Testimonials: React.FC = () => {
           variants={staggerContainer}
           className="grid md:grid-cols-3 gap-6"
         >
-          {TESTIMONIALS.map((testimonial, index) => (
+          {TESTIMONIALS_LIST.map((testimonial, index) => (
             <motion.div
               key={testimonial.id}
               variants={fadeInUp}

@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Github } from 'lucide-react';
+import { Menu, X, Github, Download, Languages } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
-import { PRODUCT_NAME, NAV_LINKS, EXTERNAL_LINKS } from '../constants';
+import { BRAND, NAVIGATION, EXTERNAL_LINKS, fadeIn, CURRENT_LANGUAGE } from '../constants';
 import { useScrollAnimation } from '../hooks';
-import { fadeIn } from '../constants';
 
 export const Navigation: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -21,6 +20,10 @@ export const Navigation: React.FC = () => {
     } else {
       navigate(href);
     }
+  };
+
+  const handleDownload = () => {
+    window.open(EXTERNAL_LINKS.DOWNLOAD_WINDOWS, '_blank');
   };
 
   return (
@@ -44,12 +47,12 @@ export const Navigation: React.FC = () => {
             style={{ fontFamily: 'var(--font-hand-heading)' }}
           >
             <span className="text-2xl md:text-3xl font-bold" style={{ color: 'var(--sketch-text)' }}>
-              {PRODUCT_NAME}
+              {BRAND.NAME}
             </span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((link: any) => (
+            {NAVIGATION.LINKS.map((link) => (
               <button
                 key={link.href}
                 onClick={() => handleNavClick(link.href, link.isExternal)}
@@ -65,32 +68,39 @@ export const Navigation: React.FC = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-4">
-            {/* GitHub 图标 */}
             <a
-              href={EXTERNAL_LINKS.github}
+              href={EXTERNAL_LINKS.GITHUB}
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 transition-transform hover:scale-110 hover:rotate-6"
-              style={{
-                color: 'var(--sketch-text)',
-              }}
+              style={{ color: 'var(--sketch-text)' }}
               aria-label="GitHub"
             >
               <Github className="w-6 h-6" />
             </a>
             <button
-              onClick={() => navigate('/login')}
-              className="sketch-btn"
+              onClick={() => alert(`当前语言: ${CURRENT_LANGUAGE === 'zh' ? '中文' : 'English'}\n\n要切换语言，请修改:\nfrontend/src/components/Home/constants/index.ts\n\n将 CURRENT_LANGUAGE 改为 '${CURRENT_LANGUAGE === 'zh' ? 'en' : 'zh'}'，然后刷新页面。`)}
+              className="p-2 transition-transform hover:scale-110 hover:rotate-6 flex items-center gap-1"
+              style={{ color: 'var(--sketch-text)', fontFamily: 'var(--font-hand-body)' }}
+              title="切换语言"
+            >
+              <Languages className="w-5 h-5" />
+              <span className="text-sm">{CURRENT_LANGUAGE === 'zh' ? '中文' : 'EN'}</span>
+            </button>
+            <button
+              onClick={handleDownload}
+              className="sketch-btn flex items-center gap-2"
               style={{ padding: '8px 20px', fontSize: '15px' }}
             >
-              登录
+              <Download className="w-4 h-4" />
+              {NAVIGATION.BUTTONS.DOWNLOAD}
             </button>
             <button
               onClick={() => navigate('/register')}
               className="sketch-btn sketch-btn-secondary"
               style={{ padding: '8px 20px', fontSize: '15px' }}
             >
-              注册
+              {NAVIGATION.BUTTONS.REGISTER}
             </button>
           </div>
 
@@ -123,9 +133,8 @@ export const Navigation: React.FC = () => {
             }}
           >
             <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
-              {/* 移动端 GitHub 链接 */}
               <a
-                href={EXTERNAL_LINKS.github}
+                href={EXTERNAL_LINKS.GITHUB}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 py-2"
@@ -137,7 +146,7 @@ export const Navigation: React.FC = () => {
                 <Github className="w-5 h-5" />
                 <span>GitHub</span>
               </a>
-              {NAV_LINKS.map((link: any) => (
+              {NAVIGATION.LINKS.map((link) => (
                 <button
                   key={link.href}
                   onClick={() => handleNavClick(link.href, link.isExternal)}
@@ -152,16 +161,24 @@ export const Navigation: React.FC = () => {
               ))}
               <div className="flex flex-col gap-3 pt-4 border-t-2 border-dashed" style={{ borderColor: 'var(--sketch-muted)' }}>
                 <button
-                  onClick={() => navigate('/login')}
-                  className="sketch-btn w-full justify-center"
+                  onClick={() => alert(`当前语言: ${CURRENT_LANGUAGE === 'zh' ? '中文' : 'English'}\n\n要切换语言，请修改:\nfrontend/src/components/Home/constants/index.ts\n\n将 CURRENT_LANGUAGE 改为 '${CURRENT_LANGUAGE === 'zh' ? 'en' : 'zh'}'，然后刷新页面。`)}
+                  className="sketch-btn w-full justify-center flex items-center gap-2"
                 >
-                  登录
+                  <Languages className="w-4 h-4" />
+                  {CURRENT_LANGUAGE === 'zh' ? '切换为 English' : 'Switch to 中文'}
+                </button>
+                <button
+                  onClick={handleDownload}
+                  className="sketch-btn w-full justify-center flex items-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  {NAVIGATION.BUTTONS.DOWNLOAD}
                 </button>
                 <button
                   onClick={() => navigate('/register')}
                   className="sketch-btn sketch-btn-secondary w-full justify-center"
                 >
-                  注册
+                  {NAVIGATION.BUTTONS.REGISTER}
                 </button>
               </div>
             </div>

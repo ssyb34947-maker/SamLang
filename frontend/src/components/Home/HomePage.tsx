@@ -1,14 +1,6 @@
 import React from 'react';
-import {
-  Navigation,
-  Hero,
-  Features,
-  HowItWorks,
-  Testimonials,
-  CTA,
-  Footer,
-  ScrollToTop,
-} from './sections';
+import { Navigation, Hero, Features, HowItWorks, Testimonials, CTA, Footer, ScrollToTop } from './sections';
+import { DemoSection } from './components';
 
 export const HomePage: React.FC = () => {
   return (
@@ -17,6 +9,7 @@ export const HomePage: React.FC = () => {
       <main>
         <Hero />
         <Features />
+        <DemoSection />
         <HowItWorks />
         <Testimonials />
         <CTA />

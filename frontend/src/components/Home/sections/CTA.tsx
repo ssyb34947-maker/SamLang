@@ -2,8 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
-import { PRODUCT_NAME } from '../constants';
-import { fadeInUp, staggerContainer, viewportConfig } from '../constants';
+import { BRAND, CTA_SECTION, fadeInUp, staggerContainer, viewportConfig } from '../constants';
 
 export const CTA: React.FC = () => {
   const navigate = useNavigate();
@@ -37,7 +36,7 @@ export const CTA: React.FC = () => {
                 className="text-lg"
                 style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
               >
-                准备好开始了吗？
+                {CTA_SECTION.BADGE}
               </span>
             </div>
 
@@ -45,14 +44,14 @@ export const CTA: React.FC = () => {
               className="text-3xl md:text-4xl lg:text-5xl font-bold"
               style={{ fontFamily: 'var(--font-hand-heading)', color: 'var(--sketch-text)' }}
             >
-              加入 {PRODUCT_NAME}，开启你的<br className="hidden md:block" />山姆学院之旅
+              {CTA_SECTION.TITLE.replace('{BRAND}', BRAND.NAME)}
             </h2>
 
             <p
               className="text-lg md:text-xl max-w-2xl mx-auto"
               style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
             >
-              免费注册，立即入学山姆学院
+              {CTA_SECTION.SUBTITLE}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
@@ -61,7 +60,7 @@ export const CTA: React.FC = () => {
                 className="sketch-btn sketch-btn-secondary text-lg"
                 style={{ padding: '16px 40px' }}
               >
-                免费开始使用
+                {CTA_SECTION.BUTTONS.PRIMARY}
                 <ArrowRight className="w-5 h-5" />
               </button>
               <button
@@ -69,7 +68,7 @@ export const CTA: React.FC = () => {
                 className="sketch-btn text-lg"
                 style={{ padding: '16px 40px' }}
               >
-                先试试看
+                {CTA_SECTION.BUTTONS.SECONDARY}
               </button>
             </div>
 
@@ -77,7 +76,7 @@ export const CTA: React.FC = () => {
               className="text-sm pt-4"
               style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
             >
-              无任何费用 · 随时取消 · 免费版可用
+              {CTA_SECTION.FOOTER_NOTE}
             </p>
           </motion.div>
         </motion.div>

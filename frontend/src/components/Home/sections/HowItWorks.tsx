@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { HOW_IT_WORKS_STEPS } from '../constants';
-import { fadeInUp, staggerContainer, viewportConfig } from '../constants';
+import { HOW_IT_WORKS_SECTION, HOW_IT_WORKS_STEPS, fadeInUp, staggerContainer, viewportConfig } from '../constants';
 
 export const HowItWorks: React.FC = () => {
   return (
@@ -19,14 +18,14 @@ export const HowItWorks: React.FC = () => {
             className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6"
             style={{ fontFamily: 'var(--font-hand-heading)', color: 'var(--sketch-text)' }}
           >
-            三步开启学习之旅
+            {HOW_IT_WORKS_SECTION.TITLE}
           </motion.h2>
           <motion.p
             variants={fadeInUp}
             className="text-lg md:text-xl max-w-2xl mx-auto"
             style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
           >
-            简单上手，立即开始你的学习之旅
+            {HOW_IT_WORKS_SECTION.SUBTITLE}
           </motion.p>
         </motion.div>
 
