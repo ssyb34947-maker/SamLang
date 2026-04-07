@@ -4,6 +4,7 @@ import { VIDEO_PLAYER_CONFIG, KEYBOARD_SHORTCUTS } from '../constants';
 interface UseVideoPlayerOptions {
   onTimeUpdate?: (currentTime: number) => void;
   onEnded?: () => void;
+  autoPlay?: boolean; // 是否自动播放
 }
 
 export const useVideoPlayer = (options: UseVideoPlayerOptions = {}) => {
@@ -98,10 +99,21 @@ export const useVideoPlayer = (options: UseVideoPlayerOptions = {}) => {
       video.addEventListener(event, handler);
     });
 
+    // 自动播放逻辑：如果设置了 autoPlay，延迟后自动播放
+    let autoPlayTimeout: NodeJS.Timeout | null = null;
+    if (options.autoPlay) {
+      autoPlayTimeout = setTimeout(() => {
+        video.play().catch(() => {
+          // 自动播放可能被浏览器阻止，静默处理错误
+        });
+      }, VIDEO_PLAYER_CONFIG.AUTO_PLAY_DELAY);
+    }
+
     return () => {
       Object.entries(handlers).forEach(([event, handler]) => {
         video.removeEventListener(event, handler);
       });
+      if (autoPlayTimeout) clearTimeout(autoPlayTimeout);
     };
   }, [options, updateState]);
 
@@ -114,7 +126,7 @@ export const useVideoPlayer = (options: UseVideoPlayerOptions = {}) => {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-      
+
       const actions: Record<string, () => void> = {
         [KEYBOARD_SHORTCUTS.PLAY_PAUSE]: togglePlay,
         [KEYBOARD_SHORTCUTS.MUTE]: toggleMute,
@@ -124,7 +136,7 @@ export const useVideoPlayer = (options: UseVideoPlayerOptions = {}) => {
         [KEYBOARD_SHORTCUTS.VOLUME_UP]: () => changeVolume(state.volume + VIDEO_PLAYER_CONFIG.VOLUME_STEP),
         [KEYBOARD_SHORTCUTS.VOLUME_DOWN]: () => changeVolume(state.volume - VIDEO_PLAYER_CONFIG.VOLUME_STEP),
       };
-      
+
       if (actions[e.key]) {
         e.preventDefault();
         actions[e.key]();

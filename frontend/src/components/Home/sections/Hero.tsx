@@ -1,13 +1,22 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles } from 'lucide-react';
-import { BRAND, HERO, heroTextVariants, staggerContainer } from '../constants';
-import { useAuth } from '../../../hooks/useAuth';
+import { ArrowRight, Sparkles, Download } from 'lucide-react';
+import { EXTERNAL_LINKS, heroTextVariants, staggerContainer } from '../constants';
+import { useContent } from '../hooks';
 import { LobsterProfessor } from '../../LobsterProfessor';
 import { DemoChat } from '../components';
 
+// Windows Logo SVG Component
+const WindowsLogo: React.FC<{ className?: string }> = ({ className }) => (
+  <svg className={className} viewBox="0 0 88 88" fill="currentColor">
+    <path d="M0 12.402l35.687-4.86.016 34.423-35.67.203zm35.67 33.529l.028 34.453L.028 75.48.026 45.7zm4.326-39.025L87.314 0v41.527l-47.318.377zm47.329 39.349l-.012 41.34-47.318-6.678-.066-34.739z"/>
+  </svg>
+);
+
 const BrushStroke: React.FC = () => {
+  const { BRAND } = useContent();
+  
   return (
     <div className="relative w-full max-w-2xl mx-auto mt-4">
       <svg
@@ -65,14 +74,10 @@ const BrushStroke: React.FC = () => {
 
 export const Hero: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { BRAND, HERO } = useContent();
 
-  const handleSecondaryClick = () => {
-    if (isAuthenticated) {
-      navigate('/chat');
-    } else {
-      navigate('/login');
-    }
+  const handleDownload = () => {
+    window.open(EXTERNAL_LINKS.DOWNLOAD_WINDOWS, '_blank');
   };
 
   return (
@@ -125,22 +130,29 @@ export const Hero: React.FC = () => {
               {BRAND.SUB_SLOGAN}
             </motion.p>
 
-            <motion.div variants={heroTextVariants} className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={() => navigate('/register')}
-                className="sketch-btn sketch-btn-secondary text-lg"
-                style={{ padding: '14px 32px' }}
-              >
-                {HERO.CTA.PRIMARY}
-                <ArrowRight className="w-5 h-5" />
-              </button>
-              <button
-                onClick={handleSecondaryClick}
-                className="sketch-btn text-lg"
-                style={{ padding: '14px 32px' }}
-              >
-                {isAuthenticated ? HERO.CTA.SECONDARY_AUTH : HERO.CTA.SECONDARY_GUEST}
-              </button>
+            <motion.div variants={heroTextVariants} className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button
+                  onClick={() => navigate('/register')}
+                  className="sketch-btn sketch-btn-secondary text-lg"
+                  style={{ padding: '14px 32px' }}
+                >
+                  {HERO.CTA.PRIMARY}
+                  <ArrowRight className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={handleDownload}
+                  className="sketch-btn text-lg flex items-center gap-2"
+                  style={{ padding: '14px 24px' }}
+                >
+                  <Download className="w-5 h-5" />
+                  <span>{HERO.CTA.DOWNLOAD}</span>
+                  <span className="text-sm opacity-70">(</span>
+                  <WindowsLogo className="w-4 h-4" style={{ color: 'currentColor', opacity: 0.9 }} />
+                  <span className="text-sm">Windows x86</span>
+                  <span className="text-sm opacity-70">)</span>
+                </button>
+              </div>
             </motion.div>
 
             <motion.div variants={heroTextVariants} className="flex flex-wrap gap-4 pt-4">
@@ -157,9 +169,9 @@ export const Hero: React.FC = () => {
                   {badge}
                 </span>
               ))}
-            </motion.div>
-          </div>
-
+            </motion .div>
+          < /div>
+ 
           <div className="relative">
             <DemoChat />
 
@@ -180,7 +192,7 @@ export const Hero: React.FC = () => {
                   repeat: Infinity,
                   ease: "easeInOut",
                 },
-              }}
+               }}
             >
               <LobsterProfessor
                 width={200}

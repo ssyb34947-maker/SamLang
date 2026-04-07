@@ -15,7 +15,8 @@ import {
   Pencil,
   LucideIcon,
 } from 'lucide-react';
-import { FEATURES_SECTION, FEATURES_LIST, fadeInUp, staggerContainer, viewportConfig } from '../constants';
+import { fadeInUp, staggerContainer, viewportConfig } from '../constants';
+import { useContent } from '../hooks';
 
 const iconMap: Record<string, LucideIcon> = {
   MessageCircle,
@@ -33,6 +34,8 @@ const iconMap: Record<string, LucideIcon> = {
 };
 
 export const Features: React.FC = () => {
+  const { FEATURES_SECTION, FEATURES_LIST } = useContent();
+
   return (
     <section id="features" className="py-20 md:py-32">
       <div className="container mx-auto px-4">

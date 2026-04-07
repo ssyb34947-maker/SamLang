@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { VideoControls } from './VideoControls';
 import { useVideoPlayer } from '../hooks';
@@ -15,6 +15,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onTimeUpdate,
   onEnded,
 }) => {
+  // 检测是否是从导航栏点击跳转过来的（URL 包含 #demo）
+  const shouldAutoPlay = useMemo(() => {
+    return window.location.hash === '#demo';
+  }, []);
+
   const {
     videoRef,
     containerRef,
@@ -31,7 +36,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     changeVolume,
     toggleFullscreen,
     showControlsTemporarily,
-  } = useVideoPlayer({ onTimeUpdate, onEnded });
+  } = useVideoPlayer({ onTimeUpdate, onEnded, autoPlay: shouldAutoPlay });
 
   const handleSeekForward = () => {
     seekTo(Math.min(currentTime + 10, duration));

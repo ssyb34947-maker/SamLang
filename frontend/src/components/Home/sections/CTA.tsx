@@ -2,10 +2,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Sparkles } from 'lucide-react';
-import { BRAND, CTA_SECTION, fadeInUp, staggerContainer, viewportConfig } from '../constants';
+import { fadeInUp, staggerContainer, viewportConfig } from '../constants';
+import { useContent } from '../hooks';
 
 export const CTA: React.FC = () => {
   const navigate = useNavigate();
+  const { BRAND, CTA_SECTION } = useContent();
 
   return (
     <section className="py-20 md:py-32">

@@ -1,8 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { HOW_IT_WORKS_SECTION, HOW_IT_WORKS_STEPS, fadeInUp, staggerContainer, viewportConfig } from '../constants';
+import { fadeInUp, staggerContainer, viewportConfig } from '../constants';
+import { useContent } from '../hooks';
 
 export const HowItWorks: React.FC = () => {
+  const { HOW_IT_WORKS_SECTION, HOW_IT_WORKS_STEPS } = useContent();
+
   return (
     <section id="how-it-works" className="py-20 md:py-32">
       <div className="container mx-auto px-4">

@@ -12,7 +12,7 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.tsx';
 
 // 公开路由列表（未登录可访问）
-const PUBLIC_ROUTES = ['/home', '/login', '/register'];
+const PUBLIC_ROUTES = ['/home', '/login', '/register', '/docs'];
 
 // 游客路由列表（登录后访问会重定向）
 const GUEST_ROUTES = ['/', '/home', '/login', '/register'];

@@ -2,21 +2,27 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { TypewriterBubble } from './TypewriterBubble';
+import { DemoLink } from '../DemoLink';
 import { useSequentialTypewriter } from '../../hooks';
-import { BRAND, HERO } from '../../constants';
-
-const AI_MESSAGES = HERO.DEMO.AI_MESSAGES;
-const USER_MESSAGE = HERO.DEMO.USER_MESSAGE;
-const INPUT_PLACEHOLDER = HERO.DEMO.INPUT_PLACEHOLDER;
+import { useContent } from '../../hooks';
 
 export const DemoChat: React.FC = () => {
+  const { BRAND, HERO } = useContent();
+
+  const demoContent = HERO.DEMO;
+  const title = demoContent.TITLE.replace('{BRAND}', BRAND.NAME);
+  const aiMessages = demoContent.AI_MESSAGES;
+  const userMessage = demoContent.USER_MESSAGE;
+  const inputPlaceholder = demoContent.INPUT_PLACEHOLDER;
+  const demoLinkText = demoContent.DEMO_LINK_TEXT;
+
   const { displayedMessages, currentTypingText, isTyping, currentMessageIndex } = useSequentialTypewriter({
-    messages: AI_MESSAGES,
-    speed: 45,
-    messageDelay: 600,
-    initialDelay: 800,
+    messages: aiMessages,
+    speed: 20,        // 加快打字速度（从 45ms 改为 20ms）
+    messageDelay: 300, // 减少消息间隔（从 600ms 改为 300ms）
+    initialDelay: 360, // 减少初始延迟（从 800ms 改为 360ms）
     loop: true,
-    loopDelay: 4000,
+    loopDelay: 6000,   // 减少循环间隔（从 4000ms 改为 6000ms）
   });
 
   const showUserMessage = displayedMessages.length >= 1;
@@ -43,7 +49,7 @@ export const DemoChat: React.FC = () => {
               className="ml-auto text-sm"
               style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
             >
-              {BRAND.NAME} AI 助教
+              {title}
             </span>
           </div>
 
@@ -56,7 +62,7 @@ export const DemoChat: React.FC = () => {
 
           {/* User Message */}
           {showUserMessage && (
-            <TypewriterBubble text={USER_MESSAGE} isAI={false} maxWidth="75%" />
+            <TypewriterBubble text={userMessage} isAI={false} maxWidth="75%" />
           )}
 
           {/* Second AI Message */}
@@ -66,6 +72,12 @@ export const DemoChat: React.FC = () => {
                 <TypewriterBubble text={displayedMessages[1]} isAI={true} maxWidth="90%" />
               ) : (
                 <TypewriterBubble text={currentTypingText} isTyping={isTyping} isAI={true} maxWidth="90%" />
+              )}
+              {/* Demo Link - shown when second message is fully displayed */}
+              {displayedMessages.length > 1 && (
+                <div className="mt-1 ml-2">
+                  <DemoLink text={demoLinkText} />
+                </div>
               )}
             </>
           )}
@@ -80,7 +92,7 @@ export const DemoChat: React.FC = () => {
                 color: 'var(--sketch-pencil)',
               }}
             >
-              {INPUT_PLACEHOLDER}
+              {inputPlaceholder}
             </div>
             <button
               className="w-12 h-12 flex items-center justify-center"

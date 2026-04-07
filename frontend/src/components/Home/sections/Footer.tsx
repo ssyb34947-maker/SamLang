@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Github, Twitter, Mail } from 'lucide-react';
-import { BRAND, FOOTER, fadeIn } from '../constants';
+import { fadeIn } from '../constants';
+import { useContent } from '../hooks';
 
 const SOCIAL_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   GITHUB: Github,
@@ -10,6 +11,8 @@ const SOCIAL_ICONS: Record<string, React.ComponentType<{ className?: string }>> 
 };
 
 export const Footer: React.FC = () => {
+  const { BRAND, FOOTER } = useContent();
+
   return (
     <motion.footer
       initial="hidden"

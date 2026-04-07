@@ -1,9 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Quote } from 'lucide-react';
-import { TESTIMONIALS_SECTION, TESTIMONIALS_LIST, fadeInUp, staggerContainer, viewportConfig } from '../constants';
+import { fadeInUp, staggerContainer, viewportConfig } from '../constants';
+import { useContent } from '../hooks';
 
 export const Testimonials: React.FC = () => {
+  const { TESTIMONIALS_SECTION, TESTIMONIALS_LIST } = useContent();
+
   return (
     <section id="testimonials" className="py-20 md:py-32">
       <div className="container mx-auto px-4">

@@ -16,7 +16,7 @@ export const NAVIGATION = {
     { label: 'Features', href: '#features' },
     { label: 'How It Works', href: '#how-it-works' },
     { label: 'Testimonials', href: '#testimonials' },
-    { label: 'API Service', href: '/api/docs', isExternal: false },
+    { label: 'API Documentation', href: '/docs', isExternal: false },
     { label: 'Demo', href: '#demo', isExternal: false },
   ],
   BUTTONS: {
@@ -39,6 +39,7 @@ export const HERO = {
     PRIMARY: 'Start Learning Free',
     SECONDARY_GUEST: 'Login',
     SECONDARY_AUTH: 'Enter Learning',
+    DOWNLOAD: 'Download Client',
   },
   TRUST_BADGES: ['Free to Start', 'All Subjects Covered', 'Cancel Anytime'],
   DEMO: {
@@ -49,6 +50,7 @@ export const HERO = {
     ],
     USER_MESSAGE: 'I want to review the conic sections part of high school math',
     INPUT_PLACEHOLDER: 'Type a message...',
+    DEMO_LINK_TEXT: 'Watch Video Demo',
   },
 } as const;
 

@@ -5,10 +5,32 @@ import { containerVariants, titleVariants } from './animations';
 import { typography } from './styles';
 import { DEMO_VIDEO_CONTENT } from './constants';
 import { viewportConfig } from '../../constants';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export const DemoSection: React.FC = () => {
   const [activeFeatureId, setActiveFeatureId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
+  const { language } = useLanguage();
+
+  // Get localized content based on language
+  const getLocalizedContent = () => {
+    if (language === 'en') {
+      return {
+        TITLE: 'Product Demo',
+        SUBTITLE: 'Watch the core features demo of Sam College and learn how to study efficiently',
+        FEATURES_TITLE: 'Feature Chapters',
+        SHORTCUTS: 'Shortcuts: Space Play/Pause | ← → Seek | ↑ ↓ Volume | M Mute | F Fullscreen',
+      };
+    }
+    return {
+      TITLE: '产品演示',
+      SUBTITLE: '观看山姆学院的核心功能演示，了解如何在山姆学院学习',
+      FEATURES_TITLE: '功能章节',
+      SHORTCUTS: '快捷键：空格键 播放/暂停 | ← → 快进/快退 | ↑ ↓ 音量 | M 静音 | F 全屏',
+    };
+  };
+
+  const localized = getLocalizedContent();
 
   const handleTimeUpdate = useCallback((time: number) => {
     setCurrentTime(time);
@@ -56,13 +78,13 @@ export const DemoSection: React.FC = () => {
               className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4"
               style={typography.title}
             >
-              {DEMO_VIDEO_CONTENT.TITLE}
+              {localized.TITLE}
             </h2>
             <p
               className="text-lg md:text-xl max-w-2xl mx-auto"
               style={typography.subtitle}
             >
-              {DEMO_VIDEO_CONTENT.SUBTITLE}
+              {localized.SUBTITLE}
             </p>
           </motion.div>
 
@@ -85,6 +107,7 @@ export const DemoSection: React.FC = () => {
                 currentTime={currentTime}
                 activeFeatureId={activeFeatureId}
                 onFeatureClick={handleFeatureClick}
+                featuresTitle={localized.FEATURES_TITLE}
               />
             </div>
           </motion.div>
@@ -98,7 +121,7 @@ export const DemoSection: React.FC = () => {
               className="text-sm"
               style={typography.subtitle}
             >
-              快捷键：空格键 播放/暂停 | ← → 快进/快退 | ↑ ↓ 音量 | M 静音 | F 全屏
+              {localized.SHORTCUTS}
             </p>
           </motion.div>
         </motion.div>

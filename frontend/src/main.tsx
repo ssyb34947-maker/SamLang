@@ -11,6 +11,7 @@ import { Profile } from './components/Profile/Profile.tsx'
 import { ChatHome } from './components/Chat/ChatHome.tsx'
 import { HomePage } from './components/Home/HomePage.tsx'
 import { UserOnboarding } from './components/Onboarding/UserOnboarding.tsx'
+import { ApiDocs } from './components/ApiDocs/ApiDocs.tsx'
 import Login from './components/Auth/Login'
 import Register from './components/Auth/Register'
 import './index.css'
@@ -53,6 +54,16 @@ createRoot(document.getElementById('root')!).render(
                 element={
                   <AuthRoute>
                     <HomePage />
+                  </AuthRoute>
+                }
+              />
+
+              {/* API 文档页面 - 公开访问 */}
+              <Route
+                path="/docs"
+                element={
+                  <AuthRoute>
+                    <ApiDocs />
                   </AuthRoute>
                 }
               />

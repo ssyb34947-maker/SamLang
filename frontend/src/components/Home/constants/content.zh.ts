@@ -16,7 +16,7 @@ export const NAVIGATION = {
     { label: '功能', href: '#features' },
     { label: '使用方法', href: '#how-it-works' },
     { label: '用户评价', href: '#testimonials' },
-    { label: 'API 服务', href: '/api/docs', isExternal: false },
+    { label: 'API 文档', href: '/docs', isExternal: false },
     { label: 'Demo 演示', href: '#demo', isExternal: false },
   ],
   BUTTONS: {
@@ -39,6 +39,7 @@ export const HERO = {
     PRIMARY: '免费开始学习',
     SECONDARY_GUEST: '登录',
     SECONDARY_AUTH: '进入学习',
+    DOWNLOAD: '下载客户端',
   },
   TRUST_BADGES: ['免费开始', '全学科覆盖', '随时取消'],
   DEMO: {
@@ -49,6 +50,7 @@ export const HERO = {
     ],
     USER_MESSAGE: '我想复习高中数学的圆锥曲线部分',
     INPUT_PLACEHOLDER: '输入消息...',
+    DEMO_LINK_TEXT: '查看视频演示',
   },
 } as const;
 
@@ -61,7 +63,7 @@ export const FEATURES_SECTION = {
 export const FEATURES_LIST = [
   {
     id: 'ai-chat',
-    title: '教授级授课',
+    title: '教授授课',
     description: '集成最前沿智能体算法的教授AGENT，提供超越chatbot的教学体验',
     icon: 'MessageCircle',
   },
@@ -74,7 +76,7 @@ export const FEATURES_LIST = [
   {
     id: 'all-subjects',
     title: '全学科教学',
-    description: '覆盖数学、物理、化学、英语等全学科内容，支持输出教学视频',
+    description: '覆盖数学、物理、化学、英语等全学科内容，支持输出教学视频等多模态教学',
     icon: 'BookOpen',
   },
   {
@@ -127,8 +129,8 @@ export const FEATURES_LIST = [
   },
   {
     id: 'sketch-style',
-    title: '手绘风格界面',
-    description: '独特的草稿本设计风格，米白色背景，护眼模式，减少学习压力',
+    title: '多风格系统+双语',
+    description: '支持5种风格和中英文双语系统',
     icon: 'Pencil',
   },
 ] as const;

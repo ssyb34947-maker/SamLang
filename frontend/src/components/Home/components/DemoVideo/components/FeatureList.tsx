@@ -9,6 +9,7 @@ interface FeatureListProps {
   currentTime: number;
   activeFeatureId: string | null;
   onFeatureClick: (time: number, id: string) => void;
+  featuresTitle: string;
 }
 
 const formatTime = (seconds: number): string => {
@@ -21,6 +22,7 @@ export const FeatureList: React.FC<FeatureListProps> = ({
   currentTime,
   activeFeatureId,
   onFeatureClick,
+  featuresTitle,
 }) => {
   const features = DEMO_VIDEO_CONTENT.FEATURES;
 
@@ -30,7 +32,7 @@ export const FeatureList: React.FC<FeatureListProps> = ({
         className="text-xl font-bold mb-4"
         style={typography.featureTitle}
       >
-        功能章节
+        {featuresTitle}
       </h3>
       {features.map((feature, index) => {
         const isActive = activeFeatureId === feature.id;
