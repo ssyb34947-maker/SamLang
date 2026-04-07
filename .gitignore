@@ -10,7 +10,7 @@ wheels/
 doc/
 docs/
 test/
-data/
+/data/
 
 docker_server/
 docker/
