@@ -141,6 +141,53 @@ npm run dev
 - 向量数据库连接信息
 - 其他可选工具 API Key
 
-***
+---
+
+### Docker 部署
+
+**环境要求**
+
+- Docker 20.10+
+- Docker Compose 2.0+
+- 至少 4GB 内存（推荐 8GB+）
+- 至少 20GB 磁盘空间
+
+**部署步骤**
+
+```bash
+# 1. 配置环境变量
+cp .env.example .env
+# 编辑 .env 文件，填入 API 密钥
+
+# 2. 构建并启动所有服务
+docker-compose up --build -d
+
+# 3. 查看日志
+docker-compose logs -f
+```
+
+**访问服务**
+
+- 前端界面：http://localhost
+- 后端 API：http://localhost:8000
+- API 文档：http://localhost:8000/docs
+
+**常用命令**
+
+```bash
+# 停止服务
+docker-compose down
+
+# 停止并删除数据卷（清空所有数据）
+docker-compose down -v
+
+# 重启服务
+docker-compose restart
+
+# 查看容器状态
+docker-compose ps
+```
+
+---
 
 SamCollege - 让每一分钟的学习都有价值
