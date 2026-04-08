@@ -4,7 +4,7 @@ export const markdownStyles = {
   // 内层容器 - 只控制内容边距
   container: {
     padding: '60px 60px 80px',
-     
+  },
 
   // 标题层级 - 大幅增大各级标题大小差距
   h1: {

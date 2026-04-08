@@ -169,8 +169,8 @@ export const Hero: React.FC = () => {
                   {badge}
                 </span>
               ))}
-            </motion .div>
-          < /div>
+            </motion.div>
+          </div>
  
           <div className="relative">
             <DemoChat />
