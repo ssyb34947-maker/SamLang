@@ -1,60 +1,82 @@
 /**
- * 登录页面组件 - 手绘草稿本风格
+ * 管理员登录页面组件
+ * 手绘草稿本风格
  */
 
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth.tsx';
-import { ArrowLeft } from 'lucide-react';
-import AdminLoginLink from './AdminLoginLink.tsx';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Shield, Lock } from 'lucide-react';
+import { apiService } from '../../services/api.ts';
 
-const Login: React.FC = () => {
-  const [usernameOrEmail, setUsernameOrEmail] = useState('');
+interface AdminLoginResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  admin: {
+    id: number;
+    uuid: string;
+    username: string;
+    nickname: string | null;
+    role: string;
+    status: string;
+    last_login_at: string | null;
+    created_at: string;
+  };
+}
+
+const AdminLogin: React.FC = () => {
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // 如果已经登录，直接跳转到 /chat
-  if (isAuthenticated) {
-    navigate('/chat', { replace: true });
-    return null;
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     // 表单验证
-    if (!usernameOrEmail || !password) {
+    if (!username || !password) {
       setError('请填写所有字段');
       return;
     }
 
-    // 密码验证
-    if (password.length < 6 || password.length > 18) {
-      setError('密码长度必须在6-18位之间');
+    if (password.length < 6 || password.length > 50) {
+      setError('密码长度必须在6-50位之间');
       return;
     }
 
     try {
       setIsLoading(true);
-      await login(usernameOrEmail, password);
-      // 登录成功后跳转到 /chat
-      navigate('/chat', { replace: true });
+
+      const response = await apiService.adminLogin(username, password);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `登录失败: ${response.status}`);
+      }
+
+      const data: AdminLoginResponse = await response.json();
+
+      // 保存管理员token
+      localStorage.setItem('admin_access_token', data.access_token);
+      localStorage.setItem('admin_refresh_token', data.refresh_token);
+      localStorage.setItem('admin_info', JSON.stringify(data.admin));
+
+      // 登录成功后跳转到包含管理员UUID的控制台
+      navigate(`/admin/dashboard/${data.admin.uuid}`, { replace: true });
+
     } catch (err: any) {
       let errorMessage = '登录失败，请检查账号和密码';
 
       if (err.message) {
-        if (err.message.includes('401')) {
-          errorMessage = '账号或密码错误，请重新输入';
-        } else if (err.message.includes('404')) {
-          errorMessage = '用户不存在，请先注册';
-        } else if (err.message.includes('网络')) {
-          errorMessage = '网络连接失败，请检查网络设置';
+        if (err.message.includes('401') || err.message.includes('账号或密码')) {
+          errorMessage = '账号或密码错误';
+        } else if (err.message.includes('锁定')) {
+          errorMessage = err.message;
+        } else if (err.message.includes('禁用')) {
+          errorMessage = '账号已禁用';
         } else {
           errorMessage = err.message;
         }
@@ -74,7 +96,7 @@ const Login: React.FC = () => {
       <div className="w-full max-w-md">
         {/* 返回按钮 */}
         <Link
-          to="/"
+          to="/login"
           className="inline-flex items-center gap-2 mb-6 transition-all hover:translate-x-[-4px]"
           style={{
             fontFamily: 'var(--font-hand-body)',
@@ -82,7 +104,7 @@ const Login: React.FC = () => {
           }}
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>返回首页</span>
+          <span>返回用户登录</span>
         </Link>
 
         {/* 登录表单卡片 - 手绘风格 */}
@@ -118,16 +140,16 @@ const Login: React.FC = () => {
                 transform: 'rotate(-3deg)'
               }}
             >
-              <img src="/logo.png" className="w-12 h-12" alt="Logo" />
+              <Shield className="w-10 h-10" style={{ color: 'var(--sketch-accent)' }} />
             </div>
             <h2
               className="text-2xl mb-2"
               style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 700, color: 'var(--sketch-text)' }}
             >
-              登录账号
+              管理员登录
             </h2>
             <p style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}>
-              欢迎回来，继续你的语言学习之旅
+              系统管理后台
             </p>
           </div>
 
@@ -146,19 +168,19 @@ const Login: React.FC = () => {
           )}
 
           <form onSubmit={handleSubmit}>
-            {/* 用户名或邮箱 */}
+            {/* 管理员账号 */}
             <div className="mb-4">
               <label
                 className="block mb-2"
                 style={{ fontFamily: 'var(--font-hand-heading)', fontWeight: 600 }}
               >
-                用户名或邮箱
+                管理员账号
               </label>
               <input
                 type="text"
-                value={usernameOrEmail}
-                onChange={(e) => setUsernameOrEmail(e.target.value)}
-                placeholder="请输入用户名或邮箱"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="请输入管理员账号"
                 disabled={isLoading}
                 className="sketch-input"
               />
@@ -186,40 +208,29 @@ const Login: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="sketch-btn w-full"
+              className="sketch-btn w-full flex items-center justify-center gap-2"
               style={{
-                backgroundColor: isLoading ? 'var(--sketch-muted)' : 'var(--sketch-secondary)',
+                backgroundColor: isLoading ? 'var(--sketch-muted)' : 'var(--sketch-accent)',
                 color: 'white'
               }}
             >
+              <Lock className="w-4 h-4" />
               {isLoading ? (
                 <span style={{ fontFamily: 'var(--font-hand-body)' }}>登录中...</span>
               ) : (
-                <span style={{ fontFamily: 'var(--font-hand-heading)' }}>登录</span>
+                <span style={{ fontFamily: 'var(--font-hand-heading)' }}>管理员登录</span>
               )}
             </button>
           </form>
 
-          {/* 注册链接和管理员登录 */}
-          <div className="mt-6 space-y-3">
-            <div className="text-center">
-              <p style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}>
-                还没有账号？{' '}
-                <Link
-                  to="/register"
-                  style={{
-                    color: 'var(--sketch-secondary)',
-                    textDecoration: 'underline',
-                    fontWeight: 600
-                  }}
-                >
-                  立即注册
-                </Link>
-              </p>
-            </div>
-            <div className="flex justify-center">
-              <AdminLoginLink />
-            </div>
+          {/* 提示信息 */}
+          <div className="mt-6 text-center">
+            <p
+              className="text-xs"
+              style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
+            >
+              此入口仅限系统管理员使用
+            </p>
           </div>
         </div>
       </div>
@@ -227,4 +238,4 @@ const Login: React.FC = () => {
   );
 };
 
-export default Login;
+export default AdminLogin;

@@ -60,6 +60,7 @@ class ToolManager:
         self._ensure_client()
         if self._tools is None:
             self._tools = self.mcp_client.list_tools()
+            logger.info(f"[ToolManager] 从 MCP 获取 {len(self._tools)} 个工具: {[t.get('name', '') for t in self._tools]}")
         return self._tools
 
     def get_tools_for_llm(self) -> List[Dict[str, Any]]:

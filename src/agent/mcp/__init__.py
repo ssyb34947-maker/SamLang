@@ -18,6 +18,7 @@ from .tools.youdaodictionary import youdao_mcp
 from .tools.dictionary import dictionary_mcp
 from .tools.skillDownload import skill_mcp
 from .tools.rag import rag_server
+from .tools.read_file import read_file_mcp
 
 
 @lru_cache(maxsize=1)
@@ -48,6 +49,9 @@ async def setup():
     # 挂载rag服务器（知识库检索）
     main_mcp.mount(rag_server, namespace="rag")
 
+    # 挂载read_file服务器（读取skill子文件）
+    main_mcp.mount(read_file_mcp, namespace="read_file")
+
     # 挂载youdaodictionary服务器
     #main_mcp.mount(youdao_mcp, namespace="youdao")
 
@@ -64,6 +68,7 @@ __all__ = [
     "skill_mcp",
     "youdao_mcp",
     "rag_server",
+    "read_file_mcp",
     "MCPClient",
     "get_mcp_client",
     "SyncMCPClient",

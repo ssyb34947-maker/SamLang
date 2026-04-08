@@ -63,12 +63,14 @@ def get_rag_instance():
 - top_k: 返回结果数量（默认5，最大20）
 - doc_types: 文档类型过滤，可选 ["book", "problem", "note", "other"]
 
+注意：user_id 由系统自动注入，无需填写。
+
 返回：格式化的检索结果，包含相关文档内容、来源和相关度分数
 """
 )
 async def rag_search(
     query: str,
-    user_id: str,
+    user_id: str = "",
     top_k: int = 5,
     doc_types: Optional[List[str]] = None
 ) -> str:
