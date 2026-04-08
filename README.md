@@ -84,10 +84,7 @@ SamCollege/
 │   ├── ocr/
 │   └── code_start/
 ├── frontend/
-│   └── src/
-│       ├── components/
-│       ├── hooks/
-│       └── services/
+├── .env
 ├── config.yaml
 ├── main.py
 ├── pyproject.toml
