@@ -1,5 +1,5 @@
 @echo off
-echo Starting Pixel Chatbot...
+echo Starting...
 echo.
 
 REM Start backend in new window (using root project venv)

@@ -20,7 +20,7 @@ export const API_DOCS_CONFIG = {
   DEFAULT_EXPAND_LEVEL: 2,
 
   // 文档路径
-  docsPath: '/docs',
+  docsPath: '/apidocs',
   defaultDoc: 'overview',
 
   // 侧边栏默认展开

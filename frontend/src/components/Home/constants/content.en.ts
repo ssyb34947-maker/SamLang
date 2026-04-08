@@ -129,8 +129,8 @@ export const FEATURES_LIST = [
   },
   {
     id: 'sketch-style',
-    title: 'Hand-Drawn Style Interface',
-    description: 'Unique sketchbook design style, off-white background, eye protection mode, reducing learning pressure',
+    title: 'Multi-Style and Double Language',
+    description: 'Supports 5 styles and Chinese-English language System',
     icon: 'Pencil',
   },
 ] as const;

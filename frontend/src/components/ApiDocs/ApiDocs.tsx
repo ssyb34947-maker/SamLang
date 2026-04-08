@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { MarkdownRenderer } from './components/MarkdownRenderer';
 import { TableOfContents } from './components/TableOfContents';
 import { useToc } from './hooks';
-import { DOC_CATEGORIES } from './constants';
+import { DOC_CATEGORIES, API_DOCS_CONFIG } from './constants';
 import './api-docs.css';
 
 interface DocItem {
@@ -45,14 +45,20 @@ export const ApiDocs: React.FC = () => {
       setLoading(true);
       try {
         const file = findDocFile(currentDoc);
-        const response = await fetch(`/docs/${file}`);
+        // 使用正确的相对路径加载文档
+        const response = await fetch(`/src/components/ApiDocs/apidocs/${file}`);
         if (response.ok) {
           const text = await response.text();
           setContent(text);
+          // 等待一段时间，确保MarkdownRenderer组件已经重新渲染
+          setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 100);
         } else {
           setContent('# 文档加载失败\n\n请稍后重试。');
         }
-      } catch {
+      } catch (error) {
+        console.error('Failed to load doc:', error);
         setContent('# 文档加载失败\n\n请稍后重试。');
       } finally {
         setLoading(false);
