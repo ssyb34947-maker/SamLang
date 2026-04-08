@@ -1,9 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { HOW_IT_WORKS_STEPS } from '../constants';
 import { fadeInUp, staggerContainer, viewportConfig } from '../constants';
+import { useContent } from '../hooks';
 
 export const HowItWorks: React.FC = () => {
+  const { HOW_IT_WORKS_SECTION, HOW_IT_WORKS_STEPS } = useContent();
+
   return (
     <section id="how-it-works" className="py-20 md:py-32">
       <div className="container mx-auto px-4">
@@ -19,14 +21,14 @@ export const HowItWorks: React.FC = () => {
             className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6"
             style={{ fontFamily: 'var(--font-hand-heading)', color: 'var(--sketch-text)' }}
           >
-            三步开启学习之旅
+            {HOW_IT_WORKS_SECTION.TITLE}
           </motion.h2>
           <motion.p
             variants={fadeInUp}
             className="text-lg md:text-xl max-w-2xl mx-auto"
             style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
           >
-            简单上手，立即开始你的学习之旅
+            {HOW_IT_WORKS_SECTION.SUBTITLE}
           </motion.p>
         </motion.div>
 
