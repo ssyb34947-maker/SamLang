@@ -67,26 +67,18 @@ class MCPClient:
 
     def _can_use_tool(self, tool_name: str) -> bool:
         """
-        检查当前角色是否可以使用指定工具
+        检查工具是否可用
         
-        权限规则：
-        - professor: 只能使用检索工具 (rag_search)
-        - assistant: 可以使用所有 RAG 工具 (检索、删除、添加、列表)
-        - student: 不能使用 RAG 工具
+        规则：
+        - 只暴露 rag_search 给 LLM，其他 RAG 工具不暴露
         """
-        # RAG 工具权限控制
+        # 只暴露 rag_search 给 LLM（考虑 namespace 前缀，如 rag_rag_search）
+        if "rag_search" in tool_name:
+            return True
         if tool_name.startswith("rag_"):
-            if self.role == "professor":
-                # 教授只能检索知识
-                return tool_name == "rag_search"
-            elif self.role == "assistant":
-                # 助教可以管理知识（检索、删除、添加、列表）
-                return tool_name in ("rag_search", "rag_delete", "rag_list", "rag_add_document")
-            else:  # student
-                # 学生不能使用 RAG 工具
-                return False
+            return False
         
-        # 非 RAG 工具所有角色可用
+        # 非 RAG 工具都可用
         return True
 
     async def list_tools(self, use_cache: bool = True) -> List[Dict[str, Any]]:
@@ -105,6 +97,7 @@ class MCPClient:
             tools = await self.client.list_tools()
             # 将 Pydantic 对象转换为字典
             tools_dict = []
+            all_tool_names = []
             for tool in tools:
                 if hasattr(tool, 'model_dump'):
                     tool_dict = tool.model_dump()
@@ -116,13 +109,15 @@ class MCPClient:
                         'description': getattr(tool, 'description', ''),
                         'inputSchema': getattr(tool, 'inputSchema', {})
                     }
+                all_tool_names.append(tool_dict.get('name', 'unknown'))
                 
                 # 根据角色过滤
                 if self._can_use_tool(tool_dict['name']):
                     tools_dict.append(tool_dict)
             
             self._tools_cache = tools_dict
-            logger.debug(f"[MCPClient] user_id={self.user_id} 获取到 {len(tools_dict)} 个可用工具")
+            logger.info(f"[MCPClient] 从 MCP Server 读取到 {len(tools)} 个工具: {all_tool_names}")
+            logger.info(f"[MCPClient] 过滤后剩余 {len(tools_dict)} 个工具: {[t['name'] for t in tools_dict]}")
             return tools_dict
         except Exception as e:
             logger.error(f"[MCPClient] 获取工具列表失败：{e}")
@@ -145,9 +140,9 @@ class MCPClient:
             return error_msg
         
         # 自动为 RAG 工具注入 user_id
-        if tool_name.startswith("rag_") and self.user_id:
+        if "rag" in tool_name and self.user_id:
             kwargs = kwargs.copy()
-            if "user_id" not in kwargs:
+            if "user_id" not in kwargs or not kwargs["user_id"]:
                 kwargs["user_id"] = self.user_id
                 logger.debug(f"[MCPClient] 自动注入 user_id={self.user_id} 到工具 {tool_name}")
 

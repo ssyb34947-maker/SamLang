@@ -14,6 +14,9 @@ import { UserOnboarding } from './components/Onboarding/UserOnboarding.tsx'
 import { ApiDocs } from './components/ApiDocs/ApiDocs.tsx'
 import Login from './components/Auth/Login'
 import Register from './components/Auth/Register'
+import AdminLogin from './components/Auth/AdminLogin'
+import AdminDashboard from './components/Admin/AdminDashboard'
+import AdminRoute from './components/AdminRoute'
 import './index.css'
 
 // 设置API请求回调的组件
@@ -85,6 +88,26 @@ createRoot(document.getElementById('root')!).render(
                   <AuthRoute>
                     <Register />
                   </AuthRoute>
+                }
+              />
+
+              {/* 管理员登录页 - 公开访问 */}
+              <Route
+                path="/admin/login"
+                element={
+                  <AuthRoute>
+                    <AdminLogin />
+                  </AuthRoute>
+                }
+              />
+
+              {/* 管理员控制台 - 需要管理员登录 */}
+              <Route
+                path="/admin/dashboard/:adminUuid"
+                element={
+                  <AdminRoute>
+                    <AdminDashboard />
+                  </AdminRoute>
                 }
               />
 

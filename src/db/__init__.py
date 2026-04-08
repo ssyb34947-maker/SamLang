@@ -5,6 +5,7 @@
 
 from src.db.user import init_db as init_user_tables
 from src.db.conversation import init_conversation_tables
+from src.db.admin import init_admin_tables
 from src.db.user import (
     create_user,
     authenticate_user,
@@ -34,9 +35,20 @@ from src.db.message import (
     get_conversation_stats,
     search_messages
 )
+from src.db.admin import (
+    create_admin,
+    authenticate_admin,
+    get_admin_by_id,
+    get_admin_by_uuid,
+    list_admins,
+    update_admin_status,
+    update_admin_password,
+    delete_admin
+)
 
 
 def init_db():
     """初始化所有数据库表"""
     init_user_tables()
     init_conversation_tables()
+    init_admin_tables()

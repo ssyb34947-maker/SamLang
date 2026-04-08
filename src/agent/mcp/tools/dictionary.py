@@ -102,10 +102,10 @@ class DictionaryAPI:
 
 
 @dictionary_mcp.tool(
-    name="dictionaty",
+    name="dictionary",
     description="这是一个用于查询英语单词的详细信息的工具，当需要某个英语单词的详细解释、音标、例句、词性、近义词或反义词时，使用此工具。",
 )
-def dictionaty(word: str)-> str:
+def dictionary(word: str)-> str:
     """
     查询单词的详细信息
 

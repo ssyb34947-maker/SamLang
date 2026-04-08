@@ -721,6 +721,43 @@ class ApiService {
   async searchMessages(keyword: string) {
     return this.request<{ results: any[], total: number, keyword: string }>(`/api/conversations/search?keyword=${encodeURIComponent(keyword)}`);
   }
+
+  // ==================== 管理员 API ====================
+
+  /**
+   * 管理员登录
+   */
+  async adminLogin(username: string, password: string) {
+    return fetch(`${API_BASE_URL}/api/admin/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
+  }
+
+  /**
+   * 获取当前管理员信息
+   */
+  async getCurrentAdmin() {
+    const adminToken = localStorage.getItem('admin_access_token');
+    return fetch(`${API_BASE_URL}/api/admin/me`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${adminToken}`,
+      },
+    });
+  }
+
+  /**
+   * 管理员登出
+   */
+  adminLogout() {
+    localStorage.removeItem('admin_access_token');
+    localStorage.removeItem('admin_refresh_token');
+    localStorage.removeItem('admin_info');
+  }
 }
 
 export const apiService = new ApiService();
