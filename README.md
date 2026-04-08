@@ -6,9 +6,9 @@ SamCollege（山姆学院）是一个面向全学科的 AI 教学平台。我们
 
 我们的任务是通过 AI 技术打破传统教育的时空限制，构建一个能够自更新、自适应的智能教学系统，为学习者提供真正个性化的学习体验。
 
-**在线体验**：<https://your-website-url.com> - 立即注册，开启你的智能学习之旅
+**在线体验**：[https://samcollege.top](http://8.130.25.169:5173/) - 立即注册，开启你的智能学习之旅（备案中）
 
-![home0](img/home0.png)
+!\[home0]\(img/home0.png null)
 
 <br />
 
