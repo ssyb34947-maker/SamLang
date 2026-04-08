@@ -8,7 +8,7 @@ SamCollege（山姆学院）是一个面向全学科的 AI 教学平台。我们
 
 **在线体验**：[https://samcollege.top](http://8.130.25.169:5173/) - 立即注册，开启你的智能学习之旅（备案中）
 
-!\[home0]\(img/home0.png null)
+!\[home0]\(img/home0.png)
 
 <br />
 
