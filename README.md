@@ -1,67 +1,130 @@
-# SamLang
+# SamCollege
 
-一个专注于英语学习的AI+教育智能体，依赖于skill驱动，可灵活拓展驱动skill。
+## 项目背景与使命
 
-## 🌟 产品特性
+SamCollege（山姆学院）是一个面向全学科的 AI 教学平台。我们相信，优质的教育资源应该是普惠的、个性化的。通过先进的人工智能技术，SamCollege 致力于为每一位学习者提供专属的"数字教授"，让知识触手可及。
 
-- 🤖 **ReACT Agent** - AI自主决策教学方案
-- 🔧 **MCP 工具集成** - 内置词典、搜索等多种外部工具
-- 📚 **技能系统** - 核心教学依赖，可扩展的技能学习框架
-- 🎯 **专注语言学习** - 优化的外语学习体验
+我们的任务是通过 AI 技术打破传统教育的时空限制，构建一个能够自更新、自适应的智能教学系统，为学习者提供真正个性化的学习体验。
 
-## 📁 项目核心结构
+**在线体验**：<https://your-website-url.com> - 立即注册，开启你的智能学习之旅
+
+![home0](img/home0.png)
+
+<br />
+
+***
+
+## 核心功能
+
+SamCollege 提供 12+ 核心功能，覆盖学习全流程：
+
+**AI 教学**
+
+- 教授授课 - 集成最前沿智能体算法的教授 AGENT，提供超越传统聊天机器人的教学体验
+- 策略自迭代 - 基于 Open CLaw 的记忆系统，24 小时自动更新教学策略
+- 全学科教学 - 覆盖数学、物理、化学、英语等全学科内容，支持输出教学视频等多模态教学
+
+**智能系统**
+
+- Open Claw 系统 - 系统级运行能力，深度集成操作系统
+- Agent 终端助教 - 关注用户学习进度、反馈、需求，智能调整教学策略
+- AI 数据分析 - 机器学习算法迭代，多维度洞察学习表现
+
+**知识管理**
+
+- 自支持知识库 - 上传文档、PDF、笔记，AI 自动整理、归纳、关联知识点
+- 自更新知识库 - 知识库持续进化，AI 自动发现新知识、更新旧内容
+- 笔记管理 - 内置 Markdown 编辑器，支持标注、笔记、AI 智能解析
+
+**学习追踪**
+
+- 学习看板 - 可视化展示学习进度、知识点掌握情况、学习时间分布
+- 精准施教 - 基于机器学习算法，由 SKILL 驱动，动态调整教学策略
+- 多风格系统+双语 - 支持 5 种风格和中英文双语系统
+
+***
+
+## 项目结构
 
 ```
-SamLang/
-├── src/                # 核心模块
-│   ├── agent/         # 对话 Agent
-│   │   ├── agent.py   # ConversationAgent
-│   │   ├── core/      # ReACT 核心算法
-│   │   ├── mcp/       # MCP 工具集成
-│   │   └── skills/    # 技能文件
-│   ├── api/           # API 路由
-│   ├── config/        # 配置管理
-│   └── schemas/       # 数据模型
-│
-├── config.yaml         # 全局配置
-├── .env.example        # 环境变量示例
-├── main.py             # 应用入口
-└── start.bat           # 一键启动脚本
+SamCollege/
+├── src/
+│   ├── agent/
+│   │   ├── core/
+│   │   ├── mcp/
+│   │   ├── skills/
+│   │   ├── prompt/
+│   │   ├── query/
+│   │   ├── util/
+│   │   ├── llm/
+│   │   ├── agent.py
+│   │   ├── factory.py
+│   │   ├── memory.py
+│   │   ├── planner.py
+│   │   └── tools.py
+│   ├── api/
+│   │   ├── rag/
+│   │   ├── auth.py
+│   │   ├── chat.py
+│   │   ├── cold_start.py
+│   │   ├── conversation.py
+│   │   └── reset.py
+│   ├── auth/
+│   ├── config/
+│   ├── db/
+│   ├── rag/
+│   │   ├── chunker/
+│   │   ├── embedding/
+│   │   ├── loader/
+│   │   ├── reranker/
+│   │   ├── retriever/
+│   │   └── vector_store/
+│   ├── schemas/
+│   ├── service/
+│   ├── ocr/
+│   └── code_start/
+├── frontend/
+│   └── src/
+│       ├── components/
+│       ├── hooks/
+│       └── services/
+├── config.yaml
+├── main.py
+├── pyproject.toml
+└── start.bat
 ```
 
-## 🚀 快速开始
+***
 
-如果你不想自己安装，也可以让你的 CLaude code 或者 openclaw 阅读CLAUDE.md，帮你安装好环境，运行。
+## 项目启动
 
-### 一键启动
+### 环境要求
 
-**Windows:**
+- Python 3.11+
+- Node.js 18+
+- Milvus 向量数据库
+
+### 后端启动
+
+**一键启动（Windows）：**
 
 ```bash
 start.bat
 ```
 
-这会启动 SamLang 后端服务。
-
-### 手动启动（推荐使用uv管理环境）
-
-**1. 安装依赖**
+**手动启动：**
 
 ```bash
-# 安装 Python 依赖（项目根目录）
+# 安装依赖
 uv sync
-```
 
-**2. 启动服务**
-
-```bash
-# 模块化运行
+# 启动服务
 uv run -m main
 ```
 
-服务将在 <http://localhost:8000> 运行
+后端服务将在 <http://localhost:8000> 运行
 
-**3. 访问前端**
+### 前端启动
 
 ```bash
 cd frontend
@@ -69,113 +132,16 @@ npm install
 npm run dev
 ```
 
-访问：<http://localhost:5173>
+前端将在 <http://localhost:5173> 运行
 
-**主页**
+### 配置说明
 
-<img src="img/chat.png" alt="SamLang" width="600"/>
+复制 `.env.example` 为 `.env`，填写以下关键配置：
 
-**React循环执行**
+- LLM API Key（DeepSeek 或其他兼容 OpenAI 接口的模型）
+- 向量数据库连接信息
+- 其他可选工具 API Key
 
-<img src="img/react.png" alt="SamLang" width="400"/>
+***
 
-**助教AGENT**
-
-<img src="img/agent2.png" alt="SamLang" width="600"/>
-
-**用户配置**
-
-\<img src="img/profile.png" alt="SamLang" width="600"/>
-
-**知识库**
-
-<img src="img/kdb.png" alt="SamLang" width="600"/>
-
-### 终端使用
-
-如果你不想使用前后端，可以在终端中使用，命令如下：
-
-```bash
-uv run -m src.main
-```
-
-在终端中，你会看到完整的react过程，读到SamLang教授的思考！！！
-
-## 🎯 使用指南
-
-### API 访问
-
-后端启动后，可以访问：
-
-- **Swagger UI**: <http://localhost:8000/docs>
-- **ReDoc**: <http://localhost:8000/redoc>
-
-## 🔧 核心配置
-
-编辑 `config.yaml` 和 `.env`：
-
-```yaml
-# config.yaml
-llm:
-  model_name: deepseek-chat
-  base_url: https://api.deepseek.com
-
-agent:
-  max_history: 20
-```
-
-```bash
-# .env
-DEEPSEEK_API_KEY=your_api_key_here
-```
-
-## 📡 API 端点
-
-| 端点            | 方法   | 描述              |
-| ------------- | ---- | --------------- |
-| `/api/chat`   | POST | 发送消息获取 AI 回复    |
-| `/api/reset`  | POST | 重置对话历史          |
-| `/api/health` | GET  | 健康检查            |
-| `/docs`       | GET  | API 文档（Swagger） |
-
-## 🛠️ 技术栈
-
-- **后端**: FastAPI, Python 3.11+ (使用 uv 管理)
-- **前端**: React
-- **核心算法**: ReACT Agent, MCP（Model Context Protocol）, Skills
-- **AI/LLM**: OpenAI 兼容接口，支持 DeepSeek、GPT-4 等模型（包括思考模型）
-
-## 开发指南
-
-### 新增技能
-
-1. 在 `src/agent/skills/` 目录下创建新的技能文件（例如 `new_skill.py`），编写符合skill协议规范
-2. 在 `config.yaml` 中启用新技能
-
-### 自定义 LLM 模型
-
-1. 编辑 `config.yaml` 中的 `llm` 配置
-2. 确保 API key 已正确设置
-3. 重启服务生效
-
-### 新增工具
-
-1. 在 `src/agent/mcp/` 目录下创建新的工具文件（例如 `new_tool.py`），编写符合MCP协议规范
-2. 在 `config.yaml` 中启用新工具
-
-## 🐛 故障排除
-
-### 服务启动失败
-
-1. 检查 `.env` 和 `config.yaml` 配置
-2. 确认 API key 已正确设置
-3. 运行 `uv sync` 确保依赖已安装
-
-### 中文显示乱码
-
-Windows 用户请确保：
-
-1. 终端使用 UTF-8 编码
-2. 已设置 `PYTHONIOENCODING=utf-8`
-
-**开始使用 SamLang 提升你的语言学习体验！** 🎯✨
+SamCollege - 让每一分钟的学习都有价值
