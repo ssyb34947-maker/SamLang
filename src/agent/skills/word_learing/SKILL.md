@@ -1,13 +1,13 @@
-***
+---
 
-name: word\_learning
+name:  word_learning
 description: Explain and teach an English word using meaning, word roots, and memory techniques when a user asks what a word means or how to remember it.
 tools:
 
 - dictionary
 - websearch
 
-***
+---
 
 # Word Learning Skill
 

@@ -19,6 +19,8 @@ from .tools.dictionary import dictionary_mcp
 from .tools.skillDownload import skill_mcp
 from .tools.rag import rag_server
 from .tools.read_file import read_file_mcp
+from .tools.assistant_conversation import assistant_conversation_mcp
+from .tools.assistant_knowledge import assistant_knowledge_mcp
 
 
 @lru_cache(maxsize=1)
@@ -52,12 +54,24 @@ async def setup():
     # 挂载read_file服务器（读取skill子文件）
     main_mcp.mount(read_file_mcp, namespace="read_file")
 
+    # 挂载助教专用对话管理服务器
+    main_mcp.mount(assistant_conversation_mcp, namespace="assistant_conversation")
+
+    # 挂载助教专用知识库管理服务器
+    main_mcp.mount(assistant_knowledge_mcp, namespace="assistant_knowledge")
+
     # 挂载youdaodictionary服务器
     #main_mcp.mount(youdao_mcp, namespace="youdao")
 
 
 from .client import MCPClient, get_mcp_client
 from .sync_client import SyncMCPClient, get_sync_mcp_client
+from .agent_type_manager import (
+    AgentTypeMCPManager,
+    get_agent_type_mcp_manager,
+    AgentType,
+    MCPConfig,
+)
 
 __all__ = [
     "get_mcp",
@@ -69,8 +83,14 @@ __all__ = [
     "youdao_mcp",
     "rag_server",
     "read_file_mcp",
+    "assistant_conversation_mcp",
+    "assistant_knowledge_mcp",
     "MCPClient",
     "get_mcp_client",
     "SyncMCPClient",
     "get_sync_mcp_client",
+    "AgentTypeMCPManager",
+    "get_agent_type_mcp_manager",
+    "AgentType",
+    "MCPConfig",
 ]

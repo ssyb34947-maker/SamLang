@@ -30,11 +30,28 @@ def init_conversation_tables():
         last_message TEXT,
         last_message_time TIMESTAMP,
         model_config TEXT DEFAULT NULL,
+        total_tokens INTEGER DEFAULT 0,
+        prompt_tokens INTEGER DEFAULT 0,
+        completion_tokens INTEGER DEFAULT 0,
+        agent_type INTEGER DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
     )
     ''')
+    
+    # 检查并添加token相关列（兼容已有表）
+    cursor.execute("PRAGMA table_info(conversations)")
+    columns = [column[1] for column in cursor.fetchall()]
+    
+    if 'total_tokens' not in columns:
+        cursor.execute('ALTER TABLE conversations ADD COLUMN total_tokens INTEGER DEFAULT 0')
+    if 'prompt_tokens' not in columns:
+        cursor.execute('ALTER TABLE conversations ADD COLUMN prompt_tokens INTEGER DEFAULT 0')
+    if 'completion_tokens' not in columns:
+        cursor.execute('ALTER TABLE conversations ADD COLUMN completion_tokens INTEGER DEFAULT 0')
+    if 'agent_type' not in columns:
+        cursor.execute('ALTER TABLE conversations ADD COLUMN agent_type INTEGER DEFAULT 1')
     
     # 创建消息表（具体数据）
     cursor.execute('''
@@ -44,11 +61,25 @@ def init_conversation_tables():
         message_id TEXT UNIQUE NOT NULL,
         role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
         content TEXT NOT NULL,
+        prompt_tokens INTEGER DEFAULT 0,
+        completion_tokens INTEGER DEFAULT 0,
+        total_tokens INTEGER DEFAULT 0,
         metadata TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (conversation_id) REFERENCES conversations (conversation_id) ON DELETE CASCADE
     )
     ''')
+    
+    # 检查并添加token相关列（兼容已有表）
+    cursor.execute("PRAGMA table_info(messages)")
+    msg_columns = [column[1] for column in cursor.fetchall()]
+    
+    if 'prompt_tokens' not in msg_columns:
+        cursor.execute('ALTER TABLE messages ADD COLUMN prompt_tokens INTEGER DEFAULT 0')
+    if 'completion_tokens' not in msg_columns:
+        cursor.execute('ALTER TABLE messages ADD COLUMN completion_tokens INTEGER DEFAULT 0')
+    if 'total_tokens' not in msg_columns:
+        cursor.execute('ALTER TABLE messages ADD COLUMN total_tokens INTEGER DEFAULT 0')
     
     # 创建索引优化查询性能
     cursor.execute('''
@@ -77,7 +108,8 @@ def create_conversation(
     conversation_id: str,
     title: str = '新对话',
     summary: Optional[str] = None,
-    model_config: Optional[Dict[str, Any]] = None
+    model_config: Optional[Dict[str, Any]] = None,
+    agent_type: int = 1
 ) -> int:
     """
     创建新对话
@@ -88,6 +120,7 @@ def create_conversation(
         title: 对话标题
         summary: 对话摘要（可选）
         model_config: 模型配置（JSON格式）
+        agent_type: Agent类型（1=教授, 2=助教, 3=管理员AI）
 
     Returns:
         新创建对话的数据库ID
@@ -100,9 +133,9 @@ def create_conversation(
 
         cursor.execute('''
         INSERT INTO conversations
-        (user_id, conversation_id, title, summary, model_config, updated_at)
-        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ''', (user_id, conversation_id, title, summary, model_config_json))
+        (user_id, conversation_id, title, summary, model_config, agent_type, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ''', (user_id, conversation_id, title, summary, model_config_json, agent_type))
 
         conversation_db_id = cursor.lastrowid
         conn.commit()
@@ -132,7 +165,8 @@ def get_conversation_by_id(conversation_id: str) -> Optional[Dict[str, Any]]:
         cursor.execute('''
         SELECT id, user_id, conversation_id, title, summary, is_pinned, is_archived,
                is_deleted, message_count, last_message, last_message_time,
-               model_config, created_at, updated_at
+               model_config, total_tokens, prompt_tokens, completion_tokens,
+               agent_type, created_at, updated_at
         FROM conversations
         WHERE conversation_id = ? AND is_deleted = FALSE
         ''', (conversation_id,))
@@ -154,8 +188,12 @@ def get_conversation_by_id(conversation_id: str) -> Optional[Dict[str, Any]]:
             'last_message': row[9],
             'last_message_time': row[10],
             'model_config': json.loads(row[11]) if row[11] else None,
-            'created_at': row[12],
-            'updated_at': row[13]
+            'total_tokens': row[12] or 0,
+            'prompt_tokens': row[13] or 0,
+            'completion_tokens': row[14] or 0,
+            'agent_type': row[15] or 1,
+            'created_at': row[16],
+            'updated_at': row[17]
         }
         
     finally:
@@ -163,45 +201,73 @@ def get_conversation_by_id(conversation_id: str) -> Optional[Dict[str, Any]]:
 
 
 def get_user_conversations(
-    user_id: int, 
+    user_id: int,
     include_archived: bool = False,
+    agent_type: Optional[int] = None,
     limit: int = 100,
     offset: int = 0
 ) -> List[Dict[str, Any]]:
     """
     获取用户的对话列表
-    
+
     Args:
         user_id: 用户ID
         include_archived: 是否包含已归档的对话
+        agent_type: Agent类型过滤（1=教授, 2=助教, 3=管理员AI），为None则返回所有
         limit: 返回数量限制
         offset: 分页偏移量
-    
+
     Returns:
         对话列表，按置顶状态和更新时间排序
     """
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    
+
     try:
-        if include_archived:
-            cursor.execute('''
-            SELECT id, conversation_id, title, summary, is_pinned, is_archived,
-                   message_count, last_message, last_message_time, created_at, updated_at
-            FROM conversations
-            WHERE user_id = ? AND is_deleted = FALSE
-            ORDER BY is_pinned DESC, updated_at DESC
-            LIMIT ? OFFSET ?
-            ''', (user_id, limit, offset))
+        if agent_type is not None:
+            # 按agent_type过滤
+            if include_archived:
+                cursor.execute('''
+                SELECT id, conversation_id, title, summary, is_pinned, is_archived,
+                       message_count, last_message, last_message_time, total_tokens,
+                       prompt_tokens, completion_tokens, agent_type, created_at, updated_at
+                FROM conversations
+                WHERE user_id = ? AND is_deleted = FALSE AND agent_type = ?
+                ORDER BY is_pinned DESC, updated_at DESC
+                LIMIT ? OFFSET ?
+                ''', (user_id, agent_type, limit, offset))
+            else:
+                cursor.execute('''
+                SELECT id, conversation_id, title, summary, is_pinned, is_archived,
+                       message_count, last_message, last_message_time, total_tokens,
+                       prompt_tokens, completion_tokens, agent_type, created_at, updated_at
+                FROM conversations
+                WHERE user_id = ? AND is_deleted = FALSE AND is_archived = FALSE AND agent_type = ?
+                ORDER BY is_pinned DESC, updated_at DESC
+                LIMIT ? OFFSET ?
+                ''', (user_id, agent_type, limit, offset))
         else:
-            cursor.execute('''
-            SELECT id, conversation_id, title, summary, is_pinned, is_archived,
-                   message_count, last_message, last_message_time, created_at, updated_at
-            FROM conversations
-            WHERE user_id = ? AND is_deleted = FALSE AND is_archived = FALSE
-            ORDER BY is_pinned DESC, updated_at DESC
-            LIMIT ? OFFSET ?
-            ''', (user_id, limit, offset))
+            # 不过滤agent_type
+            if include_archived:
+                cursor.execute('''
+                SELECT id, conversation_id, title, summary, is_pinned, is_archived,
+                       message_count, last_message, last_message_time, total_tokens,
+                       prompt_tokens, completion_tokens, agent_type, created_at, updated_at
+                FROM conversations
+                WHERE user_id = ? AND is_deleted = FALSE
+                ORDER BY is_pinned DESC, updated_at DESC
+                LIMIT ? OFFSET ?
+                ''', (user_id, limit, offset))
+            else:
+                cursor.execute('''
+                SELECT id, conversation_id, title, summary, is_pinned, is_archived,
+                       message_count, last_message, last_message_time, total_tokens,
+                       prompt_tokens, completion_tokens, agent_type, created_at, updated_at
+                FROM conversations
+                WHERE user_id = ? AND is_deleted = FALSE AND is_archived = FALSE
+                ORDER BY is_pinned DESC, updated_at DESC
+                LIMIT ? OFFSET ?
+                ''', (user_id, limit, offset))
 
         rows = cursor.fetchall()
 
@@ -216,12 +282,16 @@ def get_user_conversations(
                 'message_count': row[6],
                 'last_message': row[7],
                 'last_message_time': row[8],
-                'created_at': row[9],
-                'updated_at': row[10]
+                'total_tokens': row[9] or 0,
+                'prompt_tokens': row[10] or 0,
+                'completion_tokens': row[11] or 0,
+                'agent_type': row[12] or 1,
+                'created_at': row[13],
+                'updated_at': row[14]
             }
             for row in rows
         ]
-        
+
     finally:
         conn.close()
 
@@ -385,6 +455,47 @@ def restore_conversation(conversation_id: str) -> bool:
         SET is_deleted = FALSE, updated_at = CURRENT_TIMESTAMP 
         WHERE conversation_id = ?
         ''', (conversation_id,))
+        
+        conn.commit()
+        return cursor.rowcount > 0
+        
+    except Exception as e:
+        conn.rollback()
+        raise e
+    finally:
+        conn.close()
+
+
+def update_conversation_tokens(
+    conversation_id: str,
+    prompt_tokens: int = 0,
+    completion_tokens: int = 0,
+    total_tokens: int = 0
+) -> bool:
+    """
+    更新对话的token消耗统计
+    
+    Args:
+        conversation_id: 对话唯一标识
+        prompt_tokens: 输入token数（增量）
+        completion_tokens: 输出token数（增量）
+        total_tokens: 总token数（增量）
+    
+    Returns:
+        是否更新成功
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute('''
+        UPDATE conversations 
+        SET prompt_tokens = prompt_tokens + ?,
+            completion_tokens = completion_tokens + ?,
+            total_tokens = total_tokens + ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE conversation_id = ?
+        ''', (prompt_tokens, completion_tokens, total_tokens, conversation_id))
         
         conn.commit()
         return cursor.rowcount > 0

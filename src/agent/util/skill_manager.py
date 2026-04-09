@@ -1,6 +1,7 @@
 """
 Skill 管理器
 负责扫描、加载和管理所有 skills
+支持标准 skill 目录结构：每个 skill 一个文件夹，包含 SKILL.md 和子资源
 """
 
 from pathlib import Path
@@ -14,8 +15,9 @@ class SkillManager:
     Skill 管理器
 
     功能：
-    - 扫描 skills 目录下的所有 .md 文件
-    - 解析每个 skill 的 name 和 description
+    - 扫描 skills 目录下的所有子文件夹（每个子文件夹是一个 skill）
+    - 解析每个 skill 的 SKILL.md 文件
+    - 提取 name、description 和子资源列表
     - 提供格式化的 skills 列表用于 system prompt
     """
 
@@ -35,6 +37,43 @@ class SkillManager:
 
         self._skills_cache: Optional[List[Dict]] = None
 
+    def _get_skill_resources(self, skill_dir: Path) -> List[Dict]:
+        """
+        获取 skill 的子资源列表
+
+        输入：
+            skill_dir: skill 目录路径
+        输出：
+            资源列表，每个元素包含：
+            - type: 资源类型（如 rules, examples, assets）
+            - path: 相对路径
+            - files: 文件列表
+        """
+        resources = []
+        
+        if not skill_dir.exists():
+            return resources
+        
+        # 扫描常见资源目录
+        for subdir in skill_dir.iterdir():
+            if subdir.is_dir() and not subdir.name.startswith('.'):
+                # 获取该目录下的所有文件
+                files = []
+                for file_path in subdir.rglob('*'):
+                    if file_path.is_file():
+                        # 计算相对路径
+                        rel_path = file_path.relative_to(skill_dir)
+                        files.append(str(rel_path))
+                
+                if files:
+                    resources.append({
+                        "type": subdir.name,
+                        "path": subdir.name,
+                        "files": files[:10]  # 最多显示10个文件
+                    })
+        
+        return resources
+
     def scan_skills(self, force_reload: bool = False) -> List[Dict]:
         """
         扫描 skills 目录，获取所有 skill 的信息
@@ -43,9 +82,10 @@ class SkillManager:
             force_reload: 是否强制重新扫描（默认使用缓存）
         输出：
             skills 列表，每个元素是一个字典包含：
-            - name: skill 名称
+            - name: skill 名称（来自 frontmatter 或文件夹名）
             - description: skill 描述
-            - file_path: 文件路径
+            - file_path: SKILL.md 文件路径
+            - resources: 子资源列表
         """
         # 使用缓存
         if not force_reload and self._skills_cache is not None:
@@ -54,29 +94,47 @@ class SkillManager:
         skills = []
 
         # 检查目录是否存在
+        print(f"[SkillManager] 扫描目录: {self.skills_dir}")
+        print(f"[SkillManager] 目录是否存在: {self.skills_dir.exists()}")
         if not self.skills_dir.exists():
             print(f"警告：skills 目录不存在：{self.skills_dir}")
             return skills
 
-        # 扫描所有 .md 文件
-        for skill_file in self.skills_dir.glob("*.md"):
+        # 扫描所有子目录（每个子目录是一个 skill）
+        item_count = 0
+        for skill_dir in self.skills_dir.iterdir():
+            item_count += 1
+            print(f"[SkillManager] 检查项目: {skill_dir.name} (is_dir: {skill_dir.is_dir()})")
+            if not skill_dir.is_dir() or skill_dir.name.startswith('.'):
+                continue
+            
+            # 查找 SKILL.md 文件
+            skill_file = skill_dir / "SKILL.md"
+            if not skill_file.exists():
+                print(f"警告：{skill_dir.name} 目录下缺少 SKILL.md 文件")
+                continue
+            
             try:
-                frontmatter, _ = parse_skill_md(skill_file)
+                frontmatter, body = parse_skill_md(skill_file)
+                print(f"[SkillManager] {skill_dir.name}/SKILL.md frontmatter: {frontmatter}")
 
                 if frontmatter and isinstance(frontmatter, dict):
                     skill_info = {
-                        "name": frontmatter.get("name", skill_file.stem),
+                        "name": frontmatter.get("name", skill_dir.name),
                         "description": frontmatter.get("description", "无描述"),
-                        "file_path": str(skill_file)
+                        "file_path": str(skill_file),
+                        "resources": self._get_skill_resources(skill_dir)
                     }
                     skills.append(skill_info)
+                    print(f"[SkillManager] 成功添加 skill: {skill_info['name']}")
                 else:
-                    # 没有 frontmatter，使用文件名
+                    # 没有 frontmatter，使用文件夹名
                     print(f"警告：{skill_file.name} 缺少 YAML frontmatter")
                     skills.append({
-                        "name": skill_file.stem,
+                        "name": skill_dir.name,
                         "description": "无描述",
-                        "file_path": str(skill_file)
+                        "file_path": str(skill_file),
+                        "resources": self._get_skill_resources(skill_dir)
                     })
 
             except Exception as e:
@@ -131,6 +189,7 @@ class SkillManager:
             格式化后的字符串
         """
         skills = self.scan_skills()
+        print(f"[SkillManager] format_skills_for_prompt 获取到 {len(skills)} 个 skill: {[s['name'] for s in skills]}")
 
         if not skills:
             return "当前没有可用的技能。"
@@ -146,9 +205,18 @@ class SkillManager:
 
             for i, skill in enumerate(skills, 1):
                 lines.append(f"{i}. **{skill['name']}**")
-                lines.append(f"   - 描述：{skill['description']}\n")
+                lines.append(f"   - 描述：{skill['description']}")
+                
+                # 添加子资源信息
+                if skill.get('resources'):
+                    lines.append(f"   - 子资源：")
+                    for resource in skill['resources']:
+                        lines.append(f"     - {resource['path']}/: {len(resource['files'])} 个文件")
+                lines.append("")
 
-            lines.append("\n**使用方法**：当需要执行某个 skill 时，调用 `download_skill(skill_name)` 获取完整的 SOP 内容。")
+            lines.append("\n**使用方法**：")
+            lines.append("1. 调用 `download_skill(skill_name)` 获取 SKILL.md 主文档")
+            lines.append("2. 如需读取子资源（如 rules/animations.md），使用 `read_skill_file(skill_name, file_path)`")
 
             return "\n".join(lines)
 

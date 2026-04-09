@@ -14,11 +14,14 @@ from .memory import MemoryManager
 from .planner import Planner
 from .tools import ToolManager
 from .llm.llmclient import LLMClient
-from src.agent.prompt.get_prompt import get_system_template, context_with_current_time, context_with_user
+from src.agent.prompt.get_prompt import get_full_system_prompt, get_system_template, context_with_current_time, context_with_user
 from src.agent.util.skill_manager import get_skill_manager
+from src.agent.util.agent_type_skill_manager import get_agent_type_skill_manager
+from src.agent.mcp.agent_type_manager import get_agent_type_mcp_manager, AgentType
 from src.agent.query import rewrite_query
 from .core.react import ReACTAgentWithFunctionCalling
 from src.config import Config, LLMConfig, AgentConfig
+from src.utils.token_estimator import estimate_messages_tokens
 
 
 class ConversationAgent:
@@ -51,12 +54,14 @@ class ConversationAgent:
         agent_config: Optional[AgentConfig] = None,
         use_react: bool = True,
         verbose: bool = False,
-        stream: bool = True
+        stream: bool = True,
+        agent_type: int = 1
     ):
         self.user_id = user_id
         self.conversation_id = conversation_id
         self.role = role
-        
+        self.agent_type = agent_type
+
         if config is None:
             from src.config import get_config
             config = get_config()
@@ -71,9 +76,9 @@ class ConversationAgent:
         # 创建独立的 MemoryManager（隔离的记忆）
         self.memory_manager = MemoryManager(max_history=self.agent_config.max_history)
         self.planner = Planner()
-        
-        # 创建 ToolManager，传入 user_id 和 role 实现工具隔离
-        self.tool_manager = ToolManager(user_id=user_id, role=role)
+
+        # 创建 ToolManager，传入 user_id、role 和 agent_type 实现工具隔离
+        self.tool_manager = ToolManager(user_id=user_id, role=role, agent_type=self.agent_type)
         self.llm_client = LLMClient(config=self.llm_config)
 
         # 初始化 ReACT Agent
@@ -88,11 +93,11 @@ class ConversationAgent:
 
         # 从数据库加载历史消息到记忆
         self._load_history_from_db()
-        
+
         # 设置系统提示词
         self._setup_system_prompt()
-        
-        logger.info(f"[ConversationAgent] 创建完成: user_id={user_id}, conversation_id={conversation_id}, role={role}")
+
+        logger.info(f"[ConversationAgent] 创建完成: user_id={user_id}, conversation_id={conversation_id}, role={role}, agent_type={agent_type}")
 
     def _load_history_from_db(self):
         """
@@ -117,23 +122,25 @@ class ConversationAgent:
     def _setup_system_prompt(self):
         """
         构建并设置系统提示词
+        根据agent_type加载对应的系统提示词，并注入对应的skills
         """
-        system_prompt = get_system_template()
-        
         # 注入用户信息（从数据库获取用户名，或使用默认值）
         try:
             from src.db.tools import get_user_username
             username = get_user_username(int(self.user_id)) or "山姆教授的大弟子"
         except:
             username = "山姆教授的大弟子"
+
+        # 根据agent_type获取对应的系统提示词
+        system_prompt = get_full_system_prompt(username, self.agent_type)
+
+        # 添加该Agent类型可用的skills信息
+        agent_type_skill_manager = get_agent_type_skill_manager()
+        agent_type_enum = agent_type_skill_manager.get_agent_type_from_int(self.agent_type)
+        skills_info = agent_type_skill_manager.format_skills_for_prompt(agent_type_enum)
         
-        system_prompt = context_with_user(username, system_prompt)
-        system_prompt = context_with_current_time(system_prompt)
-        
-        # 添加 skills 信息
-        skill_manager = get_skill_manager()
-        skills_info = skill_manager.format_skills_for_prompt(format_type="markdown")
-        system_prompt = f"{system_prompt}\n\n{skills_info}"
+        if skills_info:
+            system_prompt = f"{system_prompt}\n\n{skills_info}"
 
         self.memory_manager.set_system_message(system_prompt)
 
@@ -148,12 +155,19 @@ class ConversationAgent:
         """
         # 重写用户输入
         rewritten_input = rewrite_query(user_input)
-        
+
         # 添加用户消息到记忆
         self.memory_manager.add_message("user", rewritten_input)
 
         # 获取所有消息（包含滑动窗口后的历史）
         messages = self.memory_manager.get_messages()
+
+        # 用于存储token使用量
+        token_usage = {
+            'prompt_tokens': 0,
+            'completion_tokens': 0,
+            'total_tokens': 0
+        }
 
         if self.use_react:
             # 使用 ReACT 模式
@@ -162,10 +176,10 @@ class ConversationAgent:
             context_messages = system_message + history_messages
 
             logger.debug(f"context_messages: {context_messages}")
-        
+
             user_queries = [msg for msg in context_messages if msg.get("role") == "user"]
             current_user_input = user_queries[-1]["content"] if user_queries else ""
-            
+
             assistant_message = self.react_agent.run(
                 user_query=current_user_input,
                 thinking_callback=thinking_callback,
@@ -178,12 +192,98 @@ class ConversationAgent:
                 print("\n[AI] ", end='', flush=True)
                 assistant_message = self.llm_client.chat_stream(messages, print_output=True)
             else:
-                assistant_message = self.llm_client.chat(messages)
+                # 使用新的chat方法获取token统计
+                from src.agent.llm.llmclient import ChatResponse
+                response = self.llm_client.chat(messages)
+                if isinstance(response, ChatResponse):
+                    assistant_message = response.content
+                    token_usage['prompt_tokens'] = response.prompt_tokens
+                    token_usage['completion_tokens'] = response.completion_tokens
+                    token_usage['total_tokens'] = response.total_tokens
+                else:
+                    assistant_message = response
 
         # 添加助手消息到记忆
         self.memory_manager.add_message("assistant", assistant_message)
 
+        # 使用估算函数统计token（支持流式和非流式）
+        try:
+            # 获取所有消息（包含刚添加的助手消息）
+            all_messages = self.memory_manager.get_messages()
+            prompt_tokens, completion_tokens, total_tokens = estimate_messages_tokens(all_messages)
+            
+            token_usage = {
+                'prompt_tokens': prompt_tokens,
+                'completion_tokens': completion_tokens,
+                'total_tokens': total_tokens
+            }
+            
+            # 记录token消耗
+            self._record_token_usage(token_usage)
+            
+            # 更新对话的token统计
+            self._update_conversation_tokens(token_usage)
+            
+        except Exception as e:
+            logger.warning(f"[Agent] 估算token失败: {e}")
+
         return assistant_message
+
+    def _record_token_usage(self, token_usage: dict):
+        """
+        记录token消耗
+
+        输入：token_usage - 包含prompt_tokens, completion_tokens, total_tokens的字典
+        """
+        try:
+            from src.db.token_stats import create_token_consumption
+
+            # 尝试将user_id转换为整数
+            try:
+                user_id = int(self.user_id)
+            except (ValueError, TypeError):
+                # 如果user_id不是整数（如测试用户），则不记录
+                logger.debug(f"[Agent] 跳过token记录：非数字user_id={self.user_id}")
+                return
+
+            create_token_consumption(
+                user_id=user_id,
+                conversation_id=self.conversation_id,
+                prompt_tokens=token_usage.get('prompt_tokens', 0),
+                completion_tokens=token_usage.get('completion_tokens', 0),
+                total_tokens=token_usage.get('total_tokens', 0),
+                model_name=self.llm_config.model_name
+            )
+
+            logger.debug(f"[Agent] Token消耗已记录: {token_usage}")
+        except Exception as e:
+            logger.warning(f"[Agent] 记录token消耗失败: {e}")
+
+    def _update_conversation_tokens(self, token_usage: dict):
+        """
+        更新对话的token统计（增量更新）
+
+        输入：token_usage - 包含prompt_tokens, completion_tokens, total_tokens的字典
+        """
+        try:
+            from src.db.conversation import update_conversation_tokens
+
+            # 计算本次消息的token增量
+            prompt_tokens = token_usage.get('prompt_tokens', 0)
+            completion_tokens = token_usage.get('completion_tokens', 0)
+            total_tokens = token_usage.get('total_tokens', 0)
+
+            # 更新对话的token统计
+            update_conversation_tokens(
+                conversation_id=self.conversation_id,
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=total_tokens
+            )
+
+            logger.debug(f"[Agent] 对话Token统计已更新: {token_usage}")
+        except Exception as e:
+            logger.warning(f"[Agent] 更新对话Token统计失败: {e}")
 
     def reset(self) -> None:
         """

@@ -261,7 +261,11 @@ export const useAgentCLI = (): UseAgentCLIReturn => {
         },
         (error) => {
           updateLine(responseId, 'error', `[ERROR] ${error}`);
-        }
+        },
+        undefined, // onConversationCreated
+        undefined, // onTokenStats
+        true, // skipLoading
+        2 // agentType: 2 = 助教Agent
       );
     } catch (error: any) {
       updateLine(responseId, 'error', `[ERROR] 对话失败: ${error.message}`);

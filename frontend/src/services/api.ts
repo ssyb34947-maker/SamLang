@@ -11,6 +11,15 @@ interface ApiResponse<T> {
   error?: string;
 }
 
+/**
+ * Token统计信息
+ */
+export interface TokenStats {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
 class ApiService {
   private token: string | null = null;
   private requestCallbacks: {
@@ -268,10 +277,12 @@ class ApiService {
     message: string,
     conversationId: string | undefined,
     onToken: (token: string) => void,
-    onComplete: (fullResponse: string, conversationId?: string, isNewConversation?: boolean) => void,
+    onComplete: (fullResponse: string, conversationId?: string, isNewConversation?: boolean, tokenStats?: TokenStats) => void,
     onError: (error: string) => void,
     onConversationCreated?: (conversationId: string) => void,
-    skipLoading: boolean = true
+    onTokenStats?: (tokenStats: TokenStats) => void,
+    skipLoading: boolean = true,
+    agentType: number = 1
   ): Promise<void> {
     try {
       // 开始请求时显示 loading（如果未跳过）
@@ -279,9 +290,14 @@ class ApiService {
         this.requestCallbacks.onRequestStart();
       }
 
-      console.log('Sending real-time streaming request to:', `${API_BASE_URL}/api/chat/stream`);
+      // 根据agent_type选择API端点
+      const endpoint = agentType === 2 ? '/api/chat/assistant/stream' :
+        agentType === 3 ? '/api/chat/admin-ai/stream' :
+          '/api/chat/stream';
 
-      const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
+      console.log('Sending real-time streaming request to:', `${API_BASE_URL}${endpoint}`);
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -344,7 +360,7 @@ class ApiService {
               // 使用 setTimeout 0 确保UI更新不会被阻塞
               setTimeout(() => onToken(token), 0);
             } else if (event.type === 'final_response') {
-              // 流结束
+              // 流结束（但可能还有token统计）
               if (event.data?.content) {
                 fullResponse = event.data.content;
               }
@@ -354,7 +370,24 @@ class ApiService {
               if (convId && isNewConv && onConversationCreated) {
                 onConversationCreated(convId);
               }
-              onComplete(fullResponse, convId, isNewConv);
+              // 注意：不立即调用onComplete，等待end事件
+            } else if (event.type === 'end') {
+              // 收到token统计（流真正结束）
+              const tokenStats: TokenStats = {
+                promptTokens: event.data?.prompt_tokens || 0,
+                completionTokens: event.data?.completion_tokens || 0,
+                totalTokens: event.data?.total_tokens || 0,
+              };
+              console.log('Received token stats:', tokenStats);
+
+              // 回调token统计
+              if (onTokenStats) {
+                onTokenStats(tokenStats);
+              }
+
+              // 完成回调
+              const convId = event.data?.conversation_id;
+              onComplete(fullResponse, convId, false, tokenStats);
               return;
             } else if (event.type === 'error') {
               // 错误
@@ -400,15 +433,20 @@ class ApiService {
   /**
    * 旧的流式方法（保留兼容）
    */
-  async sendMessageStream(message: string, onEvent: (eventType: string, data: any) => void, skipLoading: boolean = true): Promise<string> {
+  async sendMessageStream(message: string, onEvent: (eventType: string, data: any) => void, skipLoading: boolean = true, agentType: number = 1): Promise<string> {
     try {
       if (!skipLoading && this.requestCallbacks.onRequestStart) {
         this.requestCallbacks.onRequestStart();
       }
 
-      console.log('Sending streaming request to:', `${API_BASE_URL}/api/chat/stream`);
+      // 根据agent_type选择API端点
+      const endpoint = agentType === 2 ? '/api/chat/assistant/stream' :
+        agentType === 3 ? '/api/chat/admin-ai/stream' :
+          '/api/chat/stream';
 
-      const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
+      console.log('Sending streaming request to:', `${API_BASE_URL}${endpoint}`);
+
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -677,9 +715,11 @@ class ApiService {
 
   /**
    * 获取用户的对话列表
+   * @param includeArchived 是否包含已归档对话
+   * @param agentType Agent类型（1=教授, 2=助教, 3=管理员AI），默认1
    */
-  async getConversations(includeArchived: boolean = false) {
-    return this.request<{ conversations: any[], total: number }>(`/api/conversations?include_archived=${includeArchived}`);
+  async getConversations(includeArchived: boolean = false, agentType: number = 1) {
+    return this.request<{ conversations: any[], total: number }>(`/api/conversations?include_archived=${includeArchived}&agent_type=${agentType}`);
   }
 
   /**
