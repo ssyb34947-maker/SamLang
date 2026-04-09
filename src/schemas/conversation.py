@@ -75,9 +75,12 @@ class ConversationResponse(BaseModel):
     message_count: int = Field(default=0, description="消息数量")
     last_message: Optional[str] = Field(default=None, description="最后一条消息")
     last_message_time: Optional[datetime] = Field(default=None, description="最后消息时间")
+    total_tokens: int = Field(default=0, description="总Token消耗")
+    prompt_tokens: int = Field(default=0, description="输入Token数")
+    completion_tokens: int = Field(default=0, description="输出Token数")
     created_at: datetime = Field(..., description="创建时间")
     updated_at: datetime = Field(..., description="更新时间")
-    
+
     class Config:
         from_attributes = True
 

@@ -1,11 +1,12 @@
 """
 工具管理器模块
 负责管理和调用 MCP 工具
-支持用户隔离和角色权限控制
+支持用户隔离、角色权限控制和 Agent 类型隔离
 """
 
 from typing import List, Dict, Any, Optional
 from src.agent.mcp import get_sync_mcp_client
+from src.agent.mcp.agent_type_manager import get_agent_type_mcp_manager, AgentType
 from loguru import logger
 
 
@@ -18,12 +19,14 @@ class ToolManager:
     - 提供工具调用接口
     - 将工具转换为 LLM 可用的格式
     - 支持用户隔离（每个 Agent 独立的 MCP Client）
+    - 支持 Agent 类型隔离（不同身份有不同的工具集）
     """
 
     def __init__(
         self,
         user_id: Optional[str] = None,
-        role: str = "student"
+        role: str = "student",
+        agent_type: int = 1
     ):
         """
         初始化工具管理器
@@ -31,14 +34,17 @@ class ToolManager:
         输入：
             user_id: 用户ID，用于数据隔离
             role: 用户角色 (professor/assistant/student)
+            agent_type: Agent 类型 (1=教授, 2=助教, 3=管理员)
         输出：无
         """
         self.user_id = user_id
         self.role = role
+        self.agent_type = agent_type
         self.mcp_client = None  # 延迟初始化
         self._tools: Optional[List[Dict[str, Any]]] = None
+        self._agent_type_mcp_manager = get_agent_type_mcp_manager()
         
-        logger.debug(f"[ToolManager] 创建: user_id={user_id}, role={role}")
+        logger.debug(f"[ToolManager] 创建: user_id={user_id}, role={role}, agent_type={agent_type}")
 
     def _ensure_client(self):
         """确保 MCP 客户端已初始化"""
@@ -52,16 +58,46 @@ class ToolManager:
 
     def get_tools(self) -> List[Dict[str, Any]]:
         """
-        获取当前角色可用的工具
+        获取当前 Agent 类型可用的工具
 
         输入：无
-        输出：工具列表（已根据角色过滤）
+        输出：工具列表（已根据 Agent 类型过滤）
         """
         self._ensure_client()
         if self._tools is None:
-            self._tools = self.mcp_client.list_tools()
-            logger.info(f"[ToolManager] 从 MCP 获取 {len(self._tools)} 个工具: {[t.get('name', '') for t in self._tools]}")
+            all_tools = self.mcp_client.list_tools()
+            # 根据 Agent 类型过滤工具
+            self._tools = self._filter_tools_by_agent_type(all_tools)
+            logger.info(f"[ToolManager] 从 MCP 获取 {len(all_tools)} 个工具，过滤后剩余 {len(self._tools)} 个: {[t.get('name', '') for t in self._tools]}")
         return self._tools
+    
+    def _filter_tools_by_agent_type(self, tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        根据 Agent 类型过滤工具
+        
+        输入：
+            tools: 所有可用工具列表
+        输出：
+            过滤后的工具列表
+        """
+        agent_type_enum = self._agent_type_mcp_manager.get_agent_type_from_int(self.agent_type)
+        allowed_namespaces = self._agent_type_mcp_manager.get_namespaces_for_agent_type(agent_type_enum)
+        
+        if not allowed_namespaces:
+            logger.warning(f"[ToolManager] Agent 类型 {self.agent_type} 没有配置可用的 MCP，返回空列表")
+            return []
+        
+        filtered_tools = []
+        for tool in tools:
+            tool_name = tool.get('name', '')
+            # 检查工具是否属于允许的命名空间
+            # 工具名称格式通常是 "namespace__tool_name"
+            for namespace in allowed_namespaces:
+                if tool_name.startswith(f"{namespace}__") or tool_name == namespace:
+                    filtered_tools.append(tool)
+                    break
+        
+        return filtered_tools
 
     def get_tools_for_llm(self) -> List[Dict[str, Any]]:
         """

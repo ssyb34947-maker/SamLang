@@ -6,6 +6,7 @@
 from src.db.user import init_db as init_user_tables
 from src.db.conversation import init_conversation_tables
 from src.db.admin import init_admin_tables
+from src.db.token_stats import init_token_stats_tables
 from src.db.user import (
     create_user,
     authenticate_user,
@@ -45,6 +46,19 @@ from src.db.admin import (
     update_admin_password,
     delete_admin
 )
+from src.db.token_stats import (
+    create_token_consumption,
+    get_token_consumption_by_uuid,
+    get_user_token_stats,
+    get_daily_token_stats,
+    get_token_stats_range,
+    update_token_consumption,
+    delete_token_consumption,
+    delete_daily_stats,
+    is_user_active_today,
+    get_user_activity_history,
+    get_all_users_daily_activity
+)
 
 
 def init_db():
@@ -52,3 +66,4 @@ def init_db():
     init_user_tables()
     init_conversation_tables()
     init_admin_tables()
+    init_token_stats_tables()

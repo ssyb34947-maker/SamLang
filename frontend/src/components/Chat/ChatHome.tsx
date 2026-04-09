@@ -5,6 +5,7 @@ import { apiService } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { Sidebar } from './Sidebar';
 import { AIOutput } from './AIOutput';
+import { ConversationTokenHeader, useConversationTokens } from '../TokenDisplay';
 import 'tailwindcss/tailwind.css';
 
 // 对话类型定义
@@ -17,6 +18,9 @@ interface Conversation {
   isPinned: boolean;
   unreadCount: number;
   isTemporary?: boolean; // 标记是否为临时对话（未保存到数据库）
+  total_tokens?: number;
+  prompt_tokens?: number;
+  completion_tokens?: number;
 }
 
 // 消息类型定义
@@ -25,6 +29,11 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: string;
+  tokens?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 /**
@@ -63,6 +72,11 @@ export const ChatHome: React.FC = () => {
   const [newConversationTitle, setNewConversationTitle] = useState('');
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [renameTarget, setRenameTarget] = useState<string | null>(null);
+  const [conversationTokens, setConversationTokens] = useState<{
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  }>({ promptTokens: 0, completionTokens: 0, totalTokens: 0 });
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
@@ -107,11 +121,46 @@ export const ChatHome: React.FC = () => {
         id: msg.message_id,
         role: msg.role,
         content: msg.content,
-        timestamp: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        timestamp: new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        tokens: {
+          promptTokens: msg.prompt_tokens || 0,
+          completionTokens: msg.completion_tokens || 0,
+          totalTokens: msg.total_tokens || 0
+        }
       }));
       setMessages(prev => ({ ...prev, [conversationId]: loadedMessages }));
+
+      // 加载对话的token统计
+      try {
+        const convResponse = await apiService.getConversation(conversationId);
+        if (convResponse) {
+          setConversationTokens({
+            promptTokens: convResponse.prompt_tokens || 0,
+            completionTokens: convResponse.completion_tokens || 0,
+            totalTokens: convResponse.total_tokens || 0
+          });
+        }
+      } catch (tokenError) {
+        console.warn('Failed to load conversation tokens:', tokenError);
+      }
     } catch (error) {
       console.error('Failed to load messages:', error);
+    }
+  };
+
+  // 刷新对话Token统计
+  const refreshConversationTokens = async (convId: string) => {
+    try {
+      const response = await apiService.getConversation(convId);
+      if (response) {
+        setConversationTokens({
+          promptTokens: response.prompt_tokens || 0,
+          completionTokens: response.completion_tokens || 0,
+          totalTokens: response.total_tokens || 0
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to refresh conversation tokens:', error);
     }
   };
 
@@ -410,6 +459,9 @@ export const ChatHome: React.FC = () => {
         });
       };
 
+      // 当前消息的token统计
+      let currentMessageTokens = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+
       await apiService.sendMessageStreamRealTime(
         userMessage.content,
         currentConversationId, // 如果是临时对话，这里为 undefined
@@ -424,9 +476,16 @@ export const ChatHome: React.FC = () => {
           forceUpdate(contentRef.current);
         },
         // onComplete: 流完成时更新对话列表
-        (fullResponse: string, newConversationId?: string, isNewConversation?: boolean) => {
+        (fullResponse: string, newConversationId?: string, isNewConversation?: boolean, tokenStats?: { promptTokens: number; completionTokens: number; totalTokens: number }) => {
           // 确保最后一次更新
           forceUpdate(fullResponse);
+
+          // 保存token统计
+          if (tokenStats) {
+            currentMessageTokens = tokenStats;
+            // 更新对话级token统计
+            setConversationTokens(tokenStats);
+          }
 
           // 如果是新创建的对话，更新状态
           if (isNewConversation && newConversationId) {
@@ -466,6 +525,9 @@ export const ChatHome: React.FC = () => {
           ));
           // 确保思考状态被取消
           setIsThinking(false);
+
+          console.log('Message completed with tokens:', currentMessageTokens);
+
           console.log('Stream complete, full response:', fullResponse);
         },
         // onError: 错误处理
@@ -494,6 +556,12 @@ export const ChatHome: React.FC = () => {
         // onConversationCreated: 新对话创建时的回调
         (convId: string) => {
           console.log('New conversation created:', convId);
+        },
+        // onTokenStats: Token统计回调
+        (tokenStats: { promptTokens: number; completionTokens: number; totalTokens: number }) => {
+          console.log('Received token stats in real-time:', tokenStats);
+          // 更新对话级token统计
+          setConversationTokens(tokenStats);
         }
       );
     } catch (error) {
@@ -606,6 +674,14 @@ export const ChatHome: React.FC = () => {
                 }
               </h1>
             </div>
+
+            {/* Token消耗显示（导航栏小组件） */}
+            {currentConversationId && (
+              <ConversationTokenHeader
+                initialTokens={conversationTokens}
+                visible={true}
+              />
+            )}
           </div>
 
           {/* 用户信息和操作按钮 */}
@@ -666,6 +742,7 @@ export const ChatHome: React.FC = () => {
                   content={message.content}
                   timestamp={message.timestamp}
                   isUser={message.role === 'user'}
+                  tokens={message.tokens}
                 />
               ))}
               {/* AI 思考中动画 */}

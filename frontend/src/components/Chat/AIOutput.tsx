@@ -8,24 +8,30 @@ interface AIOutputProps {
   timestamp?: string;
   isUser?: boolean;
   isThinking?: boolean;
+  tokens?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
 }
-  
- /**
- * AI 输出组件
- * 封装 AI 消息和用户消息的显示，支持复制功能
- */
-export const AIOutput: React.FC<AIOutputProps> = ({ 
-  content, 
-  timestamp, 
+
+/**
+* AI 输出组件
+* 封装 AI 消息和用户消息的显示，支持复制功能
+*/
+export const AIOutput: React.FC<AIOutputProps> = ({
+  content,
+  timestamp,
   isUser = false,
-  isThinking = false 
+  isThinking = false,
+  tokens
 }) => {
   const [copied, setCopied] = useState(false);
 
   // 复制内容到剪贴板
   const handleCopy = async () => {
     if (!content || isThinking) return;
-    
+
     try {
       await navigator.clipboard.writeText(content);
       setCopied(true);
@@ -55,42 +61,56 @@ export const AIOutput: React.FC<AIOutputProps> = ({
             <MarkdownRenderer content={content} />
           )}
         </div>
-  
-        {/* 操作栏：时间戳 + 复制按钮 */}
-        <div className="flex items-center gap-2 mt-2">
-          {timestamp && !isThinking && (
+
+        {/* 操作栏：时间戳 + 复制按钮 + Token消耗 */}
+        <div className="flex items-center justify-between mt-2">
+          {/* 左侧：时间戳 */}
+          <div className="flex items-center gap-2">
+            {timestamp && !isThinking && (
+              <p
+                className="text-xs"
+                style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
+              >
+                {timestamp}
+              </p>
+            )}
+
+            {/* 复制按钮 - 仅对AI消息且非思考状态显示 */}
+            {!isUser && !isThinking && content && (
+              <button
+                onClick={handleCopy}
+                className="flex items-center gap-1 px-2 py-1 rounded transition-all hover:bg-gray-100"
+                style={{
+                  fontFamily: 'var(--font-hand-body)',
+                  fontSize: '12px',
+                  color: copied ? 'var(--sketch-secondary)' : 'var(--sketch-pencil)'
+                }}
+                title={copied ? '已复制' : '复制内容'}
+              >
+                {copied ? (
+                  <>
+                    <Check size={14} />
+                    <span>已复制</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={14} />
+                    <span>复制</span>
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+
+          {/* 右侧：Token消耗（仅AI消息显示） */}
+          {!isUser && !isThinking && tokens && tokens.totalTokens && tokens.totalTokens > 0 && (
             <p
               className="text-xs"
               style={{ fontFamily: 'var(--font-hand-body)', color: 'var(--sketch-pencil)' }}
+              title={`输入: ${tokens.promptTokens || 0} | 输出: ${tokens.completionTokens || 0}`}
             >
-              {timestamp}
+              {tokens.totalTokens} tokens
             </p>
-          )}
-          
-          {/* 复制按钮 - 仅对AI消息且非思考状态显示 */}
-          {!isUser && !isThinking && content && (
-            <button
-              onClick={handleCopy}
-              className="flex items-center gap-1 px-2 py-1 rounded transition-all hover:bg-gray-100"
-              style={{
-                fontFamily: 'var(--font-hand-body)',
-                fontSize: '12px',
-                color: copied ? 'var(--sketch-secondary)' : 'var(--sketch-pencil)'
-              }}
-              title={copied ? '已复制' : '复制内容'}
-            >
-              {copied ? (
-                <>
-                  <Check size={14} />
-                  <span>已复制</span>
-                </>
-              ) : (
-                <>
-                  <Copy size={14} />
-                  <span>复制</span>
-                </>
-              )}
-            </button>
           )}
         </div>
       </div>

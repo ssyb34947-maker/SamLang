@@ -12,6 +12,7 @@ test/
 
 docker_server/
 docker/
+/scripts/
 
 # Virtual environments
 .venv

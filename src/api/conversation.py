@@ -78,6 +78,7 @@ async def create_new_conversation(
 @router.get("/api/conversations", response_model=ConversationListResponse)
 async def list_conversations(
     include_archived: bool = Query(default=False, description="是否包含已归档对话"),
+    agent_type: Optional[int] = Query(default=None, description="Agent类型过滤（1=教授, 2=助教, 3=管理员AI）"),
     limit: int = Query(default=100, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     current_user: dict = Depends(get_current_active_user)
@@ -90,6 +91,7 @@ async def list_conversations(
         conversations = get_user_conversations(
             user_id=current_user['id'],
             include_archived=include_archived,
+            agent_type=agent_type,
             limit=limit,
             offset=offset
         )

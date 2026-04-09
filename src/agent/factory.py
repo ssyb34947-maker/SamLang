@@ -42,20 +42,21 @@ class SimpleAgentFactory:
         logger.info(f"[AgentFactory] 工厂初始化完成")
     
     def get_agent(
-        self, 
-        user_id: str, 
+        self,
+        user_id: str,
         conversation_id: str,
         role: str = "student",
         use_react: bool = True,
         verbose: bool = False,
-        stream: bool = True
+        stream: bool = True,
+        agent_type: int = 1
     ) -> ConversationAgent:
         """
         获取 Agent 实例
-        
-        如果该 (user_id, conversation_id, role) 组合已有 Agent，则复用
+
+        如果该 (user_id, conversation_id, role, agent_type) 组合已有 Agent，则复用
         否则创建新的 Agent
-        
+
         Args:
             user_id: 用户ID
             conversation_id: 对话ID
@@ -63,19 +64,20 @@ class SimpleAgentFactory:
             use_react: 是否使用 ReACT 模式
             verbose: 是否打印详细日志
             stream: 是否使用流式输出
-            
+            agent_type: Agent类型（1=教授, 2=助教, 3=管理员AI）
+
         Returns:
             ConversationAgent 实例
         """
-        key = f"{user_id}:{conversation_id}:{role}"
-        
+        key = f"{user_id}:{conversation_id}:{role}:{agent_type}"
+
         # 检查是否已有缓存的 Agent
         if key in self._agents:
             logger.debug(f"[AgentFactory] 复用现有 Agent: {key}")
             return self._agents[key]
-        
+
         # 创建新的 Agent
-        logger.info(f"[AgentFactory] 创建新 Agent: {key}")
+        logger.info(f"[AgentFactory] 创建新 Agent: {key}, agent_type={agent_type}")
         agent = ConversationAgent(
             user_id=user_id,
             conversation_id=conversation_id,
@@ -83,12 +85,13 @@ class SimpleAgentFactory:
             config=self.config,
             use_react=use_react,
             verbose=verbose,
-            stream=stream
+            stream=stream,
+            agent_type=agent_type
         )
-        
+
         # 存入缓存
         self._agents[key] = agent
-        
+
         return agent
     
     def remove_agent(self, user_id: str, conversation_id: str, role: str = None) -> bool:

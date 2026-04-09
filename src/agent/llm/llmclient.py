@@ -8,6 +8,39 @@ from openai import OpenAI
 from src.config import LLMConfig
 
 
+class ChatResponse:
+    """
+    聊天响应包装类
+    包含响应内容和token使用统计
+    """
+    def __init__(
+        self,
+        content: str,
+        reasoning_content: Optional[str] = None,
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        total_tokens: int = 0,
+        model: Optional[str] = None
+    ):
+        self.content = content
+        self.reasoning_content = reasoning_content
+        self.prompt_tokens = prompt_tokens
+        self.completion_tokens = completion_tokens
+        self.total_tokens = total_tokens
+        self.model = model
+
+    def to_dict(self) -> Dict[str, Any]:
+        """转换为字典"""
+        return {
+            'content': self.content,
+            'reasoning_content': self.reasoning_content,
+            'prompt_tokens': self.prompt_tokens,
+            'completion_tokens': self.completion_tokens,
+            'total_tokens': self.total_tokens,
+            'model': self.model
+        }
+
+
 class LLMClient:
     """
     LLM客户端
@@ -30,12 +63,34 @@ class LLMClient:
             base_url=config.base_url
         )
 
-    def chat(self, messages: List[Dict[str, str]]) -> Union[str, Tuple[str, str]]:
+    def _extract_token_usage(self, response) -> Tuple[int, int, int]:
+        """
+        从API响应中提取token使用量
+
+        Args:
+            response: OpenAI API响应对象
+
+        Returns:
+            (prompt_tokens, completion_tokens, total_tokens)
+        """
+        prompt_tokens = 0
+        completion_tokens = 0
+        total_tokens = 0
+
+        # 尝试从usage字段获取token使用量
+        if hasattr(response, 'usage') and response.usage:
+            prompt_tokens = getattr(response.usage, 'prompt_tokens', 0) or 0
+            completion_tokens = getattr(response.usage, 'completion_tokens', 0) or 0
+            total_tokens = getattr(response.usage, 'total_tokens', 0) or 0
+
+        return prompt_tokens, completion_tokens, total_tokens
+
+    def chat(self, messages: List[Dict[str, str]]) -> Union[str, Tuple[str, str], ChatResponse]:
         """
         与模型对话（非流式）
 
         输入：messages - 消息列表，包含系统消息、用户消息等
-        输出：模型回复文本
+        输出：模型回复文本 或 ChatResponse对象
         """
         response = self.client.chat.completions.create(
             model=self.config.model_name,
@@ -43,12 +98,56 @@ class LLMClient:
             temperature=self.config.temperature,
             max_tokens=self.config.max_tokens
         )
+
+        # 提取token使用量
+        prompt_tokens, completion_tokens, total_tokens = self._extract_token_usage(response)
+
+        # 提取响应内容
+        content = response.choices[0].message.content or ""
+        reasoning_content = None
+
         if self.config.model_name.lower().startswith("deepseek"):
             if "reasoner" in self.config.model_name.lower():
-                return response.choices[0].message.reasoning_content, response.choices[0].message.content
+                reasoning_content = getattr(response.choices[0].message, 'reasoning_content', None)
+                # 返回ChatResponse对象，包含token统计
+                return ChatResponse(
+                    content=content,
+                    reasoning_content=reasoning_content,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    total_tokens=total_tokens,
+                    model=self.config.model_name
+                )
             elif "chat" in self.config.model_name.lower():
-                return response.choices[0].message.content
-        return response.choices[0].message.content
+                return ChatResponse(
+                    content=content,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                    total_tokens=total_tokens,
+                    model=self.config.model_name
+                )
+
+        return ChatResponse(
+            content=content,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            model=self.config.model_name
+        )
+
+    def chat_simple(self, messages: List[Dict[str, str]]) -> str:
+        """
+        简单的非流式对话（仅返回文本内容，向后兼容）
+
+        输入：messages - 消息列表
+        输出：模型回复文本
+        """
+        result = self.chat(messages)
+        if isinstance(result, ChatResponse):
+            return result.content
+        elif isinstance(result, tuple):
+            return result[1] if len(result) > 1 else result[0]
+        return result
 
     def chat_stream(self, messages: List[Dict[str, str]], print_output: bool = True) -> str:
         """
@@ -80,7 +179,7 @@ class LLMClient:
 
         return full_response
 
-    def chat_stream_with_callback(self, messages: List[Dict[str, str]], 
+    def chat_stream_with_callback(self, messages: List[Dict[str, str]],
                                    token_callback: Callable[[str], None],
                                    print_output: bool = False) -> str:
         """
@@ -105,10 +204,10 @@ class LLMClient:
             if chunk.choices[0].delta.content is not None:
                 content = chunk.choices[0].delta.content
                 full_response += content
-                
+
                 # 调用回调函数，传递当前token
                 token_callback(content)
-                
+
                 if print_output:
                     print(content, end='', flush=True)
 

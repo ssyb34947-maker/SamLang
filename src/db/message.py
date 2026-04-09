@@ -17,7 +17,10 @@ def create_message(
     message_id: str,
     role: str,
     content: str,
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None,
+    prompt_tokens: int = 0,
+    completion_tokens: int = 0,
+    total_tokens: int = 0
 ) -> int:
     """
     创建新消息
@@ -28,6 +31,9 @@ def create_message(
         role: 消息角色 ('user', 'assistant', 'system')
         content: 消息内容
         metadata: 额外元数据（JSON格式）
+        prompt_tokens: 输入token数
+        completion_tokens: 输出token数
+        total_tokens: 总token数
     
     Returns:
         新创建消息的数据库ID
@@ -40,9 +46,9 @@ def create_message(
         
         cursor.execute('''
         INSERT INTO messages 
-        (conversation_id, message_id, role, content, metadata)
-        VALUES (?, ?, ?, ?, ?)
-        ''', (conversation_id, message_id, role, content, metadata_json))
+        (conversation_id, message_id, role, content, prompt_tokens, completion_tokens, total_tokens, metadata)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (conversation_id, message_id, role, content, prompt_tokens, completion_tokens, total_tokens, metadata_json))
         
         message_db_id = cursor.lastrowid
         conn.commit()
@@ -118,7 +124,7 @@ def get_conversation_messages(
         order_clause = 'ASC' if order.lower() == 'asc' else 'DESC'
         
         cursor.execute(f'''
-        SELECT id, message_id, role, content, metadata, created_at
+        SELECT id, message_id, role, content, prompt_tokens, completion_tokens, total_tokens, metadata, created_at
         FROM messages 
         WHERE conversation_id = ?
         ORDER BY created_at {order_clause}
@@ -133,8 +139,11 @@ def get_conversation_messages(
                 'message_id': row[1],
                 'role': row[2],
                 'content': row[3],
-                'metadata': json.loads(row[4]) if row[4] else None,
-                'created_at': row[5]
+                'prompt_tokens': row[4] or 0,
+                'completion_tokens': row[5] or 0,
+                'total_tokens': row[6] or 0,
+                'metadata': json.loads(row[7]) if row[7] else None,
+                'created_at': row[8]
             }
             for row in rows
         ]
