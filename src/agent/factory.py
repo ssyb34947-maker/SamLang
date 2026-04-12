@@ -45,7 +45,7 @@ class SimpleAgentFactory:
         self,
         user_id: str,
         conversation_id: str,
-        role: str = "student",
+        role: Optional[str] = None,
         use_react: bool = True,
         verbose: bool = False,
         stream: bool = True,
@@ -60,7 +60,7 @@ class SimpleAgentFactory:
         Args:
             user_id: 用户ID
             conversation_id: 对话ID
-            role: 用户角色 (professor/assistant/student)
+            role: 用户角色 (professor/assistant/student)，如果不提供则根据 agent_type 自动推断
             use_react: 是否使用 ReACT 模式
             verbose: 是否打印详细日志
             stream: 是否使用流式输出
@@ -69,15 +69,19 @@ class SimpleAgentFactory:
         Returns:
             ConversationAgent 实例
         """
+        # 根据 agent_type 自动推断 role
+        if role is None:
+            role_map = {1: "professor", 2: "assistant", 3: "admin"}
+            role = role_map.get(agent_type, "student")
+
         key = f"{user_id}:{conversation_id}:{role}:{agent_type}"
 
         # 检查是否已有缓存的 Agent
         if key in self._agents:
-            logger.debug(f"[AgentFactory] 复用现有 Agent: {key}")
             return self._agents[key]
 
         # 创建新的 Agent
-        logger.info(f"[AgentFactory] 创建新 Agent: {key}, agent_type={agent_type}")
+        logger.info(f"[Agent] 创建: user={user_id}, conv={conversation_id}, role={role}, type={agent_type}")
         agent = ConversationAgent(
             user_id=user_id,
             conversation_id=conversation_id,

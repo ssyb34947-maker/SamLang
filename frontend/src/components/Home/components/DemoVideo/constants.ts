@@ -2,6 +2,32 @@
 // Demo视频组件常量配置
 // ============================================
 
+export const DEMO_VIDEOS = [
+  {
+    id: 'demo1',
+    title: '页面展示',
+    subtitle: '山姆学院核心功能演示',
+    poster: '/demo/demo-poster.png',
+    sources: [{ src: '/demo/demo.mp4', type: 'video/mp4' }],
+    features: [
+      { id: 'ai-teaching-1', title: 'AI 智能教学', description: '教授级AI解答问题', time: 0 },
+      { id: 'knowledge-base-1', title: '个人主页', description: '个人工作站', time: 6 },
+    ],
+  },
+  {
+    id: 'demo2',
+    title: '教授智能体',
+    subtitle: '高级功能与使用技巧',
+    poster: '/demo/demo-poster.png',
+    sources: [{ src: '/demo/demo2.mp4', type: 'video/mp4' }],
+    features: [
+      { id: 'ai-teaching-2', title: 'LeetCode', description: '输入题目', time: 0 },
+      { id: 'knowledge-base-2', title: '开始思考', description: '思维链', time: 12 },
+      { id: 'progress-tracking-2', title: '返回结果', description: '由SKILL驱动的结果', time: 110 },
+    ],
+  },
+] as const;
+
 export const DEMO_VIDEO_CONTENT = {
   SECTION_ID: 'demo',
   TITLE: '产品演示',

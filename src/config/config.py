@@ -16,7 +16,14 @@ if env_path.exists():
 
 from .llm import LLMConfig
 from .agent import AgentConfig
-from .tool import ToolConfig, WebSearchConfig, YoudaoDictionaryConfig
+from .tool import (
+    ToolConfig, 
+    WebSearchConfig, 
+    YoudaoDictionaryConfig,
+    PPIOConfig,
+    RemotionConfig,
+    VideoStorageConfig,
+)
 from .skill import SkillUploadConfig, SkillConfig
 from .rag import RAGConfig, MilvusConfig
 from .embedding import EmbeddingConfig
@@ -66,9 +73,48 @@ class Config:
         # 工具配置
         websearch_config = WebSearchConfig(**data["tool"]["websearch"])
         youdao_dictionary_config = YoudaoDictionaryConfig(**data["tool"]["youdao_dictionary"])
+        
+        # PPIO 沙箱配置
+        ppio_data = data.get("tool", {}).get("ppio_sandbox", {})
+        
+        # Remotion 配置
+        remotion_data = ppio_data.get("remotion", {})
+        remotion_config = RemotionConfig(
+            enabled=remotion_data.get("enabled", True),
+            timeout=remotion_data.get("timeout", 600),
+            default_template=remotion_data.get("default_template", "with-media"),
+            available_templates=remotion_data.get("available_templates", ["hello-world", "with-media", "with-voiceover"]),
+            runtimes=remotion_data.get("runtimes", {"default": "nodejs20", "available": ["nodejs18", "nodejs20"]}),
+            quality_presets=remotion_data.get("quality_presets", ["720p", "1080p", "1440p", "4k"]),
+            output_formats=remotion_data.get("output_formats", ["mp4", "webm", "prores"]),
+        )
+        
+        # 视频存储配置
+        storage_data = ppio_data.get("video_storage", {})
+        video_storage_config = VideoStorageConfig(
+            type=storage_data.get("type", "local"),
+            local_path=storage_data.get("local_path", "./temp/videos"),
+            local_url=storage_data.get("local_url", "/videos"),
+            oss_bucket=storage_data.get("oss_bucket", ""),
+            oss_endpoint=storage_data.get("oss_endpoint", ""),
+            oss_access_key_id=os.getenv("OSS_ACCESS_KEY_ID", ""),
+            oss_access_key_secret=os.getenv("OSS_ACCESS_KEY_SECRET", ""),
+        )
+        
+        # PPIO 主配置
+        ppio_config = PPIOConfig(
+            enabled=ppio_data.get("enabled", False),
+            api_key=os.getenv("PPIO_API_KEY", ppio_data.get("api_key", "")),
+            base_url=ppio_data.get("base_url", "https://api.ppio.cloud"),
+            default_timeout=ppio_data.get("default_timeout", 60),
+            remotion=remotion_config,
+            video_storage=video_storage_config,
+        )
+        
         tool_config = ToolConfig(
             websearch=websearch_config,
-            youdao_dictionary=youdao_dictionary_config
+            youdao_dictionary=youdao_dictionary_config,
+            ppio_sandbox=ppio_config,
         )
 
         # 技能配置

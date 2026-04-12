@@ -3,13 +3,20 @@ import { motion } from 'framer-motion';
 import { Play, Check } from 'lucide-react';
 import { featureCardVariants } from '../animations';
 import { sketchStyles, typography } from '../styles';
-import { DEMO_VIDEO_CONTENT } from '../constants';
+
+interface Feature {
+  id: string;
+  title: string;
+  description: string;
+  time: number;
+}
 
 interface FeatureListProps {
   currentTime: number;
   activeFeatureId: string | null;
   onFeatureClick: (time: number, id: string) => void;
   featuresTitle: string;
+  features: Feature[];
 }
 
 const formatTime = (seconds: number): string => {
@@ -23,8 +30,8 @@ export const FeatureList: React.FC<FeatureListProps> = ({
   activeFeatureId,
   onFeatureClick,
   featuresTitle,
+  features,
 }) => {
-  const features = DEMO_VIDEO_CONTENT.FEATURES;
 
   return (
     <div className="space-y-3">

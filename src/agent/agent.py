@@ -97,7 +97,7 @@ class ConversationAgent:
         # 设置系统提示词
         self._setup_system_prompt()
 
-        logger.info(f"[ConversationAgent] 创建完成: user_id={user_id}, conversation_id={conversation_id}, role={role}, agent_type={agent_type}")
+        logger.info(f"[Agent] 就绪: user={user_id}, conv={conversation_id}, type={agent_type}, role={role}")
 
     def _load_history_from_db(self):
         """

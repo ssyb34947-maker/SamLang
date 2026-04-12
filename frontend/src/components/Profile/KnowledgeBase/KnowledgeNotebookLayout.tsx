@@ -14,7 +14,7 @@ import { KnowledgeItem } from './types';
  * - Center: Main Content (知识内容展示)
  * - Right: Optional Info Panel (元数据信息)
  */
-    
+        
 // 默认面板宽度
 const DEFAULT_LEFT_WIDTH = 300;
 const DEFAULT_RIGHT_WIDTH = 320;
@@ -59,6 +59,7 @@ export const KnowledgeNotebookLayout: React.FC = () => {
         const allKnowledge = [
           ...response.system_knowledge.map((k: any) => ({
             id: k.doc_id,
+            doc_id: k.doc_id,
             name: k.name || k.source,
             type: getFileType(k.source),
             size: `${k.chunk_count} 块`,
@@ -69,6 +70,7 @@ export const KnowledgeNotebookLayout: React.FC = () => {
           })),
           ...response.user_knowledge.map((k: any) => ({
             id: k.doc_id,
+            doc_id: k.doc_id,
             name: k.name || k.source,
             type: getFileType(k.source),
             size: `${k.chunk_count} 块`,

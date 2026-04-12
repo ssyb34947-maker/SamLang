@@ -5,6 +5,7 @@ __pycache__/
 wheels/
 *.egg-info
 
+/middleware/
 doc/
 docs/
 test/
@@ -16,6 +17,11 @@ docker/
 
 # Virtual environments
 .venv
+
+.claude/
+.trae/
+
+ram_data/
 
 #key
 config.yaml

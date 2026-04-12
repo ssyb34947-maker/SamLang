@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { TerminalLineItem } from './TerminalLineItem';
-import { useAgentCLI } from './useAgentCLI';
-import { saveCLICache, loadCLICache, clearCLICache } from './cache';
+import { useAgentCLI, AVAILABLE_COMMANDS } from './useAgentCLI';
+import { saveCLICache, loadCLICache } from './cache';
 import { useTerminalScroll, useInputFocus } from './hooks';
 import {
   SketchFrame,
@@ -61,10 +61,10 @@ export const AgentCLI: React.FC = () => {
     }
   }, [hasCheckedCache, restoreFromCache]);
 
-  // 自动输入 samcollege
+  // 自动输入 /samcollege
   const startAutoTyping = () => {
     setIsTyping(true);
-    const command = 'samcollege';
+    const command = '/samcollege';
     let currentIndex = 0;
 
     const typeInterval = setInterval(() => {
@@ -84,6 +84,45 @@ export const AgentCLI: React.FC = () => {
     }, 100);
   };
 
+  // 使用正则匹配最接近的命令
+  const findBestMatch = useCallback((input: string): string | null => {
+    if (!input.startsWith('/')) return null;
+    
+    const query = input.slice(1).toLowerCase();
+    if (!query) return null;
+    
+    // 构建正则：每个字符之间可以有任意字符
+    const pattern = query.split('').join('.*');
+    const regex = new RegExp(pattern, 'i');
+    
+    // 匹配所有命令
+    const matches = AVAILABLE_COMMANDS.filter(cmd => {
+      const name = cmd.name.slice(1); // 去掉开头的 /
+      return regex.test(name) || (cmd.alias && regex.test(cmd.alias.slice(1)));
+    });
+    
+    if (matches.length === 0) return null;
+    
+    // 优先返回完全匹配的，否则返回第一个
+    const exactMatch = matches.find(cmd => 
+      cmd.name.slice(1).toLowerCase() === query || 
+      (cmd.alias && cmd.alias.slice(1).toLowerCase() === query)
+    );
+    
+    return exactMatch ? exactMatch.name : matches[0].name;
+  }, []);
+
+  // 键盘处理 - 只保留Tab补全
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const match = findBestMatch(inputValue);
+      if (match && match !== inputValue) {
+        setInputValue(match + ' ');
+      }
+    }
+  }, [inputValue, findBestMatch, setInputValue]);
+
   // 提交处理
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,12 +135,18 @@ export const AgentCLI: React.FC = () => {
     if (mode === 'shell') {
       const handled = await handleShellCommand(command);
       if (!handled) {
-        addLine('error', `command not found: ${command}`);
-        addLine('empty', '');
-        addLine('info', '提示: 输入 samcollege 启动 Agent');
+        // Shell模式下未知的 / 命令
+        if (command.startsWith('/')) {
+          addLine('error', `[ERROR] 未知命令: ${command}`);
+          addLine('info', '提示: 输入 /samcollege 启动 Agent');
+        } else {
+          addLine('error', `command not found: ${command}`);
+          addLine('info', '提示: 输入 /samcollege 启动 Agent');
+        }
         addLine('empty', '');
       }
     } else {
+      // Agent模式 - 所有 / 开头的都由 handleAgentCommand 处理
       await handleAgentCommand(command);
     }
   };
@@ -114,6 +159,13 @@ export const AgentCLI: React.FC = () => {
 
   // 是否显示欢迎信息
   const showWelcome = mode === 'shell' && lines.length === 0 && !isTyping && hasCheckedCache;
+
+  // 选择建议
+  const selectSuggestion = (cmd: typeof AVAILABLE_COMMANDS[0]) => {
+    setInputValue(cmd.name + ' ');
+    setShowSuggestions(false);
+    inputRef.current?.focus();
+  };
 
   return (
     <div
@@ -137,6 +189,7 @@ export const AgentCLI: React.FC = () => {
           onInputChange={setInputValue}
           inputRef={inputRef}
           terminalEndRef={terminalEndRef}
+          onKeyDown={handleKeyDown}
         >
           {/* 终端行 - 显示缓存内容或新内容 */}
           {lines.map((line) => (

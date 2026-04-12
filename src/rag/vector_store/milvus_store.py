@@ -329,11 +329,14 @@ class MilvusStore(BaseVectorStore):
     def get_all_chunks_by_doc_id(self, doc_id: str) -> List[Chunk]:
         """获取文档的所有块"""
         try:
+            logger.info(f"[MilvusStore] 查询文档分块: doc_id={doc_id}")
             expr = f'doc_id == "{doc_id}"'
+            logger.info(f"[MilvusStore] 查询表达式: {expr}")
             results = self.collection.query(
                 expr=expr,
                 output_fields=["chunk_id", "doc_id", "chunk", "type", "metadata", "source"]
             )
+            logger.info(f"[MilvusStore] 查询结果数量: {len(results)}")
             
             chunks = []
             for data in results:
@@ -351,7 +354,7 @@ class MilvusStore(BaseVectorStore):
             return chunks
             
         except Exception as e:
-            print(f"获取文档块失败: {e}")
+            logger.error(f"[MilvusStore] 获取文档块失败: {e}")
             return []
     
     def get_documents_by_creator(
@@ -380,6 +383,7 @@ class MilvusStore(BaseVectorStore):
                 conditions.append(f'type == "{doc_type}"')
 
             expr = " and ".join(conditions) if conditions else None
+            logger.info(f"[MilvusStore] 查询文档列表: expr={expr}")
 
             # 查询所有匹配的块
             results = self.collection.query(
@@ -387,6 +391,7 @@ class MilvusStore(BaseVectorStore):
                 output_fields=["doc_id", "source", "type", "metadata", "update_time", "creator"],
                 limit=limit
             )
+            logger.info(f"[MilvusStore] 文档列表查询结果: {len(results)} 条记录")
 
             # 按 doc_id 去重
             docs_map = {}
@@ -406,10 +411,14 @@ class MilvusStore(BaseVectorStore):
                 else:
                     docs_map[doc_id]["chunk_count"] += 1
 
+            logger.info(f"[MilvusStore] 去重后文档数量: {len(docs_map)}")
+            for doc_id, doc in docs_map.items():
+                logger.info(f"[MilvusStore]   - doc_id: {doc_id}, name: {doc['name']}")
+
             return list(docs_map.values())
 
         except Exception as e:
-            print(f"获取文档列表失败: {e}")
+            logger.error(f"[MilvusStore] 获取文档列表失败: {e}")
             return []
 
     def get_document_creator(self, doc_id: str) -> Optional[str]:
@@ -423,19 +432,23 @@ class MilvusStore(BaseVectorStore):
             str: 创建者用户ID，失败返回 None
         """
         try:
+            logger.info(f"[MilvusStore] 查询文档创建者: doc_id={doc_id}")
             expr = f'doc_id == "{doc_id}"'
             results = self.collection.query(
                 expr=expr,
                 output_fields=["creator"],
                 limit=1
             )
+            logger.info(f"[MilvusStore] 创建者查询结果: {len(results)} 条")
 
             if results:
-                return results[0].get("creator", "")
+                creator = results[0].get("creator", "")
+                logger.info(f"[MilvusStore] 文档创建者: {creator}")
+                return creator
             return None
 
         except Exception as e:
-            print(f"获取文档创建者失败: {e}")
+            logger.error(f"[MilvusStore] 获取文档创建者失败: {e}")
             return None
 
     def close(self):

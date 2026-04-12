@@ -6,10 +6,13 @@ export { KnowledgeNotebookLayout } from './KnowledgeNotebookLayout';
 export { SourcesPanel } from './SourcesPanel';
 export { MainContentPanel } from './MainContentPanel';
 export { OptionalRightPanel } from './OptionalRightPanel';
+export { ChunkViewer } from './ChunkViewer';
 export type {
   KnowledgeItem,
   KnowledgeType,
   SourcesPanelProps,
   MainContentPanelProps,
-  OptionalRightPanelProps
+  OptionalRightPanelProps,
+  ChunkData,
+  ChunkViewerProps
 } from './types';

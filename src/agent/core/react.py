@@ -6,6 +6,7 @@ ReACT (Reasoning and Acting) 框架实现
 from typing import List, Dict, Any, Optional, Tuple
 import json
 import re
+import time
 from loguru import logger
 from src.agent.tools import ToolManager
 from src.agent.llm.llmclient import LLMClient
@@ -451,31 +452,37 @@ class ReACTAgentWithFunctionCalling(ReACTAgent):
                             "result": None
                         })
 
-                    # 调用工具
+                    # 调用工具（带计时）
                     try:
+                        start_time = time.time()
                         observation = self.tool_manager.call_tool(function_name, function_args)
+                        duration_ms = int((time.time() - start_time) * 1000)
 
                         if self.verbose:
                             logger.info(f"[结果] {observation[:200]}...")
-                        
+                            logger.info(f"[耗时] {duration_ms}ms")
+
                         # 调用工具结果回调
                         if thinking_callback:
                             thinking_callback("tool_result", {
                                 "tool_name": function_name,
                                 "arguments": function_args,
-                                "result": observation
+                                "result": observation,
+                                "duration_ms": duration_ms
                             })
                     except Exception as e:
+                        duration_ms = int((time.time() - start_time) * 1000) if 'start_time' in locals() else 0
                         observation = f"Error: {str(e)}"
                         if self.verbose:
                             logger.error(f"[错误] {observation}")
-                        
+
                         # 调用工具结果回调（错误）
                         if thinking_callback:
                             thinking_callback("tool_result", {
                                 "tool_name": function_name,
                                 "arguments": function_args,
-                                "result": observation
+                                "result": observation,
+                                "duration_ms": duration_ms
                             })
 
                     # 添加工具结果到消息

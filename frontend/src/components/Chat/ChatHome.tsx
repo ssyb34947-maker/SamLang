@@ -6,6 +6,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { Sidebar } from './Sidebar';
 import { AIOutput } from './AIOutput';
 import { ConversationTokenHeader, useConversationTokens } from '../TokenDisplay';
+import { ThinkingAnimation, useThinkingStream } from './ThinkingProcess';
+import type { ThinkingEvent } from './ThinkingProcess';
 import 'tailwindcss/tailwind.css';
 
 // 对话类型定义
@@ -80,6 +82,15 @@ export const ChatHome: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+
+  // 思考过程动画状态
+  const {
+    state: thinkingState,
+    startThinking,
+    stopThinking,
+    handleThinkingEvent,
+    getToolCalls,
+  } = useThinkingStream();
 
   // 对话数据
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -417,8 +428,9 @@ export const ChatHome: React.FC = () => {
     // 清空输入框
     setInputValue('');
 
-    // 设置思考状态
+    // 设置思考状态并启动思考动画
     setIsThinking(true);
+    startThinking();
 
     // 调用真正的实时流式API
     try {
@@ -471,6 +483,7 @@ export const ChatHome: React.FC = () => {
           if (!hasReceivedToken) {
             hasReceivedToken = true;
             setIsThinking(false);
+            stopThinking();
           }
           contentRef.current += token;
           forceUpdate(contentRef.current);
@@ -562,6 +575,10 @@ export const ChatHome: React.FC = () => {
           console.log('Received token stats in real-time:', tokenStats);
           // 更新对话级token统计
           setConversationTokens(tokenStats);
+        },
+        // onThinkingEvent: 思考过程事件回调
+        (event: ThinkingEvent) => {
+          handleThinkingEvent(event);
         }
       );
     } catch (error) {
@@ -745,13 +762,15 @@ export const ChatHome: React.FC = () => {
                   tokens={message.tokens}
                 />
               ))}
-              {/* AI 思考中动画 */}
-              {isThinking && (
-                <AIOutput
-                  content=""
-                  isUser={false}
-                  isThinking={true}
-                />
+              {/* AI 思考过程动画 - 全宽大气版本 */}
+              {thinkingState.isActive && (
+                <div className="mb-8 px-4">
+                  <ThinkingAnimation
+                    isActive={thinkingState.isActive}
+                    currentStep={thinkingState.steps.length}
+                    toolCalls={getToolCalls()}
+                  />
+                </div>
               )}
             </>
           ) : (

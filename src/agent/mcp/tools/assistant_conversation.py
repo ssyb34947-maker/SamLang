@@ -16,24 +16,21 @@ assistant_conversation_mcp = FastMCP(name="assistant_conversation")
     name="conversation_query",
     description="""查询指定时间段内的对话列表。
 
-使用场景：
-- 用户说"帮我整理今天的学习内容"时，先查询今天的对话
-- 用户说"查看上周的对话"时，查询上周的对话
-- 需要获取对话列表以便后续操作
+参数：
+- start_date: 开始日期，格式 "YYYY-MM-DD"
+- end_date: 结束日期，格式 "YYYY-MM-DD"
+- limit: 最多返回多少条（默认20）
 
-参数说明：
-- start_date: 开始日期，格式 "YYYY-MM-DD"（必填）
-- end_date: 结束日期，格式 "YYYY-MM-DD"（可选，默认为今天）
-- limit: 最多返回多少条对话（默认20，最大100）
+注意：不要提供 user_id 参数，系统会自动处理。
 
-返回：对话列表，包含对话ID、标题、最后消息时间、消息数量
+返回：对话列表
 """
 )
 async def conversation_query(
     start_date: str,
-    user_id: str,
     end_date: Optional[str] = None,
-    limit: int = 20
+    limit: int = 20,
+    user_id: str = ""
 ) -> str:
     """
     查询指定时间段的对话列表
@@ -84,59 +81,79 @@ async def conversation_query(
 
 @assistant_conversation_mcp.tool(
     name="conversation_get_detail",
-    description="""获取指定对话的详细消息内容。
+    description="""获取指定对话的详细消息内容（支持批量查询）。
 
-使用场景：
-- 需要查看某个对话的具体内容时
-- 整理学习内容前获取完整对话
-- 分析对话历史
+参数：
+- conversation_ids: 对话ID列表，多个ID用逗号分隔，例如 "id1,id2,id3"
+- limit: 每个对话最多返回多少条消息（默认50）
 
-参数说明：
-- conversation_id: 对话ID（必填）
-- limit: 最多返回多少条消息（默认50，最大100）
+注意：不要提供 user_id 参数，系统会自动处理。
 
-返回：对话的完整消息内容，包含用户和AI的所有消息
+返回：多个对话的消息列表
 """
 )
 async def conversation_get_detail(
-    conversation_id: str,
-    user_id: str,
-    limit: int = 50
+    conversation_ids: str,
+    limit: int = 50,
+    user_id: str = ""
 ) -> str:
     """
-    获取对话详情
+    获取对话详情（支持批量查询）
     """
     try:
         from src.db.message import get_conversation_messages_for_assistant
         
+        # 解析多个对话ID
+        id_list = [id.strip() for id in conversation_ids.split(',') if id.strip()]
+        
+        if not id_list:
+            return "错误：请提供至少一个对话ID"
+        
         # 限制 limit 范围
         limit = max(1, min(limit, 100))
         
-        logger.info(f"[Assistant MCP] 用户 {user_id} 查看对话详情: {conversation_id}")
+        logger.info(f"[Assistant MCP] 用户 {user_id} 批量查看对话详情: {id_list}")
         
-        # 获取消息
-        messages = get_conversation_messages_for_assistant(
-            conversation_id=conversation_id,
-            user_id=int(user_id) if user_id.isdigit() else 0,
-            limit=limit
-        )
+        # 批量获取消息
+        all_results = []
+        for conversation_id in id_list:
+            messages = get_conversation_messages_for_assistant(
+                conversation_id=conversation_id,
+                user_id=int(user_id) if user_id.isdigit() else 0,
+                limit=limit
+            )
+            
+            if messages:
+                all_results.append({
+                    "conversation_id": conversation_id,
+                    "messages": messages,
+                    "count": len(messages)
+                })
         
-        if not messages:
-            return "该对话不存在或没有消息。"
+        if not all_results:
+            return "未找到任何对话或对话没有消息。"
         
         # 格式化结果
-        output_parts = [f"对话内容（共 {len(messages)} 条消息）：\n"]
-        output_parts.append("=" * 50)
+        output_parts = [f"批量查询结果（共 {len(all_results)} 个对话）：\n"]
+        output_parts.append("=" * 60)
         
-        for msg in messages:
-            role = msg.get("role", "")
-            content = msg.get("content", "")
-            timestamp = msg.get("created_at", "")
+        for result in all_results:
+            conv_id = result["conversation_id"]
+            messages = result["messages"]
             
-            role_display = "用户" if role == "user" else "AI"
-            output_parts.append(f"\n[{role_display}] {timestamp}")
-            output_parts.append(f"{content}")
-            output_parts.append("-" * 30)
+            output_parts.append(f"\n【对话 {conv_id}】（{len(messages)} 条消息）")
+            output_parts.append("-" * 40)
+            
+            for msg in messages:
+                role = msg.get("role", "")
+                content = msg.get("content", "")
+                timestamp = msg.get("created_at", "")
+                
+                role_display = "用户" if role == "user" else "AI"
+                output_parts.append(f"\n[{role_display}] {timestamp}")
+                output_parts.append(f"{content[:500]}{'...' if len(content) > 500 else ''}")
+            
+            output_parts.append("\n" + "=" * 60)
         
         return "\n".join(output_parts)
         
@@ -159,13 +176,15 @@ async def conversation_get_detail(
 - conversation_id: 要删除的对话ID（必填）
 - confirmed: 是否已确认删除（默认False，必须先询问用户）
 
+注意：不要提供 user_id 参数，系统会自动处理。
+
 返回：删除结果消息
 """
 )
 async def conversation_delete(
     conversation_id: str,
-    user_id: str,
-    confirmed: bool = False
+    confirmed: bool = False,
+    user_id: str = ""
 ) -> str:
     """
     删除对话
@@ -212,14 +231,16 @@ async def conversation_delete(
 - new_title: 新标题（必填）
 - confirmed: 是否已确认修改（默认False，建议先询问用户）
 
+注意：不要提供 user_id 参数，系统会自动处理。
+
 返回：修改结果消息
 """
 )
 async def conversation_rename(
     conversation_id: str,
     new_title: str,
-    user_id: str,
-    confirmed: bool = False
+    confirmed: bool = False,
+    user_id: str = ""
 ) -> str:
     """
     重命名对话

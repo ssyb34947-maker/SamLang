@@ -28,6 +28,7 @@ dependencies = [
     { name = "loguru" },
     { name = "openai" },
     { name = "pillow" },
+    { name = "ppio-sandbox" },
     { name = "pydantic" },
     { name = "pymilvus" },
     { name = "pytest" },
@@ -50,6 +51,7 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "openai", specifier = ">=1.0.0" },
     { name = "pillow", specifier = ">=12.2.0" },
+    { name = "ppio-sandbox", specifier = ">=1.0.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pymilvus", specifier = ">=2.6.11" },
     { name = "pytest", specifier = ">=9.0.2" },
@@ -1440,6 +1442,24 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3", size = 69412, upload-time = "2025-05-15T12:30:07.975Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
+]
+
+[[package]]
+name = "ppio-sandbox"
+version = "1.0.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "httpcore" },
+    { name = "httpx" },
+    { name = "packaging" },
+    { name = "protobuf" },
+    { name = "python-dateutil" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/02/67f3677fef5ef2e4e3cb46e023da586ce1c92dccf8758321fac884b301a0/ppio_sandbox-1.0.5.tar.gz", hash = "sha256:f32a2affbe6ee5fb85d5f643238ee387d659c06118e2a56c718a363672fa680e", size = 175893, upload-time = "2026-03-09T06:53:24.3Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/46/db/db88a9bef4358353f01cf4a2fd5f7fd2766ce66d895b3260b929c930b2ef/ppio_sandbox-1.0.5-py3-none-any.whl", hash = "sha256:7eed78b01ce8b23c2673f7e782f20c16bc97ab427b88b5affec34e8d2a9a0c62", size = 217545, upload-time = "2026-03-09T06:53:22.999Z" },
 ]
 
 [[package]]

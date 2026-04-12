@@ -68,17 +68,23 @@ class MCPClient:
     def _can_use_tool(self, tool_name: str) -> bool:
         """
         检查工具是否可用
-        
+
         规则：
         - 只暴露 rag_search 给 LLM，其他 RAG 工具不暴露
         """
+        # DEBUG: 打印角色信息
+        logger.debug(f"[MCPClient._can_use_tool] 检查工具 '{tool_name}', user_id={self.user_id}, role={self.role}")
+
         # 只暴露 rag_search 给 LLM（考虑 namespace 前缀，如 rag_rag_search）
         if "rag_search" in tool_name:
+            logger.debug(f"[MCPClient._can_use_tool] 工具 '{tool_name}' -> 允许 (rag_search)")
             return True
         if tool_name.startswith("rag_"):
+            logger.debug(f"[MCPClient._can_use_tool] 工具 '{tool_name}' -> 拒绝 (rag_ 开头但非 rag_search)")
             return False
-        
+
         # 非 RAG 工具都可用
+        logger.debug(f"[MCPClient._can_use_tool] 工具 '{tool_name}' -> 允许 (非 RAG 工具)")
         return True
 
     async def list_tools(self, use_cache: bool = True) -> List[Dict[str, Any]]:
@@ -139,12 +145,25 @@ class MCPClient:
             logger.warning(f"[MCPClient] {error_msg}")
             return error_msg
         
-        # 自动为 RAG 工具注入 user_id
-        if "rag" in tool_name and self.user_id:
+        # 自动为需要 user_id 的工具注入
+        if self.user_id:
             kwargs = kwargs.copy()
-            if "user_id" not in kwargs or not kwargs["user_id"]:
+            # RAG 工具
+            if "rag" in tool_name and ("user_id" not in kwargs or not kwargs["user_id"]):
                 kwargs["user_id"] = self.user_id
                 logger.debug(f"[MCPClient] 自动注入 user_id={self.user_id} 到工具 {tool_name}")
+            # 助教对话工具
+            elif "assistant_conversation" in tool_name and ("user_id" not in kwargs or not kwargs["user_id"]):
+                kwargs["user_id"] = self.user_id
+                logger.debug(f"[MCPClient] 自动注入 user_id={self.user_id} 到工具 {tool_name}")
+            # 助教知识库工具
+            elif "assistant_knowledge" in tool_name and ("user_id" not in kwargs or not kwargs["user_id"]):
+                kwargs["user_id"] = self.user_id
+                logger.debug(f"[MCPClient] 自动注入 user_id={self.user_id} 到工具 {tool_name}")
+            # 代码执行工具（exec_code）- 使用 _user_id 参数名
+            elif "exec_code" in tool_name and ("_user_id" not in kwargs or not kwargs["_user_id"]):
+                kwargs["_user_id"] = self.user_id
+                logger.debug(f"[MCPClient] 自动注入 _user_id={self.user_id} 到工具 {tool_name}")
 
         try:
             result = await self.client.call_tool(tool_name, kwargs)

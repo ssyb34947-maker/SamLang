@@ -264,13 +264,15 @@ class ApiService {
 
   /**
    * 真正的流式对话：后端每生成一个token，前端立即收到并显示
-   * 
+   *
    * @param message 用户消息
    * @param conversationId 对话ID，为空则创建新对话
    * @param onToken 每收到一个token时的回调
    * @param onComplete 流结束时的回调
    * @param onError 错误时的回调
    * @param onConversationCreated 新对话创建时的回调
+   * @param onTokenStats Token统计回调
+   * @param onThinkingEvent 思考过程事件回调
    * @param skipLoading 是否跳过loading显示
    */
   async sendMessageStreamRealTime(
@@ -281,9 +283,11 @@ class ApiService {
     onError: (error: string) => void,
     onConversationCreated?: (conversationId: string) => void,
     onTokenStats?: (tokenStats: TokenStats) => void,
+    onThinkingEvent?: (event: { type: string; data: any }) => void,
     skipLoading: boolean = true,
     agentType: number = 1
   ): Promise<void> {
+    console.log('[API] 函数开始，agentType参数值:', agentType);
     try {
       // 开始请求时显示 loading（如果未跳过）
       if (!skipLoading && this.requestCallbacks.onRequestStart) {
@@ -295,7 +299,7 @@ class ApiService {
         agentType === 3 ? '/api/chat/admin-ai/stream' :
           '/api/chat/stream';
 
-      console.log('Sending real-time streaming request to:', `${API_BASE_URL}${endpoint}`);
+      console.log('[API] agentType=', agentType, 'endpoint=', endpoint);
 
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'POST',
@@ -359,6 +363,11 @@ class ApiService {
               fullResponse += token;
               // 使用 setTimeout 0 确保UI更新不会被阻塞
               setTimeout(() => onToken(token), 0);
+            } else if (event.type === 'thinking_step' || event.type === 'tool_call' || event.type === 'tool_result') {
+              // 思考过程事件
+              if (onThinkingEvent) {
+                onThinkingEvent(event);
+              }
             } else if (event.type === 'final_response') {
               // 流结束（但可能还有token统计）
               if (event.data?.content) {

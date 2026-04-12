@@ -49,12 +49,10 @@ class ToolManager:
     def _ensure_client(self):
         """确保 MCP 客户端已初始化"""
         if self.mcp_client is None:
-            # 每个 ToolManager 创建独立的 Client，绑定 user_id 和 role
             self.mcp_client = get_sync_mcp_client(
                 user_id=self.user_id,
                 role=self.role
             )
-            logger.debug(f"[ToolManager] MCP Client 初始化完成: user_id={self.user_id}")
 
     def get_tools(self) -> List[Dict[str, Any]]:
         """
@@ -66,37 +64,26 @@ class ToolManager:
         self._ensure_client()
         if self._tools is None:
             all_tools = self.mcp_client.list_tools()
-            # 根据 Agent 类型过滤工具
             self._tools = self._filter_tools_by_agent_type(all_tools)
-            logger.info(f"[ToolManager] 从 MCP 获取 {len(all_tools)} 个工具，过滤后剩余 {len(self._tools)} 个: {[t.get('name', '') for t in self._tools]}")
+            logger.info(f"[Tools] type={self.agent_type}, all={len(all_tools)}, filtered={len(self._tools)}, tools={[t.get('name', '') for t in self._tools]}")
         return self._tools
     
     def _filter_tools_by_agent_type(self, tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        根据 Agent 类型过滤工具
-        
-        输入：
-            tools: 所有可用工具列表
-        输出：
-            过滤后的工具列表
-        """
+        """根据 Agent 类型过滤工具"""
         agent_type_enum = self._agent_type_mcp_manager.get_agent_type_from_int(self.agent_type)
         allowed_namespaces = self._agent_type_mcp_manager.get_namespaces_for_agent_type(agent_type_enum)
-        
+
         if not allowed_namespaces:
-            logger.warning(f"[ToolManager] Agent 类型 {self.agent_type} 没有配置可用的 MCP，返回空列表")
             return []
-        
+
         filtered_tools = []
         for tool in tools:
             tool_name = tool.get('name', '')
-            # 检查工具是否属于允许的命名空间
-            # 工具名称格式通常是 "namespace__tool_name"
             for namespace in allowed_namespaces:
-                if tool_name.startswith(f"{namespace}__") or tool_name == namespace:
+                if tool_name.startswith(f"{namespace}_") or tool_name == namespace:
                     filtered_tools.append(tool)
                     break
-        
+
         return filtered_tools
 
     def get_tools_for_llm(self) -> List[Dict[str, Any]]:
