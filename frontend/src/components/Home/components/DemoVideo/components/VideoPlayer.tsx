@@ -1,25 +1,30 @@
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { VideoControls } from './VideoControls';
 import { useVideoPlayer } from '../hooks';
 import { videoContainerVariants } from '../animations';
 import { sketchStyles } from '../styles';
-import { DEMO_VIDEO_CONTENT } from '../constants';
+
+interface VideoSource {
+  src: string;
+  type: string;
+}
 
 interface VideoPlayerProps {
+  poster?: string;
+  sources: VideoSource[];
   onTimeUpdate?: (currentTime: number) => void;
   onEnded?: () => void;
+  autoPlay?: boolean;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  poster,
+  sources,
   onTimeUpdate,
   onEnded,
+  autoPlay = false,
 }) => {
-  // 检测是否是从导航栏点击跳转过来的（URL 包含 #demo）
-  const shouldAutoPlay = useMemo(() => {
-    return window.location.hash === '#demo';
-  }, []);
-
   const {
     videoRef,
     containerRef,
@@ -36,7 +41,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     changeVolume,
     toggleFullscreen,
     showControlsTemporarily,
-  } = useVideoPlayer({ onTimeUpdate, onEnded, autoPlay: shouldAutoPlay });
+  } = useVideoPlayer({ onTimeUpdate, onEnded, autoPlay });
+
+  // 当视频源变化时重置视频
+  useEffect(() => {
+    const video = videoRef.current;
+    if (video) {
+      video.currentTime = 0;
+      if (autoPlay) {
+        video.play().catch(() => { });
+      }
+    }
+  }, [sources, autoPlay]);
 
   const handleSeekForward = () => {
     seekTo(Math.min(currentTime + 10, duration));
@@ -57,18 +73,25 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       onMouseMove={showControlsTemporarily}
       onMouseLeave={() => isPlaying && showControlsTemporarily()}
     >
-      <video
-        ref={videoRef}
-        className="w-full h-full object-contain"
-        poster={DEMO_VIDEO_CONTENT.VIDEO.POSTER}
-        onClick={togglePlay}
-        playsInline
-      >
-        {DEMO_VIDEO_CONTENT.VIDEO.SOURCES.map((source, index) => (
-          <source key={index} src={source.src} type={source.type} />
-        ))}
-        您的浏览器不支持视频播放。
-      </video>
+      <AnimatePresence mode="wait">
+        <motion.video
+          key={sources[0]?.src || 'video'}
+          ref={videoRef}
+          className="w-full h-full object-contain"
+          poster={poster}
+          onClick={togglePlay}
+          playsInline
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          {sources.map((source, index) => (
+            <source key={index} src={source.src} type={source.type} />
+          ))}
+          您的浏览器不支持视频播放。
+        </motion.video>
+      </AnimatePresence>
 
       {/* Play Button Overlay */}
       {!isPlaying && (

@@ -8,6 +8,8 @@ from src.api.cold_start import router as cold_start_router
 from src.api.admin import router as admin_router
 from src.api.chat_test import router as chat_test_router
 from src.api.token_stats import router as token_stats_router
+from src.api.assistant_conversations import router as assistant_conversations_router
+from src.api.video import video_router
 
 __all__ = [
     "reset_router",
@@ -19,5 +21,7 @@ __all__ = [
     "cold_start_router",
     "admin_router",
     "chat_test_router",
-    "token_stats_router"
+    "token_stats_router",
+    "assistant_conversations_router",
+    "video_router"
 ]

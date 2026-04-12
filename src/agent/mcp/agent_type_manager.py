@@ -39,7 +39,7 @@ class AgentTypeMCPManager:
         # 为教授配置 MCP
         manager.configure_mcp_for_agent_type(
             AgentType.PROFESSOR,
-            ["websearch", "dictionary", "skill", "rag", "read_file"]
+            ["websearch", "dictionary", "skill", "rag", "read_file", "exec_code"]
         )
         # 获取教授可用的 MCP
         professor_mcp = manager.get_mcp_for_agent_type(AgentType.PROFESSOR)
@@ -92,18 +92,11 @@ class AgentTypeMCPManager:
         logger.info(f"[AgentTypeMCPManager] 配置 {agent_type.name} 的 MCP: {mcp_names}")
     
     def get_mcp_for_agent_type(self, agent_type: AgentType) -> List[MCPConfig]:
-        """
-        获取指定 Agent 类型可用的 MCP 配置列表
-        
-        输入：
-            agent_type: Agent 类型
-        输出：
-            MCPConfig 列表
-        """
+        """获取指定 Agent 类型可用的 MCP 配置列表"""
         mcp_names = self._agent_type_mcp_map.get(agent_type, set())
         return [
-            self._mcp_configs[name] 
-            for name in mcp_names 
+            self._mcp_configs[name]
+            for name in mcp_names
             if name in self._mcp_configs and self._mcp_configs[name].enabled
         ]
     
@@ -119,14 +112,7 @@ class AgentTypeMCPManager:
         return list(self._agent_type_mcp_map.get(agent_type, set()))
     
     def get_namespaces_for_agent_type(self, agent_type: AgentType) -> List[str]:
-        """
-        获取指定 Agent 类型可用的所有命名空间
-        
-        输入：
-            agent_type: Agent 类型
-        输出：
-            命名空间列表
-        """
+        """获取指定 Agent 类型可用的所有命名空间"""
         mcp_configs = self.get_mcp_for_agent_type(agent_type)
         namespaces = []
         for config in mcp_configs:
@@ -147,61 +133,31 @@ class AgentTypeMCPManager:
         return mcp_name in self._agent_type_mcp_map.get(agent_type, set())
     
     def initialize_default_config(self) -> None:
-        """
-        初始化默认配置
-        注册所有 MCP 并为每个 Agent 类型配置默认的 MCP 集合
-        """
+        """初始化默认配置"""
         if self._initialized:
             return
-        
+
         # 注册所有可用的 MCP
-        self.register_mcp(
-            "websearch", 
-            "网络搜索工具，用于搜索互联网信息",
-            ["websearch"]
-        )
-        self.register_mcp(
-            "dictionary", 
-            "词典工具，用于查询单词释义",
-            ["dictionary"]
-        )
-        self.register_mcp(
-            "skill", 
-            "技能管理工具，用于下载和读取技能文档",
-            ["skill"]
-        )
-        self.register_mcp(
-            "rag", 
-            "知识库检索工具，用于从知识库中检索信息",
-            ["rag"]
-        )
-        self.register_mcp(
-            "read_file", 
-            "文件读取工具，用于读取技能子文件",
-            ["read_file"]
-        )
-        
-        # 配置教授 Agent - 拥有所有工具
-        self.configure_mcp_for_agent_type(
-            AgentType.PROFESSOR,
-            ["websearch", "dictionary", "skill", "rag", "read_file"]
-        )
-        
-        # 配置助教 Agent - 只允许对话管理和知识库管理（入库/删除/查看）
-        # 助教不能进行 RAG 检索（rag_search），只能管理知识库文档
-        self.configure_mcp_for_agent_type(
-            AgentType.ASSISTANT,
-            ["assistant_conversation", "assistant_knowledge"]
-        )
-        
-        # 配置管理员 Agent - 暂时没有任何 MCP 工具（未实现）
-        self.configure_mcp_for_agent_type(
-            AgentType.ADMIN,
-            []  # 空列表，暂时不分配任何工具
-        )
-        
+        self.register_mcp("websearch", "网络搜索工具", ["websearch"])
+        self.register_mcp("dictionary", "词典工具", ["dictionary"])
+        self.register_mcp("skill", "技能管理工具", ["skill"])
+        self.register_mcp("rag", "知识库检索工具", ["rag"])
+        self.register_mcp("read_file", "文件读取工具", ["read_file"])
+        self.register_mcp("assistant_conversation", "助教对话管理工具", ["assistant_conversation"])
+        self.register_mcp("assistant_knowledge", "助教知识库管理工具", ["assistant_knowledge"])
+        self.register_mcp("exec_code", "代码执行工具（支持 PPIO 云沙箱）", ["exec_code"])
+
+        # 配置教授 Agent（新增 exec_code）
+        self.configure_mcp_for_agent_type(AgentType.PROFESSOR, ["websearch", "dictionary", "skill", "rag", "read_file", "exec_code"])
+
+        # 配置助教 Agent（不包含 exec_code）
+        self.configure_mcp_for_agent_type(AgentType.ASSISTANT, ["assistant_conversation", "assistant_knowledge", "skill", "read_file", "rag"])
+
+        # 配置管理员 Agent
+        self.configure_mcp_for_agent_type(AgentType.ADMIN, ["websearch", "dictionary", "skill", "rag", "read_file", "assistant_conversation", "assistant_knowledge", "exec_code"])
+
         self._initialized = True
-        logger.info("[AgentTypeMCPManager] 默认配置初始化完成")
+        logger.info("[MCPManager] 初始化完成")
     
     def get_agent_type_from_int(self, agent_type_int: int) -> AgentType:
         """

@@ -152,6 +152,73 @@ def get_conversation_messages(
         conn.close()
 
 
+def get_conversation_messages_for_assistant(
+    conversation_id: str,
+    user_id: int,
+    limit: int = 50
+) -> List[Dict[str, Any]]:
+    """
+    获取对话消息（助教专用）
+    
+    跨表查询逻辑：
+    1. 先查询conversations表，验证对话存在且属于当前用户，且是教授Agent的对话（agent_type=1）
+    2. 再查询messages表，获取对话的具体消息内容
+    
+    Args:
+        conversation_id: 对话ID
+        user_id: 用户ID（用于权限验证）
+        limit: 返回最近N条消息
+    
+    Returns:
+        消息列表，每个消息包含role、content、created_at等字段
+        如果对话不存在或无权访问，返回空列表
+    """
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    try:
+        # 第一步：查询conversations表，验证对话权限和类型
+        cursor.execute('''
+        SELECT conversation_id, title, agent_type
+        FROM conversations
+        WHERE conversation_id = ? 
+          AND user_id = ? 
+          AND is_deleted = FALSE
+          AND agent_type = 1
+        ''', (conversation_id, user_id))
+        
+        conversation = cursor.fetchone()
+        
+        if not conversation:
+            # 对话不存在、无权访问，或不是教授Agent的对话
+            return []
+        
+        # 第二步：查询messages表，获取具体消息内容
+        cursor.execute('''
+        SELECT message_id, role, content, created_at
+        FROM messages 
+        WHERE conversation_id = ?
+        ORDER BY created_at ASC
+        LIMIT ?
+        ''', (conversation_id, limit))
+        
+        rows = cursor.fetchall()
+        
+        return [
+            {
+                'message_id': row['message_id'],
+                'role': row['role'],
+                'content': row['content'],
+                'created_at': row['created_at']
+            }
+            for row in rows
+        ]
+        
+    finally:
+        conn.close()
+
+
 def get_conversation_messages_for_agent(
     conversation_id: str,
     limit: int = 20

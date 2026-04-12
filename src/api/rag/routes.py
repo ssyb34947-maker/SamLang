@@ -354,6 +354,93 @@ async def delete_knowledge(
         )
 
 
+@router.get("/api/knowledge/documents/{doc_id}/chunks")
+async def get_document_chunks(
+    doc_id: str,
+    current_user: dict = Depends(get_current_active_user),
+    pipeline: RetrievalPipeline = Depends(get_retrieval_pipeline)
+):
+    """
+    获取文档的所有分块内容
+
+    用于知识库管理界面的文档预览功能
+
+    Args:
+        doc_id: 文档ID
+        current_user: 当前登录用户
+        pipeline: RetrievalPipeline 实例
+
+    Returns:
+        dict: 包含文档信息和分块列表
+
+    Example Response:
+        ```json
+        {
+            "total": 10,
+            "doc_id": "doc_123",
+            "doc_name": "Python教程.pdf",
+            "doc_type": "book",
+            "is_system": false,
+            "chunks": [
+                {
+                    "index": 1,
+                    "chunk_id": "chunk_001",
+                    "content": "分块内容...",
+                    "metadata": {...}
+                }
+            ]
+        }
+        ```
+
+    Raises:
+        403: 无权访问该文档
+        404: 文档不存在
+    """
+    logger.info(f"[RAG API] Get chunks for document {doc_id} by user {current_user['id']}")
+
+    try:
+        # 获取RAG实例
+        from src.rag import RAG
+        rag = pipeline.rag
+
+        # 验证文档是否存在且用户有权限访问
+        docs = rag.get_user_documents(
+            user_id=str(current_user['id']),
+            include_system=True
+        )
+        doc_info = next((d for d in docs if d["doc_id"] == doc_id), None)
+
+        if not doc_info:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="文档不存在或无权访问"
+            )
+
+        # 获取文档分块
+        chunks = rag.get_document_chunks(
+            doc_id=doc_id,
+            user_id=str(current_user['id'])
+        )
+
+        return {
+            "total": len(chunks),
+            "doc_id": doc_id,
+            "doc_name": doc_info.get("name", "未知文档"),
+            "doc_type": doc_info.get("type", "other"),
+            "is_system": doc_info.get("is_system", False),
+            "chunks": chunks
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[RAG API] Get document chunks error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get document chunks: {str(e)}"
+        )
+
+
 @router.get("/api/rag/health")
 async def health_check(
     request: Request,

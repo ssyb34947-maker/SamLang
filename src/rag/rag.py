@@ -252,6 +252,13 @@ class RAG:
             # 添加额外元数据
             if metadata:
                 document.metadata.update(metadata)
+                # 如果 metadata 中提供了 doc_name，更新 document.name
+                if "doc_name" in metadata and metadata["doc_name"]:
+                    old_name = document.name
+                    document.name = metadata["doc_name"]
+                    logger.info(f"[RAG] 文档名称已更新: '{old_name}' -> '{document.name}'")
+                else:
+                    logger.warning(f"[RAG] ⚠️ metadata 中没有提供 doc_name，使用默认名称: {document.name}")
 
             content_length = len(document.content) if document.content else 0
             logger.info(f"[RAG] ✅ 文档加载成功")
@@ -281,6 +288,8 @@ class RAG:
                 chunk.metadata["type"] = document.type.value
                 chunk.metadata["source"] = document.source
                 chunk.metadata["doc_name"] = document.name
+            
+            logger.info(f"[RAG] 已设置 {len(chunks)} 个 chunk 的 metadata，doc_name='{document.name}'")
 
             # 5. 添加到检索器（传递 creator）
             logger.info(f"[RAG] Step 5/5: 存储到向量数据库...")
@@ -453,11 +462,14 @@ class RAG:
             - List[Dict]: 文档信息列表
         """
         try:
+            logger.info(f"[RAG] 获取用户文档列表: user_id={user_id}, include_system={include_system}")
+            
             # 获取用户自己的文档
             user_docs = self.vector_store.get_documents_by_creator(
                 creator=user_id,
                 doc_type=doc_type.value if doc_type else None
             )
+            logger.info(f"[RAG] 用户文档数量: {len(user_docs)}")
 
             # 标记来源
             for doc in user_docs:
@@ -472,16 +484,19 @@ class RAG:
                     creator="system",
                     doc_type=doc_type.value if doc_type else None
                 )
+                logger.info(f"[RAG] 系统文档数量: {len(all_system)}")
                 for doc in all_system:
                     if doc["doc_id"] not in [d["doc_id"] for d in user_docs]:
                         doc["is_system"] = True
                         doc["owner"] = "system"
                         system_docs.append(doc)
 
-            return user_docs + system_docs
+            all_docs = user_docs + system_docs
+            logger.info(f"[RAG] 总文档数量: {len(all_docs)}")
+            return all_docs
 
         except Exception as e:
-            print(f"获取用户文档失败: {e}")
+            logger.error(f"[RAG] 获取用户文档失败: {e}")
             return []
 
     def can_delete_document(self, doc_id: str, user_id: str) -> tuple[bool, str]:
@@ -534,6 +549,57 @@ class RAG:
             return True, "删除成功"
         else:
             return False, "删除失败"
+
+    def get_document_chunks(
+        self,
+        doc_id: str,
+        user_id: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        获取文档的所有分块内容
+
+        参数：
+            - doc_id: 文档ID
+            - user_id: 用户ID（用于权限验证，可选）
+        返回：
+            - List[Dict]: 分块信息列表，每个分块包含content、metadata等
+        """
+        try:
+            logger.info(f"[RAG] 获取文档分块: doc_id={doc_id}, user_id={user_id}")
+            
+            # 如果提供了user_id，验证权限
+            if user_id:
+                creator = self.vector_store.get_document_creator(doc_id)
+                logger.info(f"[RAG] 文档创建者: {creator}")
+                if creator is None:
+                    logger.warning(f"[RAG] 文档不存在: {doc_id}")
+                    return []
+                if creator != user_id and creator != "system":
+                    logger.warning(f"[RAG] 无权访问文档: {doc_id}, creator={creator}, user_id={user_id}")
+                    return []  # 无权访问
+
+            # 获取所有chunks
+            chunks = self.vector_store.get_all_chunks_by_doc_id(doc_id)
+            logger.info(f"[RAG] 获取到chunks数量: {len(chunks)}")
+
+            # 转换为可序列化的格式
+            result = []
+            for i, chunk in enumerate(chunks):
+                result.append({
+                    "index": i + 1,
+                    "chunk_id": chunk.id,
+                    "doc_id": chunk.doc_id,
+                    "content": chunk.content,
+                    "metadata": chunk.metadata,
+                    "start_pos": chunk.start_pos,
+                    "end_pos": chunk.end_pos
+                })
+
+            return result
+
+        except Exception as e:
+            logger.error(f"[RAG] 获取文档分块失败: {e}")
+            return []
 
     def _get_loader(self, source: Union[str, Path]) -> Optional[BaseLoader]:
         """

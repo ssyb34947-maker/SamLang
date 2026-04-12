@@ -1,16 +1,20 @@
-import React, { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { VideoPlayer, FeatureList } from './components';
+import React, { useState, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { VideoPlayer, FeatureList, VideoSwitcher } from './components';
 import { containerVariants, titleVariants } from './animations';
 import { typography } from './styles';
-import { DEMO_VIDEO_CONTENT } from './constants';
+import { DEMO_VIDEOS } from './constants';
 import { viewportConfig } from '../../constants';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 export const DemoSection: React.FC = () => {
   const [activeFeatureId, setActiveFeatureId] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const { language } = useLanguage();
+
+  // 当前视频数据
+  const currentVideo = useMemo(() => DEMO_VIDEOS[currentVideoIndex], [currentVideoIndex]);
 
   // Get localized content based on language
   const getLocalizedContent = () => {
@@ -19,6 +23,7 @@ export const DemoSection: React.FC = () => {
         TITLE: 'Product Demo',
         SUBTITLE: 'Watch the core features demo of Sam College and learn how to study efficiently',
         FEATURES_TITLE: 'Feature Chapters',
+        VIDEO_SWITCH_TITLE: 'Select Demo',
         SHORTCUTS: 'Shortcuts: Space Play/Pause | ← → Seek | ↑ ↓ Volume | M Mute | F Fullscreen',
       };
     }
@@ -26,6 +31,7 @@ export const DemoSection: React.FC = () => {
       TITLE: '产品演示',
       SUBTITLE: '观看山姆学院的核心功能演示，了解如何在山姆学院学习',
       FEATURES_TITLE: '功能章节',
+      VIDEO_SWITCH_TITLE: '切换演示',
       SHORTCUTS: '快捷键：空格键 播放/暂停 | ← → 快进/快退 | ↑ ↓ 音量 | M 静音 | F 全屏',
     };
   };
@@ -36,14 +42,14 @@ export const DemoSection: React.FC = () => {
     setCurrentTime(time);
     
     // Auto-detect active feature based on current time
-    const features = DEMO_VIDEO_CONTENT.FEATURES;
+    const features = currentVideo.features;
     for (let i = features.length - 1; i >= 0; i--) {
       if (time >= features[i].time) {
         setActiveFeatureId(features[i].id);
         break;
       }
     }
-  }, []);
+  }, [currentVideo]);
 
   const handleFeatureClick = useCallback((time: number, id: string) => {
     setActiveFeatureId(id);
@@ -59,9 +65,22 @@ export const DemoSection: React.FC = () => {
     setActiveFeatureId(null);
   }, []);
 
+  const handleVideoSwitch = useCallback((index: number) => {
+    if (index !== currentVideoIndex) {
+      setCurrentVideoIndex(index);
+      setCurrentTime(0);
+      setActiveFeatureId(null);
+    }
+  }, [currentVideoIndex]);
+
+  // 检测是否是从导航栏点击跳转过来的（URL 包含 #demo）
+  const shouldAutoPlay = useMemo(() => {
+    return window.location.hash === '#demo';
+  }, []);
+
   return (
     <section
-      id={DEMO_VIDEO_CONTENT.SECTION_ID}
+      id="demo"
       className="py-20 md:py-32"
     >
       <div className="container mx-auto px-4">
@@ -95,20 +114,61 @@ export const DemoSection: React.FC = () => {
           >
             {/* Video Player */}
             <div className="lg:col-span-2">
-              <VideoPlayer
-                onTimeUpdate={handleTimeUpdate}
-                onEnded={handleVideoEnded}
-              />
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentVideo.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <VideoPlayer
+                    poster={currentVideo.poster}
+                    sources={currentVideo.sources}
+                    onTimeUpdate={handleTimeUpdate}
+                    onEnded={handleVideoEnded}
+                    autoPlay={shouldAutoPlay}
+                  />
+                </motion.div>
+              </AnimatePresence>
             </div>
 
-            {/* Feature List */}
-            <div className="lg:col-span-1">
-              <FeatureList
-                currentTime={currentTime}
-                activeFeatureId={activeFeatureId}
-                onFeatureClick={handleFeatureClick}
-                featuresTitle={localized.FEATURES_TITLE}
-              />
+            {/* Right Side Panel: Video Switcher + Feature List */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* Video Switcher */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                  {localized.VIDEO_SWITCH_TITLE}
+                </h3>
+                <VideoSwitcher
+                  currentVideoIndex={currentVideoIndex}
+                  onSwitch={handleVideoSwitch}
+                />
+              </div>
+
+              {/* Feature List */}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">
+                  {localized.FEATURES_TITLE}
+                </h3>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentVideo.id}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <FeatureList
+                      currentTime={currentTime}
+                      activeFeatureId={activeFeatureId}
+                      onFeatureClick={handleFeatureClick}
+                      featuresTitle={localized.FEATURES_TITLE}
+                      features={currentVideo.features}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
             </div>
           </motion.div>
 

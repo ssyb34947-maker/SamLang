@@ -14,6 +14,7 @@ import json
 import queue
 import threading
 import uuid
+import time
 from datetime import datetime
 from typing import Optional
 from src.auth.middleware import get_current_active_user
@@ -22,10 +23,16 @@ from src.db.conversation import (
     get_conversation_by_id,
     update_conversation_last_message
 )
+from src.db.assistant_conversation import (
+    create_assistant_conversation,
+    get_assistant_conversation_by_id,
+    add_assistant_message
+)
 from src.db.message import (
     create_message,
     get_conversation_messages_for_agent
 )
+from src.api.sse_events import create_event_handler
 
 router = APIRouter(tags=["chat"])
 
@@ -65,21 +72,16 @@ async def handle_chat_stream(
     if not user_message:
         raise HTTPException(status_code=400, detail="消息不能为空")
 
-    # 验证对话存在且属于当前用户
+    # 验证对话存在且属于当前用户（根据agent_type选择不同的表）
     if conversation_id:
-        conversation = get_conversation_by_id(conversation_id)
+        if agent_type == AGENT_TYPE_ASSISTANT:
+            conversation = get_assistant_conversation_by_id(conversation_id)
+        else:
+            conversation = get_conversation_by_id(conversation_id)
         if not conversation:
             raise HTTPException(status_code=404, detail="对话不存在")
         if conversation['user_id'] != current_user['id']:
             raise HTTPException(status_code=403, detail="无权访问此对话")
-        # 验证对话的agent_type是否匹配
-        if conversation.get('agent_type', 1) != agent_type:
-            expected_name = AGENT_TYPE_NAMES.get(agent_type, "未知")
-            actual_name = AGENT_TYPE_NAMES.get(conversation.get('agent_type', 1), "未知")
-            raise HTTPException(
-                status_code=400, 
-                detail=f"对话类型不匹配：该对话是{actual_name}类型，但请求的是{expected_name}类型"
-            )
 
     try:
         # 使用工厂获取 Agent（实现隔离）
@@ -90,15 +92,23 @@ async def handle_chat_stream(
         if is_new_conversation:
             conversation_id = str(uuid.uuid4())
             title = user_message[:50] + "..." if len(user_message) > 50 else user_message
-            create_conversation(
-                user_id=current_user['id'],
-                conversation_id=conversation_id,
-                title=title,
-                agent_type=agent_type
-            )
+            if agent_type == AGENT_TYPE_ASSISTANT:
+                create_assistant_conversation(
+                    user_id=current_user['id'],
+                    conversation_id=conversation_id,
+                    title=title,
+                    agent_type=agent_type
+                )
+            else:
+                create_conversation(
+                    user_id=current_user['id'],
+                    conversation_id=conversation_id,
+                    title=title,
+                    agent_type=agent_type
+                )
             logger.info(f"[{agent_name}_CHAT_STREAM] 创建新对话: {conversation_id}, agent_type={agent_type}")
         
-        # 获取或创建 Agent（关键：每个 user+conversation+agent_type 组合有独立 Agent）
+        # 获取或创建 Agent
         agent = agent_factory.get_agent(
             user_id=str(current_user['id']),
             conversation_id=conversation_id,
@@ -107,16 +117,15 @@ async def handle_chat_stream(
             stream=True,
             agent_type=agent_type
         )
-        
-        logger.info(f"[{agent_name}_CHAT_STREAM] Agent 准备就绪: user_id={current_user['id']}, conversation_id={conversation_id}")
 
         async def event_generator():
             """生成 SSE 事件"""
             event_queue = queue.Queue()
             full_response = ""
+            iteration = 0
 
-            def thinking_callback(event_type: str, data: dict):
-                event_queue.put({"type": event_type, "data": data})
+            event_handler = create_event_handler(event_queue)
+            thinking_callback = event_handler.create_thinking_callback()
 
             def run_agent():
                 try:
@@ -141,6 +150,7 @@ async def handle_chat_stream(
             thread.start()
 
             # 流式发送事件
+            client_disconnected = False
             while True:
                 try:
                     event = await asyncio.wait_for(
@@ -153,10 +163,19 @@ async def handle_chat_stream(
 
                     if event_type_inner == "token":
                         full_response += data.get("content", "")
-                        yield f"data: {json.dumps(event)}\n\n"
+                        try:
+                            yield f"data: {json.dumps(event)}\n\n"
+                        except Exception:
+                            client_disconnected = True
+                            logger.warning(f"[{agent_name}_CHAT_STREAM] 客户端连接已断开")
+                            break
 
                     elif event_type_inner in ["thinking_step", "tool_call", "tool_result"]:
-                        yield f"data: {json.dumps(event)}\n\n"
+                        try:
+                            yield f"data: {json.dumps(event)}\n\n"
+                        except Exception:
+                            client_disconnected = True
+                            break
 
                     elif event_type_inner == "final_response":
                         full_response = data.get("content", full_response)
@@ -169,7 +188,8 @@ async def handle_chat_stream(
                                 conversation_id=conversation_id,
                                 user_message=user_message,
                                 ai_response=full_response,
-                                is_new_conversation=False
+                                is_new_conversation=False,
+                                agent_type=agent_type
                             )
                             logger.info(f"[{agent_name}_CHAT_STREAM] 消息已保存")
 
@@ -180,41 +200,54 @@ async def handle_chat_stream(
                         except Exception as e:
                             logger.error(f"[{agent_name}_CHAT_STREAM] 保存消息失败: {e}")
 
-                        yield f"data: {json.dumps({'type': 'final_response', 'data': data})}\n\n"
+                        try:
+                            yield f"data: {json.dumps({'type': 'final_response', 'data': data})}\n\n"
+                        except Exception:
+                            client_disconnected = True
 
                         # 发送 token 统计（在流最后）
-                        try:
-                            from src.db.conversation import get_conversation_by_id
-                            conv = get_conversation_by_id(conversation_id)
-                            if conv:
-                                token_stats = {
-                                    'type': 'end',
-                                    'data': {
-                                        'conversation_id': conversation_id,
-                                        'prompt_tokens': conv.get('prompt_tokens', 0),
-                                        'completion_tokens': conv.get('completion_tokens', 0),
-                                        'total_tokens': conv.get('total_tokens', 0),
-                                        'agent_type': agent_type,
-                                        'timestamp': datetime.now().isoformat()
+                        if not client_disconnected:
+                            try:
+                                from src.db.conversation import get_conversation_by_id
+                                conv = get_conversation_by_id(conversation_id)
+                                if conv:
+                                    token_stats = {
+                                        'type': 'end',
+                                        'data': {
+                                            'conversation_id': conversation_id,
+                                            'prompt_tokens': conv.get('prompt_tokens', 0),
+                                            'completion_tokens': conv.get('completion_tokens', 0),
+                                            'total_tokens': conv.get('total_tokens', 0),
+                                            'agent_type': agent_type,
+                                            'timestamp': datetime.now().isoformat()
+                                        }
                                     }
-                                }
-                                yield f"data: {json.dumps(token_stats)}\n\n"
-                                logger.info(f"[{agent_name}_CHAT_STREAM] Token统计已发送: {token_stats['data']}")
-                        except Exception as e:
-                            logger.warning(f"[{agent_name}_CHAT_STREAM] 获取Token统计失败: {e}")
+                                    yield f"data: {json.dumps(token_stats)}\n\n"
+                                    logger.info(f"[{agent_name}_CHAT_STREAM] Token统计已发送: {token_stats['data']}")
+                            except Exception as e:
+                                logger.warning(f"[{agent_name}_CHAT_STREAM] 获取Token统计失败: {e}")
 
                         break
 
                     elif event_type_inner == "error":
-                        yield f"data: {json.dumps(event)}\n\n"
+                        try:
+                            yield f"data: {json.dumps(event)}\n\n"
+                        except Exception:
+                            pass
                         break
 
                 except asyncio.TimeoutError:
-                    yield f"data: {json.dumps({'type': 'error', 'data': {'message': '流式响应超时'}})}\n\n"
+                    try:
+                        yield f"data: {json.dumps({'type': 'error', 'data': {'message': '流式响应超时'}})}\n\n"
+                    except Exception:
+                        pass
                     break
                 except queue.Empty:
                     await asyncio.sleep(0.001)
                     continue
+                except Exception as e:
+                    logger.warning(f"[{agent_name}_CHAT_STREAM] 发送事件时出错: {e}")
+                    break
 
         return StreamingResponse(
             event_generator(),
@@ -240,49 +273,73 @@ async def save_chat_completion(
     conversation_id: str,
     user_message: str,
     ai_response: str,
-    is_new_conversation: bool
+    is_new_conversation: bool,
+    agent_type: int = AGENT_TYPE_PROFESSOR
 ) -> str:
     """
     保存聊天完成结果到数据库
     """
-    logger.debug(f"[SAVE_CHAT] 保存消息: conversation_id={conversation_id}")
+    logger.debug(f"[SAVE_CHAT] 保存消息: conversation_id={conversation_id}, agent_type={agent_type}")
     
     # 估算token
     from src.utils.token_estimator import estimate_tokens
     user_tokens = estimate_tokens(user_message)
     ai_tokens = estimate_tokens(ai_response)
     
-    # 保存用户消息
-    user_message_id = str(uuid.uuid4())
-    create_message(
-        conversation_id=conversation_id,
-        message_id=user_message_id,
-        role='user',
-        content=user_message,
-        prompt_tokens=user_tokens,
-        completion_tokens=0,
-        total_tokens=user_tokens
-    )
-    
-    # 保存 AI 回复
-    ai_message_id = str(uuid.uuid4())
-    create_message(
-        conversation_id=conversation_id,
-        message_id=ai_message_id,
-        role='assistant',
-        content=ai_response,
-        prompt_tokens=0,
-        completion_tokens=ai_tokens,
-        total_tokens=ai_tokens
-    )
-    
-    # 更新对话最后消息信息
-    last_msg_preview = ai_response[:100] + "..." if len(ai_response) > 100 else ai_response
-    update_conversation_last_message(
-        conversation_id=conversation_id,
-        last_message=last_msg_preview,
-        increment_count=True
-    )
+    if agent_type == AGENT_TYPE_ASSISTANT:
+        # 使用助教对话表
+        # 保存用户消息
+        user_message_id = str(uuid.uuid4())
+        add_assistant_message(
+            conversation_id=conversation_id,
+            message_id=user_message_id,
+            role='user',
+            content=user_message,
+            token_count=user_tokens
+        )
+        
+        # 保存 AI 回复
+        ai_message_id = str(uuid.uuid4())
+        add_assistant_message(
+            conversation_id=conversation_id,
+            message_id=ai_message_id,
+            role='assistant',
+            content=ai_response,
+            token_count=ai_tokens
+        )
+    else:
+        # 使用教授对话表
+        # 保存用户消息
+        user_message_id = str(uuid.uuid4())
+        create_message(
+            conversation_id=conversation_id,
+            message_id=user_message_id,
+            role='user',
+            content=user_message,
+            prompt_tokens=user_tokens,
+            completion_tokens=0,
+            total_tokens=user_tokens
+        )
+        
+        # 保存 AI 回复
+        ai_message_id = str(uuid.uuid4())
+        create_message(
+            conversation_id=conversation_id,
+            message_id=ai_message_id,
+            role='assistant',
+            content=ai_response,
+            prompt_tokens=0,
+            completion_tokens=ai_tokens,
+            total_tokens=ai_tokens
+        )
+        
+        # 更新对话最后消息信息
+        last_msg_preview = ai_response[:100] + "..." if len(ai_response) > 100 else ai_response
+        update_conversation_last_message(
+            conversation_id=conversation_id,
+            last_message=last_msg_preview,
+            increment_count=True
+        )
     
     return conversation_id
 
@@ -367,21 +424,16 @@ async def handle_chat_non_stream(
     if not user_message:
         raise HTTPException(status_code=400, detail="消息不能为空")
 
-    # 验证对话存在且属于当前用户
+    # 验证对话存在且属于当前用户（根据agent_type选择不同的表）
     if conversation_id:
-        conversation = get_conversation_by_id(conversation_id)
+        if agent_type == AGENT_TYPE_ASSISTANT:
+            conversation = get_assistant_conversation_by_id(conversation_id)
+        else:
+            conversation = get_conversation_by_id(conversation_id)
         if not conversation:
             raise HTTPException(status_code=404, detail="对话不存在")
         if conversation['user_id'] != current_user['id']:
             raise HTTPException(status_code=403, detail="无权访问此对话")
-        # 验证对话的agent_type是否匹配
-        if conversation.get('agent_type', 1) != agent_type:
-            expected_name = AGENT_TYPE_NAMES.get(agent_type, "未知")
-            actual_name = AGENT_TYPE_NAMES.get(conversation.get('agent_type', 1), "未知")
-            raise HTTPException(
-                status_code=400,
-                detail=f"对话类型不匹配：该对话是{actual_name}类型，但请求的是{expected_name}类型"
-            )
 
     try:
         agent_factory = req.app.state.agent_factory
@@ -391,12 +443,20 @@ async def handle_chat_non_stream(
         if is_new_conversation:
             conversation_id = str(uuid.uuid4())
             title = user_message[:50] + "..." if len(user_message) > 50 else user_message
-            create_conversation(
-                user_id=current_user['id'],
-                conversation_id=conversation_id,
-                title=title,
-                agent_type=agent_type
-            )
+            if agent_type == AGENT_TYPE_ASSISTANT:
+                create_assistant_conversation(
+                    user_id=current_user['id'],
+                    conversation_id=conversation_id,
+                    title=title,
+                    agent_type=agent_type
+                )
+            else:
+                create_conversation(
+                    user_id=current_user['id'],
+                    conversation_id=conversation_id,
+                    title=title,
+                    agent_type=agent_type
+                )
             logger.info(f"[{agent_name}_CHAT] 创建新对话: {conversation_id}, agent_type={agent_type}")
         
         # 获取 Agent
@@ -418,7 +478,8 @@ async def handle_chat_non_stream(
             conversation_id=conversation_id,
             user_message=user_message,
             ai_response=ai_response,
-            is_new_conversation=False
+            is_new_conversation=False,
+            agent_type=agent_type
         )
 
         return {

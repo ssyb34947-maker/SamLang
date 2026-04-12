@@ -54,6 +54,45 @@ tool:
     base_url: "https://openapi.youdao.com/v2/dict"
     api_key: "your_youdao_api_key"
 
+  # 派欧云代码沙箱配置
+  ppio_sandbox:
+    enabled: False  # 是否启用PPIO沙箱
+    # api_key: 从 PPIO_API_KEY 环境变量获取
+    base_url: "https://api.ppio.cloud"
+    default_timeout: 60  # 普通代码默认超时（秒）
+    
+    # Remotion 专用配置
+    remotion:
+      enabled: True
+      timeout: 600  # 视频渲染超时（秒）
+      default_template: "with-media"  # 默认项目模板
+      available_templates:
+        - hello-world
+        - with-media
+        - with-voiceover
+      runtimes:
+        default: "nodejs20"
+        available:
+          - nodejs18
+          - nodejs20
+      quality_presets:
+        - "720p"
+        - "1080p"
+        - "1440p"
+        - "4k"
+      output_formats:
+        - "mp4"
+        - "webm"
+        - "prores"
+    
+    # 视频存储配置
+    video_storage:
+      type: "local"  # local | oss
+      local_path: "./temp/videos"
+      local_url: "/videos"
+      # OSS配置（当type=oss时）
+      # oss_bucket: "your-bucket"
+      # oss_endpoint: "oss-cn-hangzhou.aliyuncs.com"
 
 
 # 技能上传工具配置

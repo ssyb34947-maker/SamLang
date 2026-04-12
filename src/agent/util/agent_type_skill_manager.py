@@ -165,10 +165,10 @@ class AgentTypeSkillManager:
             all_skill_names
         )
         
-        # 配置助教 Agent - 资料整理技能
+        # 配置助教 Agent - 对话总结与知识管理技能（替代 material_organizer）
         self.configure_skills_for_agent_type(
             AgentType.ASSISTANT,
-            ["material_organizer"]  # 资料整理技能
+            ["conversation_summarizer"]  # 对话总结与知识管理SOP
         )
         
         # 配置管理员 Agent - 暂无特定技能

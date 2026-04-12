@@ -559,4 +559,71 @@ def get_user_conversation_stats(user_id: int) -> Dict[str, Any]:
         }
         
     finally:
+        conn.close
+
+
+def get_user_conversations_by_date_range(
+    user_id: int,
+    start_date: str,
+    end_date: str,
+    limit: int = 100,
+    agent_type: int = 1
+) -> List[Dict[str, Any]]:
+    """
+    获取用户在指定日期范围内的对话列表（默认只查询与教授Agent的对话）
+    
+    Args:
+        user_id: 用户ID
+        start_date: 开始日期，格式 "YYYY-MM-DD"
+        end_date: 结束日期，格式 "YYYY-MM-DD"
+        limit: 返回数量限制
+        agent_type: Agent类型过滤（1=教授, 2=助教, 3=管理员AI），默认为1（教授）
+    
+    Returns:
+        对话列表
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    
+    try:
+        # 查询指定日期范围内的对话（默认只查教授Agent的对话）
+        cursor.execute('''
+        SELECT id, conversation_id, title, summary, is_pinned, is_archived,
+               message_count, last_message, last_message_time, total_tokens,
+               prompt_tokens, completion_tokens, agent_type, created_at, updated_at
+        FROM conversations
+        WHERE user_id = ? 
+          AND is_deleted = FALSE 
+          AND is_archived = FALSE
+          AND agent_type = ?
+          AND DATE(created_at) >= DATE(?)
+          AND DATE(created_at) <= DATE(?)
+        ORDER BY created_at DESC
+        LIMIT ?
+        ''', (user_id, agent_type, start_date, end_date, limit))
+        
+        rows = cursor.fetchall()
+        
+        return [
+            {
+                'id': row[0],
+                'conversation_id': row[1],
+                'title': row[2],
+                'summary': row[3],
+                'is_pinned': bool(row[4]),
+                'is_archived': bool(row[5]),
+                'message_count': row[6],
+                'last_message': row[7],
+                'last_message_time': row[8],
+                'total_tokens': row[9] or 0,
+                'prompt_tokens': row[10] or 0,
+                'completion_tokens': row[11] or 0,
+                'agent_type': row[12] or 1,
+                'created_at': row[13],
+                'updated_at': row[14]
+            }
+            for row in rows
+        ]
+        
+    finally:
         conn.close()

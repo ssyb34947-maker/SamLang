@@ -15,6 +15,7 @@ interface TerminalWindowProps {
   onInputChange: (value: string) => void;
   inputRef: React.RefObject<HTMLInputElement>;
   terminalEndRef: React.RefObject<HTMLDivElement>;
+  onKeyDown?: (e: React.KeyboardEvent) => void;
 }
 
 export const TerminalWindow: React.FC<TerminalWindowProps> = ({
@@ -28,6 +29,7 @@ export const TerminalWindow: React.FC<TerminalWindowProps> = ({
   onInputChange,
   inputRef,
   terminalEndRef,
+  onKeyDown,
 }) => {
   const canInput = mode === 'shell' || (mode === 'agent' && !isBooting);
 
@@ -82,15 +84,16 @@ export const TerminalWindow: React.FC<TerminalWindowProps> = ({
               type="text"
               value={inputValue}
               onChange={(e) => onInputChange(e.target.value)}
+              onKeyDown={onKeyDown}
               disabled={isProcessing || isBooting}
               className="flex-1 bg-transparent border-none outline-none font-mono"
               style={{ color: CLI_COLORS.text, fontSize: '14px' }}
               placeholder={
                 isProcessing
-                  ? '处理中...'
+                  ? '...'
                   : mode === 'shell'
-                    ? '输入命令...'
-                    : '输入命令或消息...'
+                    ? 'type /samcollege to start'
+                    : 'message or /cmd'
               }
               autoFocus
             />

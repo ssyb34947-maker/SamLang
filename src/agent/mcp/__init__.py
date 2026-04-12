@@ -21,6 +21,7 @@ from .tools.rag import rag_server
 from .tools.read_file import read_file_mcp
 from .tools.assistant_conversation import assistant_conversation_mcp
 from .tools.assistant_knowledge import assistant_knowledge_mcp
+from .tools.exec_code import exec_code_mcp
 
 
 @lru_cache(maxsize=1)
@@ -63,6 +64,9 @@ async def setup():
     # 挂载youdaodictionary服务器
     #main_mcp.mount(youdao_mcp, namespace="youdao")
 
+    # 挂载代码执行服务器（支持本地和PPIO云沙箱）
+    main_mcp.mount(exec_code_mcp, namespace="exec_code")
+
 
 from .client import MCPClient, get_mcp_client
 from .sync_client import SyncMCPClient, get_sync_mcp_client
@@ -85,6 +89,7 @@ __all__ = [
     "read_file_mcp",
     "assistant_conversation_mcp",
     "assistant_knowledge_mcp",
+    "exec_code_mcp",
     "MCPClient",
     "get_mcp_client",
     "SyncMCPClient",

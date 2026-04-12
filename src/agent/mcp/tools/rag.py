@@ -63,16 +63,16 @@ def get_rag_instance():
 - top_k: 返回结果数量（默认5，最大20）
 - doc_types: 文档类型过滤，可选 ["book", "problem", "note", "other"]
 
-注意：user_id 由系统自动注入，无需填写。
+注意：不要提供 user_id 参数，系统会自动处理。
 
 返回：格式化的检索结果，包含相关文档内容、来源和相关度分数
 """
 )
 async def rag_search(
     query: str,
-    user_id: str = "",
     top_k: int = 5,
-    doc_types: Optional[List[str]] = None
+    doc_types: Optional[List[str]] = None,
+    user_id: str = ""
 ) -> str:
     """
     检索知识库
@@ -98,11 +98,15 @@ async def rag_search(
                 except ValueError:
                     pass
         
+        # 构建过滤器
+        user_filters = {"creator": user_id}
+        system_filters = {"creator": "system"}
+        
         # 执行检索（用户自己的数据）
         user_results = rag.search(
             query=query,
             top_k=top_k,
-            filters={"creator": user_id},
+            filters=user_filters,
             doc_types=doc_type_enums
         )
         
@@ -110,7 +114,7 @@ async def rag_search(
         system_results = rag.search(
             query=query,
             top_k=top_k,
-            filters={"creator": "system"},
+            filters=system_filters,
             doc_types=doc_type_enums
         )
         
@@ -131,23 +135,39 @@ async def rag_search(
         if not all_results:
             return "未找到相关知识。"
         
-        # 格式化结果
-        output_parts = [f"检索到 {len(all_results)} 条相关知识：\n"]
+        # 格式化结果（返回完整chunk内容用于前端展示）
+        import json
+        results_data = []
         
         for i, result in enumerate(all_results, 1):
             chunk = result.chunk
             is_system = chunk.metadata.get("creator") == "system" or "system" in str(chunk.metadata.get("creator", ""))
-            source_tag = "[系统]" if is_system else "[我的]"
             
-            doc_name = chunk.metadata.get("doc_name", "未知文档")
+            doc_name_val = chunk.metadata.get("doc_name", "未知文档")
             source = chunk.metadata.get("source", "")
             
-            output_parts.append(f"\n{i}. {source_tag} {doc_name}")
-            output_parts.append(f"   来源: {source or doc_name}")
-            output_parts.append(f"   相关度: {result.score:.3f}")
-            output_parts.append(f"   内容: {chunk.content[:500]}...")
+            result_item = {
+                "index": i,
+                "doc_name": doc_name_val,
+                "source": source or doc_name_val,
+                "score": round(result.score, 3),
+                "content": chunk.content,  # 返回完整内容
+                "chunk_id": chunk.id,
+                "doc_id": chunk.doc_id,
+                "is_system": is_system,
+                "metadata": {
+                    "start_pos": chunk.start_pos,
+                    "end_pos": chunk.end_pos,
+                    **chunk.metadata
+                }
+            }
+            results_data.append(result_item)
         
-        return "\n".join(output_parts)
+        # 返回JSON格式，方便前端解析
+        return json.dumps({
+            "total": len(results_data),
+            "results": results_data
+        }, ensure_ascii=False, indent=2)
         
     except Exception as e:
         logger.error(f"[RAG MCP] 检索失败: {e}")
@@ -170,12 +190,14 @@ async def rag_search(
 参数说明：
 - doc_id: 要删除的文档ID（必填）
 
+注意：不要提供 user_id 参数，系统会自动处理。
+
 返回：删除结果消息
 """
 )
 async def rag_delete(
     doc_id: str,
-    user_id: str
+    user_id: str = ""
 ) -> str:
     """
     删除知识
@@ -225,12 +247,14 @@ async def rag_delete(
 参数说明：
 - include_system: 是否包含系统知识（默认True）
 
+注意：不要提供 user_id 参数，系统会自动处理。
+
 返回：知识列表，包含文档名称、类型、分块数等信息
 """
 )
 async def rag_list(
-    user_id: str,
-    include_system: bool = True
+    include_system: bool = True,
+    user_id: str = ""
 ) -> str:
     """
     列出用户可访问的知识
@@ -303,17 +327,25 @@ async def rag_list(
 
 参数说明：
 - file_path: 本地文件绝对路径（必填）
+- title: 文档标题（必填！用于在知识库中显示的名称，让用户提供有意义的名称）
 - doc_type: 文档类型 ["book", "problem", "note", "other"]（默认other）
 
-注意：文件必须存在于服务器本地文件系统
+重要：
+- title 是必填参数！必须询问用户想要给文档起什么名字
+- 例如用户上传 "document.pdf"，应该询问："您想给这个文档起什么名字？"
+
+注意：
+- 不要提供 user_id 参数，系统会自动处理
+- 文件必须存在于服务器本地文件系统
 
 返回：入库结果消息
 """
 )
 async def rag_add_document(
     file_path: str,
-    user_id: str,
-    doc_type: str = "other"
+    title: str,
+    doc_type: str = "other",
+    user_id: str = ""
 ) -> str:
     """
     添加文档到知识库
@@ -343,9 +375,18 @@ async def rag_add_document(
             doc_type_enum = DocumentType.OTHER
         
         # 构建元数据
+        file_name = Path(file_path).name
+        
+        # 验证 title 必须是非空字符串
+        if not title or not title.strip():
+            return f"错误：必须提供文档标题（title 参数不能为空）"
+        
+        doc_title = title.strip()
+        
         metadata = {
             "creator": user_id,
-            "source": file_path
+            "source": file_path,
+            "doc_name": doc_title  # 用于知识库显示的文档名
         }
         
         # 添加文档
@@ -356,9 +397,8 @@ async def rag_add_document(
         )
         
         if success:
-            file_name = Path(file_path).name
-            logger.info(f"[RAG MCP] 文档 {file_name} 添加成功")
-            return f"文档 '{file_name}' 添加成功，正在处理中..."
+            logger.info(f"[RAG MCP] 文档 '{doc_title}' 添加成功")
+            return f"文档 '{doc_title}' 添加成功，正在处理中..."
         else:
             logger.error(f"[RAG MCP] 文档添加失败")
             return "文档添加失败，请检查文件格式是否正确"
@@ -366,6 +406,75 @@ async def rag_add_document(
     except Exception as e:
         logger.error(f"[RAG MCP] 添加文档异常: {e}")
         return f"添加文档失败: {str(e)}"
+
+
+@rag_server.tool(
+    name="rag_get_document_chunks",
+    description="""获取文档的所有分块内容（用于预览文档）。
+
+使用场景：
+- 用户想查看某个文档的具体内容分块
+- 在知识库管理界面预览文档
+
+参数说明：
+- doc_id: 文档ID（必填）
+
+注意：
+- 不要提供 user_id 参数，系统会自动处理
+- 只能获取用户自己的文档或系统文档
+- 返回文档的所有分块，按顺序排列
+
+返回：文档分块列表，每个分块包含content、metadata等信息
+"""
+)
+async def rag_get_document_chunks(
+    doc_id: str,
+    user_id: str = ""
+) -> str:
+    """
+    获取文档的所有分块内容
+    """
+    try:
+        rag = get_rag_instance()
+        
+        logger.info(f"[RAG MCP] 用户 {user_id} 请求获取文档分块: {doc_id}")
+        
+        # 获取文档分块
+        chunks = rag.get_document_chunks(
+            doc_id=doc_id,
+            user_id=user_id if user_id else None
+        )
+        
+        if not chunks:
+            return json.dumps({
+                "total": 0,
+                "chunks": [],
+                "message": "未找到文档或无权访问"
+            }, ensure_ascii=False)
+        
+        # 获取文档信息
+        docs = rag.get_user_documents(user_id=user_id, include_system=True)
+        doc_info = next((d for d in docs if d["doc_id"] == doc_id), None)
+        
+        # 构建响应
+        result = {
+            "total": len(chunks),
+            "doc_id": doc_id,
+            "doc_name": doc_info.get("name", "未知文档") if doc_info else "未知文档",
+            "doc_type": doc_info.get("type", "other") if doc_info else "other",
+            "is_system": doc_info.get("is_system", False) if doc_info else False,
+            "chunks": chunks
+        }
+        
+        return json.dumps(result, ensure_ascii=False, indent=2)
+        
+    except Exception as e:
+        logger.error(f"[RAG MCP] 获取文档分块失败: {e}")
+        return json.dumps({
+            "total": 0,
+            "chunks": [],
+            "error": str(e)
+        }, ensure_ascii=False)
 
 
 if __name__ == "__main__":
