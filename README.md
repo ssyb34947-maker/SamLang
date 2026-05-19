@@ -1,4 +1,24 @@
-# SamCollege
+<h1 align="center">山姆学院 (Samcollege)</h1>
+<p align="center">
+  <strong>全站式智能教育系统</strong>
+</p>
+
+<p align="center">
+  <a href="#">
+    <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python">
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/AI-Agent-red.svg" alt="AI">
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/FastAPI-现代Web框架-green.svg" alt="FastAPI">
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License">
+  </a>
+</p>
+
+---
 
 ## 项目背景与使命
 
