@@ -1,6 +1,6 @@
-<h1 align="center">山姆学院 (Samcollege)</h1>
+<h1 align="center">山姆财经学院 (Samcollege)</h1>
 <p align="center">
-  <strong>全站式智能教育系统</strong>
+  <strong>全站式财经学科智能教育系统</strong>
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
 
 ## 项目背景与使命
 
-SamCollege（山姆学院）是一个面向财经学科的 AI 教学平台。我们相信，优质的教育资源应该是普惠的、个性化的。通过AI Agent 技术，SamCollege 致力于为每一位财经学习者提供专属的"智能数字教学平台"，让知识触手可及。
+Sam College of Finance and Economics（山姆财经学院）是一个面向财经学科的 AI 教学平台。我们相信，优质的教育资源应该是普惠的、个性化的。通过AI Agent 技术，Sam College 致力于为每一位财经学习者提供专属的"智能数字教学平台"，让知识触手可及。
 
 我们的任务是通过 AI 技术打破传统教育的时空限制，构建一个能够自更新、自适应的智能教学系统，为学习者提供真正个性化的学习体验。
 
@@ -30,8 +30,22 @@ SamCollege（山姆学院）是一个面向财经学科的 AI 教学平台。我
 
 ### 主页预览
 
-<img src="img/home0.png" alt="SamCollege 主页" width="800"/>
+<img src="img/home0.png" alt="Sam College of Finance and Economics 主页" width="800"/>
+<p align="center">
+  <strong>Sam College of Finance and Economics 主页</strong>
+</p>
+<br />
 
+<img src="img/home1.png" alt="Sam College of Finance and Economics 主页" width="800"/>
+<p align="center">
+  <strong>双语支持</strong>
+</p>
+<br />
+
+<img src="img/home2.png" alt="Sam College of Finance and Economics 主页" width="800"/>
+<p align="center">
+  <strong>多风格系统</strong>
+</p>
 <br />
 
 ***

@@ -4,9 +4,9 @@
 
 // ===== Brand Info =====
 export const BRAND = {
-  NAME: 'Sam College',
-  SLOGAN: 'Sam College',
-  SUB_SLOGAN: 'All-subject AI teaching platform, making knowledge within reach.\nSupports Open Claw system-level execution, builds self-updating knowledge base, tracks learning progress, and creates personalized learning experiences',
+  NAME: 'Sam College of Finance and Economics',
+  SLOGAN: 'Sam College of Finance and Economics',
+  SUB_SLOGAN: 'Finance and Economics AI teaching platform, making knowledge within reach.\nSupports Open Claw system-level execution, builds self-updating knowledge base, tracks learning progress, and creates personalized learning experiences',
   TAGLINE: 'written by Sam',
 } as const;
 
@@ -34,7 +34,7 @@ export const EXTERNAL_LINKS = {
 
 // ===== Hero Section =====
 export const HERO = {
-  BADGE: 'All-Subject AI Teaching Platform',
+  BADGE: 'Finance and Economics AI Teaching Platform',
   CTA: {
     PRIMARY: 'Start Learning Free',
     SECONDARY_GUEST: 'Login',
@@ -46,9 +46,9 @@ export const HERO = {
     TITLE: '{BRAND} Agent',
     AI_MESSAGES: [
       "Hello! I'm Professor Sam. What would you like to learn today? I'll teach you in the most suitable way for you.",
-      "Great! Let me organize the core knowledge points of conic sections for you... Related data has been saved, and you can also check out the video I prepared for you...",
+      "Great! Let me organize the core knowledge points of accounting for you... Related data has been saved, and you can also check out the video I prepared for you...",
     ],
-    USER_MESSAGE: 'I want to review the conic sections part of high school math',
+    USER_MESSAGE: 'I want to review the part of accounting',
     INPUT_PLACEHOLDER: 'Type a message...',
     DEMO_LINK_TEXT: 'Watch Video Demo',
   },
@@ -75,8 +75,8 @@ export const FEATURES_LIST = [
   },
   {
     id: 'all-subjects',
-    title: 'All-Subject Teaching',
-    description: 'Covers all subjects including math, physics, chemistry, English, etc., supports output of teaching videos',
+    title: 'Finance and Economics Teaching Vertical Optimization',
+    description: 'Covers finance, economics, accounting, etc., supports output of teaching videos',
     icon: 'BookOpen',
   },
   {

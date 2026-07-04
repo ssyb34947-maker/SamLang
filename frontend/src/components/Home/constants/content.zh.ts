@@ -4,9 +4,9 @@
 
 // ===== 品牌信息 =====
 export const BRAND = {
-  NAME: 'Sam College',
-  SLOGAN: '山姆学院',
-  SUB_SLOGAN: '全学科 AI 教学平台，让知识触手可及。\n支持 Open Claw 系统级运行，构建自更新知识库，追踪学习进度，打造个性化学习体验',
+  NAME: 'Sam College of Finance and Economics',
+  SLOGAN: '山姆财经学院',
+  SUB_SLOGAN: '财经学科 AI 教学平台，让知识触手可及。\n支持 Open Claw 系统级运行，构建自更新知识库，追踪学习进度，打造个性化学习体验',
   TAGLINE: 'written by Sam',
 } as const;
 
@@ -34,21 +34,21 @@ export const EXTERNAL_LINKS = {
 
 // ===== Hero区域 =====
 export const HERO = {
-  BADGE: '全学科 AI 教学平台',
+  BADGE: '财经学科 AI 教学平台',
   CTA: {
     PRIMARY: '免费开始学习',
     SECONDARY_GUEST: '登录',
     SECONDARY_AUTH: '进入学习',
     DOWNLOAD: '下载客户端',
   },
-  TRUST_BADGES: ['免费开始', '全学科覆盖', '随时取消'],
+  TRUST_BADGES: ['深度集成', '财经学科优化', '零成本启动'],
   DEMO: {
     TITLE: '{BRAND} Agent',
     AI_MESSAGES: [
       '你好！我是山姆教授。今天想学习什么内容？我会用最适合你的方法教会你。',
-      '好的！让我为你整理圆锥曲线的核心知识点...相关数据已经保存，你也可以查看我为你准备的视频...',
+      '好的！让我为你整理净现值计算的核心知识点...相关数据已经保存，你也可以查看我为你准备的视频...',
     ],
-    USER_MESSAGE: '我想复习高中数学的圆锥曲线部分',
+    USER_MESSAGE: '我想复习的有效市场假说净现值计算部分',
     INPUT_PLACEHOLDER: '输入消息...',
     DEMO_LINK_TEXT: '查看视频演示',
   },
@@ -57,7 +57,7 @@ export const HERO = {
 // ===== 功能特性 =====
 export const FEATURES_SECTION = {
   TITLE: '强大功能，助力学习',
-  SUBTITLE: '12+ 核心功能，覆盖学习全流程，让全学科学习变得更加高效、有趣',
+  SUBTITLE: '12+ 核心功能，覆盖学习全流程，让财经学习变得更加高效、有趣',
 } as const;
 
 export const FEATURES_LIST = [
@@ -75,8 +75,8 @@ export const FEATURES_LIST = [
   },
   {
     id: 'all-subjects',
-    title: '全学科教学',
-    description: '覆盖数学、物理、化学、英语等全学科内容，支持输出教学视频等多模态教学',
+    title: '财经垂直优化',
+    description: '覆盖金融、经济、会计等全学科内容，支持输出教学视频等多模态教学',
     icon: 'BookOpen',
   },
   {
@@ -224,7 +224,7 @@ export const CTA_SECTION = {
 
 // ===== 页脚 =====
 export const FOOTER = {
-  TAGLINE: '山姆学院，让每一分钟的学习都有价值。',
+  TAGLINE: '山姆财经学院，让每一分钟的学习都有价值。',
   COPYRIGHT: '© 2026 {BRAND}. All rights reserved.',
   MADE_WITH: 'Made with ❤️ for every learner',
   LINK_GROUPS: [
